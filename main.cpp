@@ -188,7 +188,6 @@ static void Draw()
         return;
     }
     {
-        uniformBuffer.CameraUp = glm::vec3{0.0f, 1.0f, 0.0f};
         uniformBuffer.TanHalfFov = std::tan(kFov * 0.5f);
         uniformBuffer.Aspect = float(WIDTH) / HEIGHT;
         uniformBuffer.CameraForward.x = std::cos(pitch) * std::cos(yaw);
@@ -196,8 +195,10 @@ static void Draw()
         uniformBuffer.CameraForward.z = std::cos(pitch) * std::sin(yaw);
         uniformBuffer.CameraForward = glm::normalize(uniformBuffer.CameraForward);
         uniformBuffer.CameraPosition = -uniformBuffer.CameraForward * distance;
-        uniformBuffer.CameraRight = glm::cross(uniformBuffer.CameraForward, uniformBuffer.CameraUp);
+        uniformBuffer.CameraRight = glm::cross(uniformBuffer.CameraForward, glm::vec3(0.0f, 1.0f, 0.0f));
         uniformBuffer.CameraRight = glm::normalize(uniformBuffer.CameraRight);
+        uniformBuffer.CameraUp = glm::cross(uniformBuffer.CameraRight, uniformBuffer.CameraForward);
+        uniformBuffer.CameraUp = glm::normalize(uniformBuffer.CameraUp);
     }
     {
         SDL_GPUStorageTextureReadWriteBinding readWriteTexture{};
