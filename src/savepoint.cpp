@@ -1,7 +1,25 @@
-#include <filesystem>
-#include <functional>
 #include <savepoint.hpp>
+#include <cstdio>
+#include <filesystem>
+#include <string>
 #include "sqlite3.h"
+
+static SavepointLogFunction logFunction = SavepointDefaultLogFunction;
+
+void SavepointSetLogFunction(const SavepointLogFunction& function)
+{
+    logFunction = function;
+}
+
+void SavepointDefaultLogFunction(const std::string& string)
+{
+    std::fputs(string.data(), stderr);
+}
+
+void SavepointLog(const std::string& string)
+{
+    logFunction(string);
+}
 
 Savepoint::Savepoint()
     : Handle{nullptr}
@@ -42,15 +60,15 @@ SavepointSerializer Savepoint::Read()
     return {};
 }
 
-void Savepoint::Read(const SavepointEntityFunc& func, int level)
+void Savepoint::Read(const SavepointEntityFunction& function, int level)
 {
 }
 
-void Savepoint::Read(const SavepointTile2DFunc& func, int level)
+void Savepoint::Read(const SavepointTile2DFunction& function, int level)
 {
 }
 
-void Savepoint::Read(const SavepointTile3DFunc& func, int level)
+void Savepoint::Read(const SavepointTile3DFunction& function, int level)
 {
 }
 

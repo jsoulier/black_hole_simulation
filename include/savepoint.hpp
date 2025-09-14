@@ -1,12 +1,27 @@
 #pragma once
 
+#include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <format>
 #include <functional>
 #include <limits>
+#include <memory>
+#include <span>
 #include <string>
+#include <utility>
+#include <vector>
 
 class Savepoint;
+class SavepointID;
+class SavepointSerializer;
+class SavepointVersion;
+
+using SavepointLogFunction = std::function<void(const std::string& string)>;
+
+void SavepointSetLogFunction(const SavepointLogFunction& function);
+void SavepointDefaultLogFunction(const std::string& string);
+void SavepointLog(const std::string& string);
 
 class SavepointID
 {
@@ -114,14 +129,50 @@ private:
     friend class Savepoint;
 
 public:
+    SavepointSerializer()
+        : Version{}
+        , Writer{}
+        , Reader{}
+        , Offset{}
+    {
+    }
+
+    template<typename T, typename... Args>
+    void Visit(T& item, SavepointVersion version, Args&&... args)
+    {
+        if (!Reader.empty())
+        {
+            if (Version < version)
+            {
+                item = T{std::forward<Args>(args)...};
+                return;
+            }
+            if (Offset + sizeof(T) > Reader.size())
+            {
+                SavepointLog(std::format("Failed to read from serializer: {} -> {}", Version.GetString(), version.GetString()));
+                item = T{std::forward<Args>(args)...};
+                return;
+            }
+            std::memcpy(std::addressof(item), Reader.size() + Offset, sizeof(T));
+            Offset += sizeof(T);
+        }
+        else
+        {
+            Writer.resize(Writer.size() + sizeof(T));
+            std::memcpy(Writer.data() + Writer.size() - sizeof(T), std::addressof(item), sizeof(T));
+        }
+    }
 
 private:
     SavepointVersion Version;
+    std::vector<uint8_t> Writer;
+    std::span<uint8_t> Reader;
+    uint32_t Offset;
 };
 
-using SavepointEntityFunc = std::function<void(SavepointSerializer& serializer, SavepointID id)>;
-using SavepointTile2DFunc = std::function<void(SavepointSerializer& serializer, int x, int y)>;
-using SavepointTile3DFunc = std::function<void(SavepointSerializer& serializer, int x, int y, int z)>;
+using SavepointEntityFunction = std::function<void(SavepointSerializer& serializer, SavepointID id)>;
+using SavepointTile2DFunction = std::function<void(SavepointSerializer& serializer, int x, int y)>;
+using SavepointTile3DFunction = std::function<void(SavepointSerializer& serializer, int x, int y, int z)>;
 
 class Savepoint
 {
@@ -139,9 +190,9 @@ public:
     void Write(const SavepointSerializer& serializer, int x, int y, int level = 0);
     void Write(const SavepointSerializer& serializer, int x, int y, int z, int level = 0);
     SavepointSerializer Read();
-    void Read(const SavepointEntityFunc& func, int level = 0);
-    void Read(const SavepointTile2DFunc& func, int level = 0);
-    void Read(const SavepointTile3DFunc& func, int level = 0);
+    void Read(const SavepointEntityFunction& function, int level = 0);
+    void Read(const SavepointTile2DFunction& function, int level = 0);
+    void Read(const SavepointTile3DFunction& function, int level = 0);
     void Delete(const SavepointID id);
 
 private:
