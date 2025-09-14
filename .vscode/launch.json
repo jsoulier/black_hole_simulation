@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "win32",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/minicraft++.exe",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "CMake: build"
+        },
+    ]
+}

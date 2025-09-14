@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.24)
+project(savepoint)
+
+set(BINARY_DIR ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${BINARY_DIR})
+make_directory(${BINARY_DIR})
+
+configure_file(LICENSE.txt ${BINARY_DIR} COPYONLY)
+configure_file(README.md ${BINARY_DIR} COPYONLY)
+
+add_library(savepoint src/savepoint.cpp src/sqlite3.c)
+add_library(savepoint::savepoint ALIAS savepoint)
+target_include_directories(savepoint PUBLIC include)
+set_target_properties(savepoint PROPERTIES CXX_STANDARD 23)
+
+if(PROJECT_IS_TOP_LEVEL)
+    add_executable(savepoint_test test/savepoint.cpp)
+    set_target_properties(savepoint_test PROPERTIES CXX_STANDARD 23)
+    target_link_libraries(savepoint_test savepoint)
+    add_test(NAME savepoint_test COMMAND savepoint_test)
+endif()
