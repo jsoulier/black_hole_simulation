@@ -5,8 +5,8 @@
             "name": "win32",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/minicraft++.exe",
-            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/build/bin/savepoint_test.exe",
+            "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
     ]

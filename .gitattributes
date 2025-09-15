@@ -1,2 +1,2 @@
-*.c limguist-vendored
-*.h limguist-vendored
+src/sqlite3.c limguist-vendored
+src/sqlite3.h limguist-vendored
