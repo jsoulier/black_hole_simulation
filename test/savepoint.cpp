@@ -1,9 +1,10 @@
-#include <cassert>
-#include <memory>
 #include <savepoint.hpp>
+#include <cassert>
 #include <filesystem>
+#include <memory>
+#include <string>
 
-static const std::filesystem::path kFileName = "savepoint.sqlite3";
+static const std::string kFileName = "savepoint.sqlite3";
 
 static constexpr SavepointVersion kVersion1{0, 0, 1};
 static constexpr SavepointVersion kVersion2{0, 1, 0};
@@ -15,7 +16,7 @@ struct ItemV2
     int Durability = 1;
     int Damage = 2;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
         archive(Durability);
         archive(Damage);
@@ -28,7 +29,7 @@ struct ItemV3
     int Rarity = 2;
     int Damage = 3;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
         archive(Durability);
         archive(Damage);
@@ -42,11 +43,18 @@ struct EntityV1
     float Y = 2.0f;
     int Health = 3;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
         archive(X);
         archive(Y);
         archive(Health);
+    }
+
+    bool operator==(const EntityV1& other) const
+    {
+        return X == other.X &&
+            Y == other.Y &&
+            Health == other.Health;
     }
 };
 
@@ -58,7 +66,7 @@ struct EntityV2
     ItemV2 Item;
     int Health = 4;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
         archive(Strength, kVersion2);
         archive(X);
@@ -77,7 +85,7 @@ struct EntityV3
     int Health = 4;
     int Intelligence = 5;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
         archive(Strength, kVersion2);
         archive(X);
@@ -98,7 +106,7 @@ struct EntityV4
     int Health = 5;
     int Intelligence = 6;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
         archive(Strength, kVersion2);
         archive(X);
@@ -114,9 +122,9 @@ struct ZombieV1 : EntityV1
 {
     float Speed = 1.0f;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
-        EntityV1::Archive(archive);
+        EntityV1::Visit(archive);
         archive(Speed);
     }
 };
@@ -126,9 +134,9 @@ struct ZombieV21 : EntityV1
     float Speed = 1.0f;
     float VelocityX = 2.0f;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
-        EntityV1::Archive(archive);
+        EntityV1::Visit(archive);
         archive(Speed);
         archive(VelocityX, kVersion2);
     }
@@ -139,9 +147,9 @@ struct ZombieV22 : EntityV2
     float Speed = 1.0f;
     float VelocityX = 2.0f;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
-        EntityV2::Archive(archive);
+        EntityV2::Visit(archive);
         archive(Speed);
         archive(VelocityX, kVersion2);
     }
@@ -154,9 +162,9 @@ struct ZombieV4 : EntityV4
     float VelocityY = 2.0f;
     float VelocityZ = 2.0f;
 
-    void Archive(SavepointArchive& archive)
+    void Visit(SavepointArchive& archive)
     {
-        EntityV4::Archive(archive);
+        EntityV4::Visit(archive);
         archive(Speed);
         archive(VelocityX, kVersion2);
         archive(VelocityY, kVersion4);
@@ -166,11 +174,27 @@ struct ZombieV4 : EntityV4
 
 int main()
 {
+    std::filesystem::remove(kFileName);
+    std::filesystem::remove(kFileName + "-journal");
     Savepoint savepoint;
     assert(savepoint.Open(kFileName));
     {
-        auto entityV1 = std::make_unique<EntityV1>();
-        // TODO:
+        SavepointArchive archive{kVersion1};
+        SavepointID inEntityID;
+        std::unique_ptr<EntityV1> inEntity = std::make_unique<EntityV1>();
+        inEntity->Visit(archive);
+        savepoint.Write(archive, inEntityID);
+        int i = 0;
+        savepoint.Read([&](SavepointArchive& archive, SavepointID outEntityID)
+        {
+            std::unique_ptr<EntityV1> outEntity = std::make_unique<EntityV1>();
+            outEntity->Visit(archive);
+            assert(*inEntity == *outEntity);
+            assert(inEntityID == outEntityID);
+            i++;
+        });
+        assert(i == 1);
+        savepoint.Clear();
     }
     savepoint.Save();
     savepoint.Close();

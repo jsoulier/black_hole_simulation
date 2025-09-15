@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include <filesystem>
 #include <format>
 #include <functional>
 #include <limits>
@@ -125,16 +124,16 @@ private:
 };
 
 template<typename T>
-concept SavepointHasArchive = requires(T t, SavepointArchive& archive)
+concept SavepointVisitable = requires(T t, SavepointArchive& archive)
 {
-    { t.Archive(archive) };
+    { t.Visit(archive) };
 };
 
 template<typename T>
-concept SavepointCanCopy = requires()
+concept SavepointPrimitive = requires()
 {
     requires (!std::is_pointer_v<T>);
-    requires (!SavepointHasArchive<T>);
+    requires (!SavepointVisitable<T>);
 };
 
 class SavepointArchive
@@ -143,15 +142,25 @@ private:
     friend class Savepoint;
 
 public:
-    SavepointArchive()
-        : Version{}
+    SavepointArchive(SavepointVersion version = {})
+        : Version{version}
         , Writer{}
         , Reader{}
-        , Offset{}
+        , Offset{0}
     {
+        operator()(version);
     }
 
-    template<SavepointCanCopy T, typename... Args>
+    SavepointArchive& operator=(SavepointArchive&& other)
+    {
+        Version = other.Version;
+        Writer = std::move(other.Writer);
+        Reader = other.Reader;
+        Offset = other.Offset;
+        return *this;
+    }
+
+    template<SavepointPrimitive T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         if (!Reader.empty())
@@ -163,7 +172,7 @@ public:
             }
             if (Offset + sizeof(T) > Reader.size())
             {
-                SavepointLog(std::format("Failed to read from archive: {} -> {}", Version.GetString(), version.GetString()));
+                SavepointLog(std::format("Tried to read past the end of an archive: {} -> {}", Version.GetString(), version.GetString()));
                 item = T{std::forward<Args>(args)...};
                 return;
             }
@@ -177,7 +186,7 @@ public:
         }
     }
 
-    template<SavepointHasArchive T, typename... Args>
+    template<SavepointVisitable T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         if (!Reader.empty())
@@ -188,7 +197,13 @@ public:
                 return;
             }
         }
-        item.Archive(*this);
+        item.Visit(*this);
+    }
+
+    void Reset()
+    {
+        Writer.clear();
+        operator()(Version);
     }
 
 private:
@@ -205,12 +220,12 @@ using SavepointTile3DFunction = std::function<void(SavepointArchive& archive, in
 class Savepoint
 {
 public:
-    Savepoint();
+    Savepoint() = default;
     Savepoint(const Savepoint& other) = delete;
     Savepoint& operator=(const Savepoint& other) = delete;
     Savepoint(Savepoint&& other) = delete;
     Savepoint& operator=(Savepoint&& other) = delete;
-    bool Open(const std::filesystem::path& path);
+    bool Open(const std::string& path);
     void Close();
     void Save();
     void Write(const SavepointArchive& archive);
@@ -222,6 +237,7 @@ public:
     void Read(const SavepointTile2DFunction& function, int level = 0);
     void Read(const SavepointTile3DFunction& function, int level = 0);
     void Delete(const SavepointID id);
+    void Clear();
 
 private:
     typedef struct sqlite3 sqlite;
@@ -233,8 +249,11 @@ private:
     sqlite3_stmt* WriteTile2DStmt;
     sqlite3_stmt* WriteTile3DStmt;
     sqlite3_stmt* ReadStmt;
-    sqlite3_stmt* ReadEntityStmt;
-    sqlite3_stmt* ReadTile2DStmt;
-    sqlite3_stmt* ReadTile3DStmt;
+    sqlite3_stmt* ReadEntitiesStmt;
+    sqlite3_stmt* ReadTiles2DStmt;
+    sqlite3_stmt* ReadTiles3DStmt;
     sqlite3_stmt* DeleteEntityStmt;
+    sqlite3_stmt* ClearEntitiesStmt;
+    sqlite3_stmt* ClearTiles2DStmt;
+    sqlite3_stmt* ClearTiles3DStmt;
 };
