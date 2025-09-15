@@ -1,6 +1,7 @@
+#include <savepoint.hpp>
+#include <cstdint>
 #include <cstdio>
 #include <format>
-#include <savepoint.hpp>
 #include <string>
 #include "sqlite3.h"
 

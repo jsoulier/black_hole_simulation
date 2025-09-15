@@ -167,13 +167,19 @@ public:
         {
             if (Version < version)
             {
-                item = T{std::forward<Args>(args)...};
+                if constexpr (sizeof...(Args) > 0)
+                {
+                    item = T{std::forward<Args>(args)...};
+                }
                 return;
             }
             if (Offset + sizeof(T) > Reader.size())
             {
                 SavepointLog(std::format("Tried to read past the end of an archive: {} -> {}", Version.GetString(), version.GetString()));
-                item = T{std::forward<Args>(args)...};
+                if constexpr (sizeof...(Args) > 0)
+                {
+                    item = T{std::forward<Args>(args)...};
+                }
                 return;
             }
             std::memcpy(std::addressof(item), Reader.data() + Offset, sizeof(T));
@@ -193,7 +199,10 @@ public:
         {
             if (Version < version)
             {
-                item = T{std::forward<Args>(args)...};
+                if constexpr (sizeof...(Args) > 0)
+                {
+                    item = T{std::forward<Args>(args)...};
+                }
                 return;
             }
         }

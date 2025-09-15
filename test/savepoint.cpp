@@ -21,9 +21,15 @@ struct ItemV2
         archive(Durability);
         archive(Damage);
     }
+
+    bool operator==(const ItemV2& other) const
+    {
+        return Durability == other.Durability &&
+            Damage == other.Damage;
+    }
 };
 
-struct ItemV3
+struct ItemV4
 {
     int Durability = 1;
     int Rarity = 2;
@@ -33,7 +39,21 @@ struct ItemV3
     {
         archive(Durability);
         archive(Damage);
-        archive(Rarity, kVersion3);
+        archive(Rarity, kVersion4);
+    }
+
+    bool operator==(const ItemV2& other) const
+    {
+        return Durability == other.Durability &&
+            Rarity == 2 &&
+            Damage == other.Damage;
+    }
+
+    bool operator==(const ItemV4& other) const
+    {
+        return Durability == other.Durability &&
+            Rarity == other.Rarity &&
+            Damage == other.Damage;
     }
 };
 
@@ -60,11 +80,11 @@ struct EntityV1
 
 struct EntityV2
 {
-    int Strength = 1;
-    float X = 2.0f;
-    float Y = 3.0f;
+    int Strength = 4;
+    float X = 1.0f;
+    float Y = 2.0f;
     ItemV2 Item;
-    int Health = 4;
+    int Health = 3;
 
     void Visit(SavepointArchive& archive)
     {
@@ -74,15 +94,33 @@ struct EntityV2
         archive(Item, kVersion2);
         archive(Health);
     }
+
+    bool operator==(const EntityV1& other) const
+    {
+        return Strength == 4 &&
+            X == other.X &&
+            Y == other.Y &&
+            Item == ItemV2{} &&
+            Health == other.Health;
+    }
+
+    bool operator==(const EntityV2& other) const
+    {
+        return Strength == other.Strength &&
+            X == other.X &&
+            Y == other.Y &&
+            Item == other.Item &&
+            Health == other.Health;
+    }
 };
 
 struct EntityV3
 {
-    int Strength = 1;
-    float X = 2.0f;
-    float Y = 3.0f;
+    int Strength = 4;
+    float X = 1.0f;
+    float Y = 2.0f;
     ItemV2 Item;
-    int Health = 4;
+    int Health = 3;
     int Intelligence = 5;
 
     void Visit(SavepointArchive& archive)
@@ -92,29 +130,103 @@ struct EntityV3
         archive(Y);
         archive(Item, kVersion2);
         archive(Health);
-        archive(Intelligence);
+        archive(Intelligence, kVersion3);
+    }
+
+    bool operator==(const EntityV1& other) const
+    {
+        return Strength == 4 &&
+            X == other.X &&
+            Y == other.Y &&
+            Item == ItemV2{} &&
+            Health == other.Health &&
+            Intelligence == 5;
+    }
+
+    bool operator==(const EntityV2& other) const
+    {
+        return Strength == other.Strength &&
+            X == other.X &&
+            Y == other.Y &&
+            Item == other.Item &&
+            Health == other.Health &&
+            Intelligence == 5;
+    }
+
+    bool operator==(const EntityV3& other) const
+    {
+        return Strength == other.Strength &&
+            X == other.X &&
+            Y == other.Y &&
+            Item == other.Item &&
+            Health == other.Health &&
+            Intelligence == other.Intelligence;
     }
 };
 
 struct EntityV4
 {
-    int Strength = 1;
-    float X = 2.0f;
-    float Z = 3.0f;
-    float Y = 4.0f;
-    ItemV3 Item;
-    int Health = 5;
-    int Intelligence = 6;
+    int Strength = 4;
+    float X = 1.0f;
+    float Z = 6.0f;
+    float Y = 2.0f;
+    ItemV4 Item;
+    int Health = 3;
+    int Intelligence = 5;
 
     void Visit(SavepointArchive& archive)
     {
         archive(Strength, kVersion2);
         archive(X);
         archive(Y);
-        archive(Z);
-        archive(Item, kVersion3);
+        archive(Z, kVersion4);
+        archive(Item, kVersion2);
         archive(Health);
-        archive(Intelligence);
+        archive(Intelligence, kVersion3);
+    }
+
+    bool operator==(const EntityV1& other) const
+    {
+        return Strength == 4 &&
+            X == other.X &&
+            Z == 6.0f &&
+            Y == other.Y &&
+            Item == ItemV4{} &&
+            Health == other.Health &&
+            Intelligence == 5;
+    }
+
+    bool operator==(const EntityV2& other) const
+    {
+        return Strength == other.Strength &&
+            X == other.X &&
+            Z == 6.0f &&
+            Y == other.Y &&
+            Item == other.Item &&
+            Health == other.Health &&
+            Intelligence == 5;
+    }
+
+    bool operator==(const EntityV3& other) const
+    {
+        return Strength == other.Strength &&
+            X == other.X &&
+            Z == 6.0f &&
+            Y == other.Y &&
+            Item == other.Item &&
+            Health == other.Health &&
+            Intelligence == 5;
+    }
+
+    bool operator==(const EntityV4& other) const
+    {
+        return Strength == other.Strength &&
+            X == other.X &&
+            Z == other.Z &&
+            Y == other.Y &&
+            Item == other.Item &&
+            Health == other.Health &&
+            Intelligence == other.Intelligence;
     }
 };
 
@@ -172,30 +284,43 @@ struct ZombieV4 : EntityV4
     }
 };
 
+template<typename InT, typename OutT>
+void TestUpgrade(Savepoint& savepoint, SavepointVersion inVersion)
+{
+    SavepointArchive inArchive{inVersion};
+    SavepointID inEntityID;
+    std::unique_ptr<InT> inEntity = std::make_unique<InT>();
+    inEntity->Visit(inArchive);
+    savepoint.Write(inArchive, inEntityID);
+    int i = 0;
+    savepoint.Read([&](SavepointArchive& outArchive, SavepointID outEntityID)
+    {
+        std::unique_ptr<OutT> outEntity = std::make_unique<OutT>();
+        outEntity->Visit(outArchive);
+        assert(*outEntity == *inEntity);
+        assert(outEntityID == inEntityID);
+        i++;
+    });
+    assert(i == 1);
+    savepoint.Clear();
+};
+
 int main()
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
     Savepoint savepoint;
     assert(savepoint.Open(kFileName));
-    {
-        SavepointArchive archive{kVersion1};
-        SavepointID inEntityID;
-        std::unique_ptr<EntityV1> inEntity = std::make_unique<EntityV1>();
-        inEntity->Visit(archive);
-        savepoint.Write(archive, inEntityID);
-        int i = 0;
-        savepoint.Read([&](SavepointArchive& archive, SavepointID outEntityID)
-        {
-            std::unique_ptr<EntityV1> outEntity = std::make_unique<EntityV1>();
-            outEntity->Visit(archive);
-            assert(*inEntity == *outEntity);
-            assert(inEntityID == outEntityID);
-            i++;
-        });
-        assert(i == 1);
-        savepoint.Clear();
-    }
+    TestUpgrade<EntityV1, EntityV1>(savepoint, kVersion1);
+    TestUpgrade<EntityV1, EntityV2>(savepoint, kVersion1);
+    TestUpgrade<EntityV1, EntityV3>(savepoint, kVersion1);
+    TestUpgrade<EntityV1, EntityV4>(savepoint, kVersion1);
+    TestUpgrade<EntityV2, EntityV2>(savepoint, kVersion2);
+    TestUpgrade<EntityV2, EntityV3>(savepoint, kVersion2);
+    TestUpgrade<EntityV2, EntityV4>(savepoint, kVersion2);
+    TestUpgrade<EntityV3, EntityV3>(savepoint, kVersion3);
+    TestUpgrade<EntityV3, EntityV4>(savepoint, kVersion3);
+    TestUpgrade<EntityV4, EntityV4>(savepoint, kVersion4);
     savepoint.Save();
     savepoint.Close();
     return 0;
