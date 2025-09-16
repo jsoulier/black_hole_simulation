@@ -10,6 +10,7 @@ A simple, fast, and reliable key/value database for games in C++ (built on sqlit
 - Inherited and nested values
 
 ### Limitations
+
 - Saves are binary and may be incompatible across architectures
 - Members cannot be reordered in the visit function
 - Member types cannot be changed
@@ -52,14 +53,14 @@ savepoint.Open("savepoint.sqlite3");
 Entity entity;
 SavepointArchive archive{kCurrentVersion};
 archive(entity);
-savepoint.Write(archive, entity.ID);
+savepoint.Write(archive, entity.ID, 0);
 savepoint.Read([](SavepointArchive& archive, SavepointID id)
 {
     Entity entity;
     archive(entity);
     assert(entity.X == 1);
     assert(entity.Y == 2);
-});
+}, 0);
 
 savepoint.Close();
 ```
@@ -106,7 +107,7 @@ savepoint.Open("savepoint.sqlite3");
 Entity1 entity;
 SavepointArchive archive{kVersion1};
 archive(entity);
-savepoint.Write(archive, entity.ID);
+savepoint.Write(archive, entity.ID, 0);
 savepoint.Read([](SavepointArchive& archive, SavepointID id)
 {
     Entity2 entity;
@@ -114,7 +115,7 @@ savepoint.Read([](SavepointArchive& archive, SavepointID id)
     assert(entity.X == 1);
     assert(entity.Y == 2);
     assert(entity.Z == 999);
-});
+}, 0);
 
 savepoint.Close();
 ```

@@ -360,23 +360,43 @@ struct ZombieV4 : EntityV4
     }
 };
 
+struct Tile2D
+{
+    int X;
+    int Y;
+};
+
+struct Tile3D
+{
+    int X;
+    int Y;
+    int Z;
+
+    void Visit(SavepointArchive& archive)
+    {
+        archive(X);
+        archive(Y);
+        archive(Z);
+    }
+};
+
 template<typename InT, typename OutT>
 void Test(Savepoint& savepoint, SavepointVersion inVersion)
 {
     SavepointArchive inArchive{inVersion};
     SavepointID inEntityID;
-    std::unique_ptr<InT> inEntity = std::make_unique<InT>();
-    inEntity->Visit(inArchive);
-    savepoint.Write(inArchive, inEntityID);
+    std::shared_ptr<InT> inEntity = std::make_shared<InT>();
+    inArchive(*inEntity);
+    savepoint.Write(inArchive, inEntityID, 0);
     int i = 0;
     savepoint.Read([&](SavepointArchive& outArchive, SavepointID outEntityID)
     {
-        std::unique_ptr<OutT> outEntity = std::make_unique<OutT>();
-        outEntity->Visit(outArchive);
+        std::shared_ptr<OutT> outEntity = std::make_shared<OutT>();
+        outArchive(*outEntity);
         assert(*outEntity == *inEntity);
         assert(outEntityID == inEntityID);
         i++;
-    });
+    }, 0);
     assert(i == 1);
     savepoint.Clear();
 };
@@ -411,6 +431,99 @@ int main()
     Test<ZombieV2, ZombieV4>(savepoint, kVersion2);
     Test<ZombieV3, ZombieV4>(savepoint, kVersion3);
     Test<ZombieV4, ZombieV4>(savepoint, kVersion4);
+
+    // 2d spatial tests
+    {
+        SavepointArchive inArchive{SavepointVersion{}};
+        for (int inX = 0; inX < 256; inX++)
+        for (int inY = 0; inY < 256; inY++)
+        {
+            inArchive.Reset();
+            Tile2D inTile2D{inX, inY};
+            inArchive(inTile2D);
+            savepoint.Write(inArchive, inX, inY, 0);
+        }
+        int i = 0;
+        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY)
+        {
+            Tile2D outTile2D;
+            outArchive(outTile2D);
+            assert(outTile2D.X == outX);
+            assert(outTile2D.Y == outY);
+            i++;
+        }, 0);
+        assert(i == 256 * 256);
+    }
+
+    // 3d spatial tests
+    {
+        SavepointArchive inArchive{SavepointVersion{}};
+        for (int inX = 0; inX < 32; inX++)
+        for (int inY = 0; inY < 32; inY++)
+        for (int inZ = 0; inZ < 32; inZ++)
+        {
+            inArchive.Reset();
+            Tile3D inTile3D{inX, inY, inZ};
+            inArchive(inTile3D);
+            savepoint.Write(inArchive, inX, inY, inZ, 0);
+        }
+        int i = 0;
+        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY, int outZ)
+        {
+            Tile3D outTile3D;
+            outArchive(outTile3D);
+            assert(outTile3D.X == outX);
+            assert(outTile3D.Y == outY);
+            assert(outTile3D.Z == outZ);
+            i++;
+        }, 0);
+        assert(i == 32 * 32 * 32);
+    }
+
+    // 2d spatial replacement tests
+    savepoint.Clear();
+    {
+        SavepointArchive inArchive{SavepointVersion{}};
+        for (int inX = 0; inX < 32; inX++)
+        for (int inY = 0; inY < 32; inY++)
+        {
+            inArchive.Reset();
+            Tile2D inTile2D{5, 5};
+            inArchive(inTile2D);
+            savepoint.Write(inArchive, inX, inY, 0);
+        }
+        int i = 0;
+        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY)
+        {
+            Tile2D outTile2D;
+            outArchive(outTile2D);
+            assert(outTile2D.X == 5);
+            assert(outTile2D.Y == 5);
+            i++;
+        }, 0);
+        assert(i == 32 * 32);
+    }
+    {
+        SavepointArchive inArchive{SavepointVersion{}};
+        for (int inX = 0; inX < 32; inX++)
+        for (int inY = 0; inY < 32; inY++)
+        {
+            inArchive.Reset();
+            Tile2D inTile2D{10, 10};
+            inArchive(inTile2D);
+            savepoint.Write(inArchive, inX, inY, 0);
+        }
+        int i = 0;
+        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY)
+        {
+            Tile2D outTile2D;
+            outArchive(outTile2D);
+            assert(outTile2D.X == 10);
+            assert(outTile2D.Y == 10);
+            i++;
+        }, 0);
+        assert(i == 32 * 32);
+    }
 
     savepoint.Save();
     savepoint.Close();

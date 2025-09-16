@@ -324,14 +324,15 @@ void Savepoint::Read(const SavepointEntityFunction& function, int level)
 void Savepoint::Read(const SavepointTile2DFunction& function, int level)
 {
     SavepointArchive archive;
-    sqlite3_bind_int(ReadEntitiesStmt, 1, level);
-    while (sqlite3_step(ReadEntitiesStmt) == SQLITE_ROW)
+    sqlite3_bind_int(ReadTiles2DStmt, 1, level);
+    while (sqlite3_step(ReadTiles2DStmt) == SQLITE_ROW)
     {
-        int x = sqlite3_column_int(ReadEntitiesStmt, 0);
-        int y = sqlite3_column_int(ReadEntitiesStmt, 1);
-        void* data = const_cast<void*>(sqlite3_column_blob(ReadEntitiesStmt, 2));
-        uint32_t size = sqlite3_column_bytes(ReadEntitiesStmt, 2);
+        int x = sqlite3_column_int(ReadTiles2DStmt, 0);
+        int y = sqlite3_column_int(ReadTiles2DStmt, 1);
+        void* data = const_cast<void*>(sqlite3_column_blob(ReadTiles2DStmt, 2));
+        uint32_t size = sqlite3_column_bytes(ReadTiles2DStmt, 2);
         archive.Reader = {static_cast<uint8_t*>(data), size};
+        archive.Offset = 0;
         archive(archive.Version);
         function(archive, x, y);
     }
@@ -340,15 +341,16 @@ void Savepoint::Read(const SavepointTile2DFunction& function, int level)
 void Savepoint::Read(const SavepointTile3DFunction& function, int level)
 {
     SavepointArchive archive;
-    sqlite3_bind_int(ReadEntitiesStmt, 1, level);
-    while (sqlite3_step(ReadEntitiesStmt) == SQLITE_ROW)
+    sqlite3_bind_int(ReadTiles3DStmt, 1, level);
+    while (sqlite3_step(ReadTiles3DStmt) == SQLITE_ROW)
     {
-        int x = sqlite3_column_int(ReadEntitiesStmt, 0);
-        int y = sqlite3_column_int(ReadEntitiesStmt, 1);
-        int z = sqlite3_column_int(ReadEntitiesStmt, 2);
-        void* data = const_cast<void*>(sqlite3_column_blob(ReadEntitiesStmt, 3));
-        uint32_t size = sqlite3_column_bytes(ReadEntitiesStmt, 3);
+        int x = sqlite3_column_int(ReadTiles3DStmt, 0);
+        int y = sqlite3_column_int(ReadTiles3DStmt, 1);
+        int z = sqlite3_column_int(ReadTiles3DStmt, 2);
+        void* data = const_cast<void*>(sqlite3_column_blob(ReadTiles3DStmt, 3));
+        uint32_t size = sqlite3_column_bytes(ReadTiles3DStmt, 3);
         archive.Reader = {static_cast<uint8_t*>(data), size};
+        archive.Offset = 0;
         archive(archive.Version);
         function(archive, x, y, z);
     }
