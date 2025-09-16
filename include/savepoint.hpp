@@ -141,8 +141,18 @@ class SavepointArchive
 private:
     friend class Savepoint;
 
+    SavepointArchive()
+        : Version{}
+        , Writer{}
+        , Reader{}
+        , Offset{0}
+    {
+    }
+
 public:
-    SavepointArchive(SavepointVersion version = {})
+    SavepointArchive(const SavepointArchive& other) = default;
+    SavepointArchive& operator=(const SavepointArchive& other) = default;
+    SavepointArchive(SavepointVersion version)
         : Version{version}
         , Writer{}
         , Reader{}
@@ -209,6 +219,23 @@ public:
         item.Visit(*this);
     }
 
+    void Skip(uint32_t size)
+    {
+        if (!Reader.empty())
+        {
+            if (Offset + size > Reader.size())
+            {
+                SavepointLog(std::format("Tried to skip past the end of an archive: {}", Version.GetString()));
+                return;
+            }
+            Offset += size;
+        }
+        else
+        {
+            Writer.resize(Writer.size() + size);
+        }
+    }
+
     void Reset()
     {
         Writer.clear();
@@ -235,7 +262,7 @@ public:
     Savepoint(Savepoint&& other) = delete;
     Savepoint& operator=(Savepoint&& other) = delete;
     bool Open(const std::string& path);
-    void Close();
+    void Close(bool save = true);
     void Save();
     void Write(const SavepointArchive& archive);
     void Write(const SavepointArchive& archive, SavepointID& id, int level = 0);

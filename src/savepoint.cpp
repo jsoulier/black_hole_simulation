@@ -161,8 +161,12 @@ bool Savepoint::Open(const std::string& path)
     return true;
 }
 
-void Savepoint::Close()
+void Savepoint::Close(bool save)
 {
+    if (save)
+    {
+        sqlite3_exec(Handle, "COMMIT;", nullptr, nullptr, nullptr);
+    }
     sqlite3_finalize(WriteStmt);
     sqlite3_finalize(InsertEntityStmt);
     sqlite3_finalize(UpdateEntityStmt);
@@ -193,6 +197,19 @@ void Savepoint::Save()
 
 void Savepoint::Write(const SavepointArchive& archive)
 {
+    if (archive.Writer.empty())
+    {
+        SavepointLog("Tried to write an empty archive");
+        return;
+    }
+    const void* data = archive.Writer.data();
+    uint32_t size = archive.Writer.size();
+    sqlite3_bind_blob(WriteStmt, 1, data, size, SQLITE_TRANSIENT);
+    if (sqlite3_step(WriteStmt) != SQLITE_DONE)
+    {
+        SavepointLog(std::format("Failed to write: {}", sqlite3_errmsg(Handle)));
+    }
+    sqlite3_reset(WriteStmt);
 }
 
 void Savepoint::Write(const SavepointArchive& archive, SavepointID& id, int level)
@@ -210,7 +227,7 @@ void Savepoint::Write(const SavepointArchive& archive, SavepointID& id, int leve
         sqlite3_bind_blob(InsertEntityStmt, 2, data, size, SQLITE_TRANSIENT);
         if (sqlite3_step(InsertEntityStmt) != SQLITE_DONE)
         {
-            SavepointLog(std::format("Failed to insert new entity: {}", sqlite3_errmsg(Handle)));
+            SavepointLog(std::format("Failed to insert entity: {}", sqlite3_errmsg(Handle)));
         }
         else
         {
@@ -225,7 +242,7 @@ void Savepoint::Write(const SavepointArchive& archive, SavepointID& id, int leve
         sqlite3_bind_int(UpdateEntityStmt, 3, id.Value);
         if (sqlite3_step(UpdateEntityStmt) != SQLITE_DONE)
         {
-            SavepointLog(std::format("Failed to update existing entity: {}", sqlite3_errmsg(Handle)));
+            SavepointLog(std::format("Failed to update entity: {}", sqlite3_errmsg(Handle)));
             id = SavepointID{};
         }
         sqlite3_reset(UpdateEntityStmt);
@@ -234,15 +251,58 @@ void Savepoint::Write(const SavepointArchive& archive, SavepointID& id, int leve
 
 void Savepoint::Write(const SavepointArchive& archive, int x, int y, int level)
 {
+    if (archive.Writer.empty())
+    {
+        SavepointLog("Tried to write an empty archive");
+        return;
+    }
+    const void* data = archive.Writer.data();
+    uint32_t size = archive.Writer.size();
+    sqlite3_bind_int(WriteTile2DStmt, 1, x);
+    sqlite3_bind_int(WriteTile2DStmt, 2, y);
+    sqlite3_bind_int(WriteTile2DStmt, 3, level);
+    sqlite3_bind_blob(WriteTile2DStmt, 4, data, size, SQLITE_TRANSIENT);
+    if (sqlite3_step(WriteTile2DStmt) != SQLITE_DONE)
+    {
+        SavepointLog(std::format("Failed to write tile: {}", sqlite3_errmsg(Handle)));
+    }
+    sqlite3_reset(WriteTile2DStmt);
 }
 
 void Savepoint::Write(const SavepointArchive& archive, int x, int y, int z, int level)
 {
+    if (archive.Writer.empty())
+    {
+        SavepointLog("Tried to write an empty archive");
+        return;
+    }
+    const void* data = archive.Writer.data();
+    uint32_t size = archive.Writer.size();
+    sqlite3_bind_int(WriteTile3DStmt, 1, x);
+    sqlite3_bind_int(WriteTile3DStmt, 2, y);
+    sqlite3_bind_int(WriteTile3DStmt, 3, z);
+    sqlite3_bind_int(WriteTile3DStmt, 4, level);
+    sqlite3_bind_blob(WriteTile3DStmt, 5, data, size, SQLITE_TRANSIENT);
+    if (sqlite3_step(WriteTile3DStmt) != SQLITE_DONE)
+    {
+        SavepointLog(std::format("Failed to write tile: {}", sqlite3_errmsg(Handle)));
+    }
+    sqlite3_reset(WriteTile3DStmt);
 }
 
 SavepointArchive Savepoint::Read()
 {
-    return {};
+    if (sqlite3_step(ReadEntitiesStmt) != SQLITE_ROW)
+    {
+        SavepointLog(std::format("Failed to read: {}", sqlite3_errmsg(Handle)));
+        return {};
+    }
+    SavepointArchive archive;
+    void* data = const_cast<void*>(sqlite3_column_blob(ReadEntitiesStmt, 0));
+    uint32_t size = sqlite3_column_bytes(ReadEntitiesStmt, 0);
+    archive.Reader = {static_cast<uint8_t*>(data), size};
+    archive(archive.Version);
+    return archive;
 }
 
 void Savepoint::Read(const SavepointEntityFunction& function, int level)
@@ -263,14 +323,49 @@ void Savepoint::Read(const SavepointEntityFunction& function, int level)
 
 void Savepoint::Read(const SavepointTile2DFunction& function, int level)
 {
+    SavepointArchive archive;
+    sqlite3_bind_int(ReadEntitiesStmt, 1, level);
+    while (sqlite3_step(ReadEntitiesStmt) == SQLITE_ROW)
+    {
+        int x = sqlite3_column_int(ReadEntitiesStmt, 0);
+        int y = sqlite3_column_int(ReadEntitiesStmt, 1);
+        void* data = const_cast<void*>(sqlite3_column_blob(ReadEntitiesStmt, 2));
+        uint32_t size = sqlite3_column_bytes(ReadEntitiesStmt, 2);
+        archive.Reader = {static_cast<uint8_t*>(data), size};
+        archive(archive.Version);
+        function(archive, x, y);
+    }
 }
 
 void Savepoint::Read(const SavepointTile3DFunction& function, int level)
 {
+    SavepointArchive archive;
+    sqlite3_bind_int(ReadEntitiesStmt, 1, level);
+    while (sqlite3_step(ReadEntitiesStmt) == SQLITE_ROW)
+    {
+        int x = sqlite3_column_int(ReadEntitiesStmt, 0);
+        int y = sqlite3_column_int(ReadEntitiesStmt, 1);
+        int z = sqlite3_column_int(ReadEntitiesStmt, 2);
+        void* data = const_cast<void*>(sqlite3_column_blob(ReadEntitiesStmt, 3));
+        uint32_t size = sqlite3_column_bytes(ReadEntitiesStmt, 3);
+        archive.Reader = {static_cast<uint8_t*>(data), size};
+        archive(archive.Version);
+        function(archive, x, y, z);
+    }
 }
 
 void Savepoint::Delete(const SavepointID id)
 {
+    if (!id)
+    {
+        return;
+    }
+    sqlite3_bind_int(DeleteEntityStmt, 1, id.Value);
+    if (sqlite3_step(DeleteEntityStmt) != SQLITE_DONE)
+    {
+        SavepointLog(std::format("Failed to delete entity: {}", sqlite3_errmsg(Handle)));
+    }
+    sqlite3_reset(DeleteEntityStmt);
 }
 
 void Savepoint::Clear()

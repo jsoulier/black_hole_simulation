@@ -391,12 +391,12 @@ int main()
     // basic upgrade tests
     Test<EntityV1, EntityV1>(savepoint, kVersion1);
     Test<EntityV1, EntityV2>(savepoint, kVersion1);
-    Test<EntityV1, EntityV3>(savepoint, kVersion1);
-    Test<EntityV1, EntityV4>(savepoint, kVersion1);
     Test<EntityV2, EntityV2>(savepoint, kVersion2);
+    Test<EntityV1, EntityV3>(savepoint, kVersion1);
     Test<EntityV2, EntityV3>(savepoint, kVersion2);
-    Test<EntityV2, EntityV4>(savepoint, kVersion2);
     Test<EntityV3, EntityV3>(savepoint, kVersion3);
+    Test<EntityV1, EntityV4>(savepoint, kVersion1);
+    Test<EntityV2, EntityV4>(savepoint, kVersion2);
     Test<EntityV3, EntityV4>(savepoint, kVersion3);
     Test<EntityV4, EntityV4>(savepoint, kVersion4);
 
