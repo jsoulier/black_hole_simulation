@@ -11,15 +11,22 @@ static constexpr SavepointVersion kVersion2{0, 1, 0};
 static constexpr SavepointVersion kVersion3{0, 2, 0};
 static constexpr SavepointVersion kVersion4{1, 1, 0};
 
+struct Header
+{
+    int Major;
+    int Minor;
+    int Patch;
+};
+
 struct ItemV2
 {
     int Durability = 1;
     int Damage = 2;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        archive(Durability);
-        archive(Damage);
+        visitor(Durability);
+        visitor(Damage);
     }
 
     bool operator==(const ItemV2& other) const
@@ -35,11 +42,11 @@ struct ItemV4
     int Rarity = 2;
     int Damage = 3;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        archive(Durability);
-        archive(Damage);
-        archive(Rarity, kVersion4);
+        visitor(Durability);
+        visitor(Damage);
+        visitor(Rarity, kVersion4);
     }
 
     bool operator==(const ItemV2& other) const
@@ -63,11 +70,11 @@ struct EntityV1
     float Y = 2.0f;
     int Health = 3;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        archive(X);
-        archive(Y);
-        archive(Health);
+        visitor(X);
+        visitor(Y);
+        visitor(Health);
     }
 
     bool operator==(const EntityV1& other) const
@@ -86,13 +93,13 @@ struct EntityV2
     ItemV2 Item;
     int Health = 3;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        archive(Strength, kVersion2);
-        archive(X);
-        archive(Y);
-        archive(Item, kVersion2);
-        archive(Health);
+        visitor(Strength, kVersion2);
+        visitor(X);
+        visitor(Y);
+        visitor(Item, kVersion2);
+        visitor(Health);
     }
 
     bool operator==(const EntityV1& other) const
@@ -122,13 +129,13 @@ struct EntityV3
     ItemV2 Item;
     int Health = 3;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        archive(Strength, kVersion2);
-        archive(X);
-        archive(Y);
-        archive(Item, kVersion2);
-        archive(Health);
+        visitor(Strength, kVersion2);
+        visitor(X);
+        visitor(Y);
+        visitor(Item, kVersion2);
+        visitor(Health);
     }
 
     bool operator==(const EntityV1& other) const
@@ -168,14 +175,14 @@ struct EntityV4
     ItemV4 Item;
     int Health = 3;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        archive(Strength, kVersion2);
-        archive(X);
-        archive(Y);
-        archive(Z, kVersion4);
-        archive(Item, kVersion2);
-        archive(Health);
+        visitor(Strength, kVersion2);
+        visitor(X);
+        visitor(Y);
+        visitor(Z, kVersion4);
+        visitor(Item, kVersion2);
+        visitor(Health);
     }
 
     bool operator==(const EntityV1& other) const
@@ -223,10 +230,10 @@ struct ZombieV1 : EntityV1
 {
     float Speed = 1.0f;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        EntityV1::Visit(archive);
-        archive(Speed);
+        EntityV1::Visit(visitor);
+        visitor(Speed);
     }
 
     bool operator==(const ZombieV1& other) const
@@ -241,11 +248,11 @@ struct ZombieV2 : EntityV2
     float Speed = 1.0f;
     float VelocityX = 2.0f;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        EntityV2::Visit(archive);
-        archive(Speed);
-        archive(VelocityX, kVersion2);
+        EntityV2::Visit(visitor);
+        visitor(Speed);
+        visitor(VelocityX, kVersion2);
     }
 
     bool operator==(const ZombieV1& other) const
@@ -270,13 +277,13 @@ struct ZombieV3 : EntityV3
     float VelocityY = 3.0f;
     float VelocityZ = 4.0f;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        EntityV3::Visit(archive);
-        archive(Speed);
-        archive(VelocityX, kVersion2);
-        archive(VelocityY, kVersion3);
-        archive(VelocityZ, kVersion3);
+        EntityV3::Visit(visitor);
+        visitor(Speed);
+        visitor(VelocityX, kVersion2);
+        visitor(VelocityY, kVersion3);
+        visitor(VelocityZ, kVersion3);
     }
 
     bool operator==(const ZombieV1& other) const
@@ -314,13 +321,13 @@ struct ZombieV4 : EntityV4
     float VelocityY = 3.0f;
     float VelocityZ = 4.0f;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        EntityV4::Visit(archive);
-        archive(Speed);
-        archive(VelocityX, kVersion2);
-        archive(VelocityY, kVersion3);
-        archive(VelocityZ, kVersion3);
+        EntityV4::Visit(visitor);
+        visitor(Speed);
+        visitor(VelocityX, kVersion2);
+        visitor(VelocityY, kVersion3);
+        visitor(VelocityZ, kVersion3);
     }
 
     bool operator==(const ZombieV1& other) const
@@ -372,27 +379,27 @@ struct Tile3D
     int Y;
     int Z;
 
-    void Visit(SavepointArchive& archive)
+    void Visit(SavepointVisitor& visitor)
     {
-        archive(X);
-        archive(Y);
-        archive(Z);
+        visitor(X);
+        visitor(Y);
+        visitor(Z);
     }
 };
 
 template<typename InT, typename OutT>
 void Test(Savepoint& savepoint, SavepointVersion inVersion)
 {
-    SavepointArchive inArchive{inVersion};
+    SavepointVisitor inVisitor{inVersion};
     SavepointID inEntityID;
     std::shared_ptr<InT> inEntity = std::make_shared<InT>();
-    inArchive(*inEntity);
-    savepoint.Write(inArchive, inEntityID, 0);
+    inVisitor(*inEntity);
+    savepoint.Write(inVisitor, inEntityID, 0);
     int i = 0;
-    savepoint.Read([&](SavepointArchive& outArchive, SavepointID outEntityID)
+    savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID outEntityID)
     {
         std::shared_ptr<OutT> outEntity = std::make_shared<OutT>();
-        outArchive(*outEntity);
+        outVisitor(*outEntity);
         assert(*outEntity == *inEntity);
         assert(outEntityID == inEntityID);
         i++;
@@ -407,8 +414,34 @@ int main()
     std::filesystem::remove(kFileName + "-journal");
     Savepoint savepoint;
     assert(savepoint.Open(kFileName));
-
-    // basic upgrade tests
+    {
+        SavepointVisitor inVisitor{SavepointVersion{}};
+        Header header;
+        header.Major = 1;
+        header.Minor = 2;
+        header.Patch = 3;
+        inVisitor(header);
+        savepoint.Write(inVisitor);
+        savepoint.Read([&](SavepointVisitor& outVisitor)
+        {
+            outVisitor(header);
+            assert(header.Major = 1);
+            assert(header.Minor = 2);
+            assert(header.Patch = 3);
+        });
+        header.Major = 4;
+        header.Minor = 5;
+        header.Patch = 6;
+        inVisitor(header);
+        savepoint.Write(inVisitor);
+        savepoint.Read([&](SavepointVisitor& outVisitor)
+        {
+            outVisitor(header);
+            assert(header.Major = 4);
+            assert(header.Minor = 5);
+            assert(header.Patch = 6);
+        });
+    }
     Test<EntityV1, EntityV1>(savepoint, kVersion1);
     Test<EntityV1, EntityV2>(savepoint, kVersion1);
     Test<EntityV2, EntityV2>(savepoint, kVersion2);
@@ -419,8 +452,6 @@ int main()
     Test<EntityV2, EntityV4>(savepoint, kVersion2);
     Test<EntityV3, EntityV4>(savepoint, kVersion3);
     Test<EntityV4, EntityV4>(savepoint, kVersion4);
-
-    // inheritance upgrade tests
     Test<ZombieV1, ZombieV1>(savepoint, kVersion1);
     Test<ZombieV1, ZombieV2>(savepoint, kVersion1);
     Test<ZombieV2, ZombieV2>(savepoint, kVersion2);
@@ -431,47 +462,43 @@ int main()
     Test<ZombieV2, ZombieV4>(savepoint, kVersion2);
     Test<ZombieV3, ZombieV4>(savepoint, kVersion3);
     Test<ZombieV4, ZombieV4>(savepoint, kVersion4);
-
-    // 2d spatial tests
     {
-        SavepointArchive inArchive{SavepointVersion{}};
+        SavepointVisitor inVisitor{SavepointVersion{}};
         for (int inX = 0; inX < 256; inX++)
         for (int inY = 0; inY < 256; inY++)
         {
-            inArchive.Reset();
+            inVisitor.Reset();
             Tile2D inTile2D{inX, inY};
-            inArchive(inTile2D);
-            savepoint.Write(inArchive, inX, inY, 0);
+            inVisitor(inTile2D);
+            savepoint.Write(inVisitor, inX, inY, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY)
+        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY)
         {
             Tile2D outTile2D;
-            outArchive(outTile2D);
+            outVisitor(outTile2D);
             assert(outTile2D.X == outX);
             assert(outTile2D.Y == outY);
             i++;
         }, 0);
         assert(i == 256 * 256);
     }
-
-    // 3d spatial tests
     {
-        SavepointArchive inArchive{SavepointVersion{}};
+        SavepointVisitor inVisitor{SavepointVersion{}};
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         for (int inZ = 0; inZ < 32; inZ++)
         {
-            inArchive.Reset();
+            inVisitor.Reset();
             Tile3D inTile3D{inX, inY, inZ};
-            inArchive(inTile3D);
-            savepoint.Write(inArchive, inX, inY, inZ, 0);
+            inVisitor(inTile3D);
+            savepoint.Write(inVisitor, inX, inY, inZ, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY, int outZ)
+        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY, int outZ)
         {
             Tile3D outTile3D;
-            outArchive(outTile3D);
+            outVisitor(outTile3D);
             assert(outTile3D.X == outX);
             assert(outTile3D.Y == outY);
             assert(outTile3D.Z == outZ);
@@ -479,24 +506,22 @@ int main()
         }, 0);
         assert(i == 32 * 32 * 32);
     }
-
-    // 2d spatial replacement tests
     savepoint.Clear();
     {
-        SavepointArchive inArchive{SavepointVersion{}};
+        SavepointVisitor inVisitor{SavepointVersion{}};
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         {
-            inArchive.Reset();
+            inVisitor.Reset();
             Tile2D inTile2D{5, 5};
-            inArchive(inTile2D);
-            savepoint.Write(inArchive, inX, inY, 0);
+            inVisitor(inTile2D);
+            savepoint.Write(inVisitor, inX, inY, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY)
+        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY)
         {
             Tile2D outTile2D;
-            outArchive(outTile2D);
+            outVisitor(outTile2D);
             assert(outTile2D.X == 5);
             assert(outTile2D.Y == 5);
             i++;
@@ -504,27 +529,26 @@ int main()
         assert(i == 32 * 32);
     }
     {
-        SavepointArchive inArchive{SavepointVersion{}};
+        SavepointVisitor inVisitor{SavepointVersion{}};
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         {
-            inArchive.Reset();
+            inVisitor.Reset();
             Tile2D inTile2D{10, 10};
-            inArchive(inTile2D);
-            savepoint.Write(inArchive, inX, inY, 0);
+            inVisitor(inTile2D);
+            savepoint.Write(inVisitor, inX, inY, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointArchive& outArchive, int outX, int outY)
+        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY)
         {
             Tile2D outTile2D;
-            outArchive(outTile2D);
+            outVisitor(outTile2D);
             assert(outTile2D.X == 10);
             assert(outTile2D.Y == 10);
             i++;
         }, 0);
         assert(i == 32 * 32);
     }
-
     savepoint.Save();
     savepoint.Close();
     return 0;
