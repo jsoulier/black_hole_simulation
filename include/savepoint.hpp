@@ -12,16 +12,6 @@
 #include <utility>
 #include <vector>
 
-#if defined(_WIN32) || defined(__CYGWIN__)
-    #ifdef SAVEPOINT_BUILD
-        #define SAVEPOINT_API __declspec(dllexport)
-    #else
-        #define SAVEPOINT_API __declspec(dllimport)
-    #endif
-#else
-    #define SAVEPOINT_API
-#endif
-
 class Savepoint;
 class SavepointID;
 class SavepointVersion;
@@ -29,9 +19,9 @@ class SavepointVisitor;
 
 using SavepointLogFunction = std::function<void(const std::string& string)>;
 
-SAVEPOINT_API void SavepointSetLogFunction(const SavepointLogFunction& function);
-SAVEPOINT_API void SavepointDefaultLogFunction(const std::string& string);
-SAVEPOINT_API void SavepointLog(const std::string& string);
+void SavepointSetLogFunction(const SavepointLogFunction& function);
+void SavepointDefaultLogFunction(const std::string& string);
+void SavepointLog(const std::string& string);
 
 class SavepointVersion
 {
