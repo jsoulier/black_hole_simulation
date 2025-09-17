@@ -16,6 +16,7 @@ configure_file(README.md ${BINARY_DIR} COPYONLY)
 add_library(savepoint src/savepoint.cpp src/sqlite3.c)
 add_library(savepoint::savepoint ALIAS savepoint)
 target_include_directories(savepoint PUBLIC include)
+target_compile_definitions(savepoint PRIVATE SAVEPOINT_BUILD)
 set_target_properties(savepoint PROPERTIES CXX_STANDARD 23)
 
 if(PROJECT_IS_TOP_LEVEL)
