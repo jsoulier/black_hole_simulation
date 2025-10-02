@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <format>
-#include <string>
+#include <string_view>
 #include "sqlite3.h"
 
 static SavepointLogFunction logFunction = SavepointDefaultLogFunction;
@@ -12,12 +12,12 @@ void SavepointSetLogFunction(const SavepointLogFunction& function)
     logFunction = function;
 }
 
-void SavepointDefaultLogFunction(const std::string& string)
+void SavepointDefaultLogFunction(const std::string_view& string)
 {
     std::fprintf(stderr, "%s\n", string.data());
 }
 
-void SavepointLog(const std::string& string)
+void SavepointLog(const std::string_view& string)
 {
     logFunction(string);
 }
@@ -40,7 +40,7 @@ Savepoint::Savepoint()
 {
 }
 
-bool Savepoint::Open(const std::string& path)
+bool Savepoint::Open(const std::string_view& path)
 {
     if (sqlite3_open(path.data(), &Handle) != SQLITE_OK)
     {

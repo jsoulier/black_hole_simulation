@@ -8,6 +8,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -17,11 +18,11 @@ class SavepointID;
 class SavepointVersion;
 class SavepointVisitor;
 
-using SavepointLogFunction = std::function<void(const std::string& string)>;
+using SavepointLogFunction = std::function<void(const std::string_view& string)>;
 
 void SavepointSetLogFunction(const SavepointLogFunction& function);
-void SavepointDefaultLogFunction(const std::string& string);
-void SavepointLog(const std::string& string);
+void SavepointDefaultLogFunction(const std::string_view& string);
+void SavepointLog(const std::string_view& string);
 
 class SavepointVersion
 {
@@ -253,7 +254,7 @@ public:
     Savepoint& operator=(const Savepoint& other) = delete;
     Savepoint(Savepoint&& other) = delete;
     Savepoint& operator=(Savepoint&& other) = delete;
-    bool Open(const std::string& path);
+    bool Open(const std::string_view& path);
     void Close();
     void Save();
     void Write(const SavepointVisitor& visitor);
