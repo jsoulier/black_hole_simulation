@@ -1,6 +1,6 @@
 # Savepoint
 
-A simple, fast, and reliable key/value database for games in C++
+A simple, fast, and reliable key-value database for games written in C++
 
 ### Features
 
