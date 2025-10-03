@@ -1,5 +1,7 @@
 #pragma once
 
+#include <savepoint_fwd.hpp>
+
 #include <cstdint>
 #include <cstring>
 #include <format>
@@ -12,11 +14,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-class Savepoint;
-class SavepointID;
-class SavepointVersion;
-class SavepointVisitor;
 
 using SavepointLogFunction = std::function<void(const std::string_view& string)>;
 

@@ -1,8 +1,10 @@
 #include <savepoint.hpp>
+
 #include <cstdint>
 #include <cstdio>
 #include <format>
 #include <string_view>
+
 #include "sqlite3.h"
 
 static SavepointLogFunction logFunction = SavepointDefaultLogFunction;
