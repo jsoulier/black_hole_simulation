@@ -365,6 +365,7 @@ void Savepoint::Read(const SavepointEntityFunction& function, int level)
         visitor.Reset(data, size);
         function(visitor, id);
     }
+    sqlite3_reset(ReadEntitiesStmt);
 }
 
 void Savepoint::Read(const SavepointTile2DFunction& function, int level)
@@ -384,6 +385,7 @@ void Savepoint::Read(const SavepointTile2DFunction& function, int level)
         visitor.Reset(data, size);
         function(visitor, x, y);
     }
+    sqlite3_reset(ReadTiles2DStmt);
 }
 
 void Savepoint::Read(const SavepointTile3DFunction& function, int level)
@@ -404,6 +406,7 @@ void Savepoint::Read(const SavepointTile3DFunction& function, int level)
         visitor.Reset(data, size);
         function(visitor, x, y, z);
     }
+    sqlite3_reset(ReadTiles3DStmt);
 }
 
 void Savepoint::Delete(const SavepointID id)
