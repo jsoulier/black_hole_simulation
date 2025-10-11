@@ -414,7 +414,16 @@ int main()
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
     Savepoint savepoint;
-    assert(savepoint.Open(kFileName));
+    SavepointStatus status;
+    status = savepoint.Open(kFileName);
+    assert(status == SavepointStatus::New);
+    savepoint.Close();
+    status = savepoint.Open(kFileName);
+    assert(status == SavepointStatus::New);
+    savepoint.Save();
+    savepoint.Close();
+    status = savepoint.Open(kFileName);
+    assert(status == SavepointStatus::Existing);
     {
         SavepointVisitor inVisitor{SavepointVersion{}};
         Header header;

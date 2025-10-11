@@ -231,7 +231,6 @@ private:
         operator()(Version);
     }
 
-private:
     SavepointVersion Version;
     std::vector<uint8_t> Writer;
     std::span<uint8_t> Reader;
@@ -243,6 +242,13 @@ using SavepointEntityFunction = std::function<void(SavepointVisitor& visitor, Sa
 using SavepointTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 using SavepointTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
 
+enum class SavepointStatus
+{
+    Failed,
+    Existing,
+    New,
+};
+
 class Savepoint
 {
 public:
@@ -251,7 +257,7 @@ public:
     Savepoint& operator=(const Savepoint& other) = delete;
     Savepoint(Savepoint&& other) = delete;
     Savepoint& operator=(Savepoint&& other) = delete;
-    bool Open(const std::string_view& path);
+    SavepointStatus Open(const std::string_view& path);
     void Close();
     void Save();
     void Write(const SavepointVisitor& visitor);
@@ -269,11 +275,13 @@ private:
     typedef struct sqlite3 sqlite;
     typedef struct sqlite3_stmt sqlite_stmt;
     sqlite3* Handle;
+    sqlite3_stmt* WriteStatusStmt;
     sqlite3_stmt* WriteStmt;
     sqlite3_stmt* InsertEntityStmt;
     sqlite3_stmt* UpdateEntityStmt;
     sqlite3_stmt* WriteTile2DStmt;
     sqlite3_stmt* WriteTile3DStmt;
+    sqlite3_stmt* ReadStatusStmt;
     sqlite3_stmt* ReadStmt;
     sqlite3_stmt* ReadEntitiesStmt;
     sqlite3_stmt* ReadTiles2DStmt;
