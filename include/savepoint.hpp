@@ -432,14 +432,14 @@ public:
      * @param maxSize The size in bytes of the memory referenced by data
      * @param size The size in bytes of the serialized memory
      */
-    template<typename T> requires SavepointPointer<T>
+    template<typename T>
     void operator()(T* data, size_t maxSize, size_t size)
     {
         if (IsReader())
         {
             if (maxSize < size)
             {
-                SavepointLog(std::format("Truncating buffer: {}, {} -> {}"), Version.GetString(), size, maxSize);
+                SavepointLog(std::format("Truncating buffer: {}, {} -> {}", Version.GetString(), size, maxSize));
                 size = maxSize;
             }
             if (Offset + size > Reader.size())
@@ -454,7 +454,7 @@ public:
         {
             if (maxSize != size)
             {
-                SavepointLog(std::format("Sizes don't match: {}, {}", maxSize, size));
+                SavepointLog(std::format("Sizes don't match: {}, {} != {}", Version.GetString(), maxSize, size));
                 size = maxSize;
             }
             Writer.resize(Writer.size() + size);

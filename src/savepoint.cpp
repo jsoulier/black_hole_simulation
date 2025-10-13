@@ -53,11 +53,13 @@ void SavepointLog(const std::string_view& string)
 
 Savepoint::Savepoint()
     : Handle{nullptr}
+    , WriteStatusStmt{nullptr}
     , WriteStmt{nullptr}
     , InsertEntityStmt{nullptr}
     , UpdateEntityStmt{nullptr}
     , WriteTile2DStmt{nullptr}
     , WriteTile3DStmt{nullptr}
+    , ReadStatusStmt{nullptr}
     , ReadStmt{nullptr}
     , ReadEntitiesStmt{nullptr}
     , ReadTiles2DStmt{nullptr}

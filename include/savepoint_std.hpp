@@ -56,15 +56,21 @@ template<typename T>
 struct SavepointArrayImpl : std::false_type {};
 
 template<typename T, size_t N>
-struct SavepointArrayImpl<std::array<T, N>> : std::true_type {};
+struct SavepointArrayImpl<std::array<T, N>> : std::true_type
+{
+    static constexpr size_t kSize = N;
+};
 
 template<typename T>
 concept SavepointArray = SavepointArrayImpl<T>::value;
 
+template<typename T>
+inline constexpr size_t SavepointArraySize = SavepointArrayImpl<T>::kSize;
+
 template<SavepointArray T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
-    static constexpr size_t kCapacity = item.size() * sizeof(T::value_type);
+    static constexpr size_t kCapacity = SavepointArraySize<T> * sizeof(T::value_type);
     size_t size = kCapacity;
     visitor(size);
     visitor(item.data(), kCapacity, size);

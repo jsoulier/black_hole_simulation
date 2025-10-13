@@ -1,10 +1,12 @@
 #include <savepoint.hpp>
 #include <savepoint_std.hpp>
 
+#include <array>
 #include <cassert>
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 
 static const std::string kFileName = "savepoint.sqlite3";
 
@@ -389,21 +391,98 @@ struct Tile3D
     }
 };
 
+struct Vector
+{
+    std::vector<int> Data;
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const Vector& other) const
+    {
+        return Data == other.Data;
+    }
+};
+
+struct ArrayV1
+{
+    std::array<int, 2> Data = {1, 3};
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const ArrayV1& other) const
+    {
+        return Data == other.Data;
+    }
+};
+
+struct ArrayV2
+{
+    std::array<int, 3> Data = {1, 3, 2};
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const ArrayV1& other) const
+    {
+        return Data[0] == other.Data[0] &&
+            Data[1] == other.Data[1] &&
+            Data[2] == 2;
+    }
+
+    bool operator==(const ArrayV2& other) const
+    {
+        return Data == other.Data;
+    }
+};
+
+struct ArrayV3
+{
+    std::array<int, 1> Data = {1};
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const ArrayV1& other) const
+    {
+        return Data[0] == other.Data[0];
+    }
+
+    bool operator==(const ArrayV2& other) const
+    {
+        return Data[0] == other.Data[0];
+    }
+
+    bool operator==(const ArrayV3& other) const
+    {
+        return Data[0] == other.Data[0];
+    }
+};
+
 template<typename InT, typename OutT>
 void Test(Savepoint& savepoint, SavepointVersion inVersion)
 {
     SavepointVisitor inVisitor{inVersion};
-    SavepointID inEntityID;
+    SavepointID inID;
     std::shared_ptr<InT> inEntity = std::make_shared<InT>();
     inVisitor(*inEntity);
-    savepoint.Write(inVisitor, inEntityID, 0);
+    savepoint.Write(inVisitor, inID, 0);
     int i = 0;
-    savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID outEntityID)
+    savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID outID)
     {
         std::shared_ptr<OutT> outEntity = std::make_shared<OutT>();
         outVisitor(*outEntity);
         assert(*outEntity == *inEntity);
-        assert(outEntityID == inEntityID);
+        assert(outID == inID);
         i++;
     }, 0);
     assert(i == 1);
@@ -560,6 +639,31 @@ int main()
         }, 0);
         assert(i == 32 * 32);
     }
+    savepoint.Clear();
+    {
+        SavepointVisitor inVisitor{SavepointVersion{}};
+        SavepointID inID;
+        Vector inVector{{1, 5, 3, 7}};
+        inVisitor(inVector) ;
+        savepoint.Write(inVisitor, inID, 0);
+        int i = 0;
+        savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID outID)
+        {
+            Vector outVector;
+            outVisitor(outVector);
+            assert(outVector == inVector);
+            assert(outID == inID);
+            i++;
+        }, 0);
+        assert(i == 1);
+    }
+    savepoint.Clear();
+    Test<ArrayV1, ArrayV1>(savepoint, kVersion1);
+    Test<ArrayV1, ArrayV2>(savepoint, kVersion1);
+    Test<ArrayV1, ArrayV3>(savepoint, kVersion1);
+    Test<ArrayV2, ArrayV2>(savepoint, kVersion1);
+    Test<ArrayV2, ArrayV3>(savepoint, kVersion1);
+    Test<ArrayV3, ArrayV3>(savepoint, kVersion1);
     savepoint.Save();
     savepoint.Close();
     return 0;
