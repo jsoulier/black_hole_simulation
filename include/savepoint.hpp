@@ -150,6 +150,37 @@ private:
     uint32_t Value;
 };
 
+class SavepointPolymorphic
+{
+private:
+    friend class Savepoint;
+
+public:
+    virtual void Visit(SavepointVisitor& visitor) = 0;
+    
+private:
+    virtual const std::string_view SavepointGetString() const = 0;
+};
+
+using SavepointPolymorphicFunction = std::function<SavepointPolymorphic*()>;
+
+void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function);
+
+#define SAVEPOINT_POLYMORPHIC(T) \
+    struct SavepointPolymorphicRegistrar##T \
+    { \
+        SavepointPolymorphicRegistrar##T() \
+        { \
+            SavepointAddPolymorphic(#T, []() { return new T(); }); \
+        } \
+    } \
+    static SavepointPolymorphicRegistrar; \
+    \
+    const std::string_view SavepointGetString() const override \
+    { \
+        return #T;\
+    } \
+
 template<typename T>
 struct SavepointPointerImpl : std::is_pointer<T> {};
 
@@ -260,18 +291,26 @@ public:
     {
         if (IsReader())
         {
-            if (maxSize < size)
+            if constexpr (std::is_const_v<T>)
             {
-                SavepointLog(std::format("Truncating buffer: {}, {} -> {}", Version.GetString(), size, maxSize));
-                size = maxSize;
-            }
-            if (Offset + size > Reader.size())
-            {
-                SavepointLog(std::format("Tried to read past visitor: {}", Version.GetString()));
+                SavepointLog("Tried to read into a const pointer");
                 return;
             }
-            std::memcpy(data, Reader.data() + Offset, size);
-            Offset += size;
+            else
+            {
+                if (maxSize < size)
+                {
+                    SavepointLog(std::format("Truncating buffer: {}, {} -> {}", Version.GetString(), size, maxSize));
+                    size = maxSize;
+                }
+                if (Offset + size > Reader.size())
+                {
+                    SavepointLog(std::format("Tried to read past visitor: {}", Version.GetString()));
+                    return;
+                }
+                std::memcpy(data, Reader.data() + Offset, size);
+                Offset += size;
+            }
         }
         else
         {
@@ -311,7 +350,7 @@ private:
         std::memcpy(Writer.data(), &version, sizeof(version));
     }
 
-    void Reset(void* data, uint32_t size)
+    void Reset(void* data, size_t size)
     {
         Reader = {static_cast<uint8_t*>(data), size};
         Offset = 0;
@@ -321,13 +360,18 @@ private:
     SavepointVersion Version;
     std::vector<uint8_t> Writer;
     std::span<uint8_t> Reader;
-    uint32_t Offset;
+    size_t Offset;
 };
 
-using SavepointFunction = std::function<void(SavepointVisitor& visitor)>;
-using SavepointEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
-using SavepointTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
-using SavepointTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
+using SavepointReadFunction = std::function<void(SavepointVisitor& visitor)>;
+using SavepointReadEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
+using SavepointReadTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
+using SavepointReadTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
+
+using SavepointReadPolymorphicFunction = std::function<void(SavepointPolymorphic* polymorphic)>;
+using SavepointReadPolymorphicEntityFunction = std::function<void(SavepointPolymorphic* polymorphic, SavepointID id)>;
+using SavepointReadPolymorphicTile2DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y)>;
+using SavepointReadPolymorphicTile3DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y, int z)>;
 
 enum class SavepointStatus
 {
@@ -340,6 +384,7 @@ class Savepoint
 {
 public:
     Savepoint();
+    ~Savepoint();
     Savepoint(const Savepoint& other) = delete;
     Savepoint& operator=(const Savepoint& other) = delete;
     Savepoint(Savepoint&& other) = delete;
@@ -351,17 +396,29 @@ public:
     void Write(SavepointVisitor& visitor, SavepointID& id, int level);
     void Write(SavepointVisitor& visitor, int x, int y, int level);
     void Write(SavepointVisitor& visitor, int x, int y, int z, int level);
-    void Read(const SavepointFunction& function);
-    void Read(const SavepointEntityFunction& function, int level);
-    void Read(const SavepointTile2DFunction& function, int level);
-    void Read(const SavepointTile3DFunction& function, int level);
+    void Write(SavepointPolymorphic* polymorphic);
+    void Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level);
+    void Write(SavepointPolymorphic* polymorphic, int x, int y, int level);
+    void Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level);
+    void Read(const SavepointReadFunction& function);
+    void Read(const SavepointReadEntityFunction& function, int level);
+    void Read(const SavepointReadTile2DFunction& function, int level);
+    void Read(const SavepointReadTile3DFunction& function, int level);
+    void Read(const SavepointReadPolymorphicFunction& function);
+    void Read(const SavepointReadPolymorphicEntityFunction& function, int level);
+    void Read(const SavepointReadPolymorphicTile2DFunction& function, int level);
+    void Read(const SavepointReadPolymorphicTile3DFunction& function, int level);
     void Delete(const SavepointID id);
     void Clear();
 
 private:
+    bool SetPolymorphic(SavepointPolymorphic* polymorphic);
+    SavepointPolymorphic* GetPolymorphic(SavepointVisitor& visitor);
+
     typedef struct sqlite3 sqlite;
     typedef struct sqlite3_stmt sqlite_stmt;
     SavepointVersion Version;
+    SavepointVisitor Visitor;
     sqlite3* Handle;
     sqlite3_stmt* WriteStatusStmt;
     sqlite3_stmt* WriteStmt;
