@@ -59,11 +59,6 @@ struct Hash
 {
     using is_transparent = void;
 
-    size_t operator()(const char* string) const
-    {
-        return std::hash<std::string_view>{}(string);
-    }
-
     size_t operator()(const std::string_view& string) const
     {
         return std::hash<std::string_view>{}(string);
@@ -75,15 +70,22 @@ struct Hash
     }
 };
 
-static std::unordered_map<std::string, SavepointPolymorphicFunction, Hash, std::equal_to<>> polymorphicFunctions;
+using PolymorphicFunctions = std::unordered_map<std::string, SavepointPolymorphicFunction, Hash, std::equal_to<>>;
+
+static PolymorphicFunctions& GetPolymorphicFunctions()
+{
+    static PolymorphicFunctions functions;
+    return functions;
+}
 
 void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function)
 {
-    polymorphicFunctions.emplace(string, function);
+    GetPolymorphicFunctions().emplace(string, function);
 }
 
 Savepoint::Savepoint()
     : Version{}
+    , Visitor{}
     , Handle{nullptr}
     , WriteStatusStmt{nullptr}
     , WriteStmt{nullptr}
@@ -448,8 +450,8 @@ bool Savepoint::SetPolymorphic(SavepointPolymorphic* polymorphic)
         return false;
     }
     const std::string_view& string = polymorphic->SavepointGetString();
-    auto it = polymorphicFunctions.find(string);
-    if (it == polymorphicFunctions.end())
+    auto it = GetPolymorphicFunctions().find(string);
+    if (it == GetPolymorphicFunctions().end())
     {
         SavepointLog(std::format("Failed to find polymorphic string: {}", string));
         return false;
@@ -576,8 +578,8 @@ SavepointPolymorphic* Savepoint::GetPolymorphic(SavepointVisitor& visitor)
 {
     std::string string;
     visitor(string);
-    auto it = polymorphicFunctions.find(string);
-    if (it == polymorphicFunctions.end())
+    auto it = GetPolymorphicFunctions().find(string);
+    if (it == GetPolymorphicFunctions().end())
     {
         SavepointLog(std::format("Missing polymorphic function: {}, {} -> {}", string, visitor.Version.GetString(), Version.GetString()));
         return nullptr;

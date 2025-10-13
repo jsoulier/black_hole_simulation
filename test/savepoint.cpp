@@ -468,6 +468,72 @@ struct ArrayV3
     }
 };
 
+struct PolymorphicEntity : public SavepointPolymorphic
+{
+    SavepointID ID;
+    int X;
+    int Y;
+
+    void Visit(SavepointVisitor& visitor) override
+    {
+        visitor(X);
+        visitor(Y);
+    }
+
+    bool operator==(const PolymorphicEntity& other) const
+    {
+        return ID == other.ID &&
+            X == other.X &&
+            Y == other.Y;
+    }
+};
+
+struct PolymorphicMob : PolymorphicEntity
+{
+    int Health;
+
+    void Visit(SavepointVisitor& visitor) override
+    {
+        PolymorphicEntity::Visit(visitor);
+        visitor(Health);
+    }
+
+    bool operator==(const PolymorphicMob& other) const
+    {
+        return PolymorphicEntity::operator==(other) &&
+            Health == other.Health;
+    }
+};
+
+struct PolymorphicItem : public PolymorphicEntity
+{
+    SAVEPOINT_POLYMORPHIC(PolymorphicItem)
+};
+
+struct PolymorphicZombie : PolymorphicMob
+{
+    SAVEPOINT_POLYMORPHIC(PolymorphicZombie)
+};
+
+struct PolymorphicSkeleton : PolymorphicMob
+{
+    SAVEPOINT_POLYMORPHIC(PolymorphicSkeleton)
+
+    int Arrows;
+
+    void Visit(SavepointVisitor& visitor) override
+    {
+        PolymorphicMob::Visit(visitor);
+        visitor(Arrows);
+    }
+
+    bool operator==(const PolymorphicSkeleton& other) const
+    {
+        return PolymorphicMob::operator==(other) &&
+            Arrows == other.Arrows;
+    }
+};
+
 template<typename InT, typename OutT>
 void Test(SavepointVersion inVersion)
 {
@@ -641,6 +707,43 @@ int main()
             i++;
         }, 0);
         assert(i == 1);
+    }
+    savepoint.Clear();
+    {
+        std::shared_ptr<PolymorphicItem> inItem = std::make_shared<PolymorphicItem>();
+        std::shared_ptr<PolymorphicZombie> inZombie = std::make_shared<PolymorphicZombie>();
+        std::shared_ptr<PolymorphicSkeleton> inSkeleton = std::make_shared<PolymorphicSkeleton>();
+        savepoint.Write(inItem.get(), inItem->ID, 0);
+        savepoint.Write(inZombie.get(), inZombie->ID, 0);
+        savepoint.Write(inSkeleton.get(), inSkeleton->ID, 0);
+        int i = 0;
+        savepoint.Read([&](SavepointPolymorphic* polymorphic, SavepointID outID)
+        {
+            if (outID == inItem->ID)
+            {
+                PolymorphicItem* outItem = dynamic_cast<PolymorphicItem*>(polymorphic);
+                assert(outItem);
+                *outItem == *inItem;
+            }
+            else if (outID == inZombie->ID)
+            {
+                PolymorphicZombie* outZombie = dynamic_cast<PolymorphicZombie*>(polymorphic);
+                assert(outZombie);
+                *outZombie == *inZombie;
+            }
+            else if (outID == inSkeleton->ID)
+            {
+                PolymorphicSkeleton* outSkeleton = dynamic_cast<PolymorphicSkeleton*>(polymorphic);
+                assert(outSkeleton);
+                *outSkeleton == *inSkeleton;
+            }
+            else
+            {
+                assert(false);
+            }
+            i++;
+        }, 0);
+        assert(i == 3);
     }
     savepoint.Close();
     Test<EntityV1, EntityV1>(kVersion1);

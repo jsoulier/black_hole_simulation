@@ -157,7 +157,7 @@ private:
 
 public:
     virtual void Visit(SavepointVisitor& visitor) = 0;
-    
+
 private:
     virtual const std::string_view SavepointGetString() const = 0;
 };
@@ -167,19 +167,22 @@ using SavepointPolymorphicFunction = std::function<SavepointPolymorphic*()>;
 void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function);
 
 #define SAVEPOINT_POLYMORPHIC(T) \
-    struct SavepointPolymorphicRegistrar##T \
-    { \
-        SavepointPolymorphicRegistrar##T() \
+    private: \
+        struct SavepointPolymorphicRegistrar##T \
         { \
-            SavepointAddPolymorphic(#T, []() { return new T(); }); \
+            SavepointPolymorphicRegistrar##T() \
+            { \
+                SavepointAddPolymorphicFunction(#T, []() { return new T(); }); \
+            } \
+        }; \
+        \
+        static inline SavepointPolymorphicRegistrar##T SavepointPolymorphicRegistrar; \
+        \
+        const std::string_view SavepointGetString() const override \
+        { \
+            return #T;\
         } \
-    } \
-    static SavepointPolymorphicRegistrar; \
-    \
-    const std::string_view SavepointGetString() const override \
-    { \
-        return #T;\
-    } \
+    public: \
 
 template<typename T>
 struct SavepointPointerImpl : std::is_pointer<T> {};
@@ -255,7 +258,7 @@ public:
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (!Reader.empty())
+        if (IsReader())
         {
             if (Version < version)
             {
@@ -272,7 +275,7 @@ public:
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (!Reader.empty())
+        if (IsReader())
         {
             if (Version < version)
             {
@@ -324,11 +327,6 @@ public:
         }
     }
 
-    void Reset()
-    {
-        Writer.resize(sizeof(SavepointVersion));
-    }
-
     bool IsReader() const
     {
         return !Reader.empty();
@@ -339,6 +337,13 @@ public:
         return !IsReader();
     }
 
+    void Reset()
+    {
+        Reader = {};
+        Offset = 0;
+        Writer.resize(sizeof(SavepointVersion));
+    }
+
 private:
     bool Empty() const
     {
@@ -347,7 +352,7 @@ private:
 
     void SetVersion(SavepointVersion version)
     {
-        std::memcpy(Writer.data(), &version, sizeof(version));
+        std::memcpy(Writer.data(), &version, sizeof(SavepointVersion));
     }
 
     void Reset(void* data, size_t size)
