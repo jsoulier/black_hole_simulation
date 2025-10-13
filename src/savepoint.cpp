@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <format>
 #include <string_view>
+#include <unordered_map>
 
 #include "sqlite3.h"
 
@@ -49,6 +50,13 @@ void SavepointDefaultLogFunction(const std::string_view& string)
 void SavepointLog(const std::string_view& string)
 {
     logFunction(string);
+}
+
+static std::unordered_map<std::string, SavepointPolymorphicFunction> polymorphicFunctions;
+
+void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function)
+{
+    polymorphicFunctions.emplace(string, function);
 }
 
 Savepoint::Savepoint()

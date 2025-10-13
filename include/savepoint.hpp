@@ -267,6 +267,62 @@ private:
 };
 
 /**
+ * @brief
+ */
+class SavepointPolymorphic
+{
+public:
+    /**
+     * @brief
+     * 
+     * @param visitor
+     */
+    virtual void Visit(SavepointVisitor& visitor) = 0;
+
+    /**
+     * @brief
+     * 
+     * @return
+     */
+    virtual const std::string_view SavepointGetString() const = 0;
+};
+
+/**
+ * @brief
+ * 
+ * @return
+ */
+using SavepointPolymorphicFunction = std::function<SavepointPolymorphic*()>;
+
+/**
+ * @brief
+ * 
+ * @param string
+ * @param function
+ */
+void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function);
+
+/**
+ * @brief
+ * 
+ * @param T
+ */
+#define SAVEPOINT_POLYMORPHIC(T) \
+    struct SavepointPolymorphicRegistrar##T \
+    { \
+        SavepointPolymorphicRegistrar##T() \
+        { \
+            SavepointAddPolymorphic(#T, []() { return new T(); }); \
+        } \
+    } \
+    static SavepointPolymorphicRegistrar; \
+    \
+    const std::string_view SavepointGetString() const override \
+    { \
+        return #T;\
+    } \
+
+/**
  * @brief Check if a type is a pointer
  * 
  * @tparam T The type
@@ -506,23 +562,64 @@ private:
 
 /**
  * @brief The signature of the reader callback
+ * 
+ * @param visitor
  */
 using SavepointFunction = std::function<void(SavepointVisitor& visitor)>;
 
 /**
  * @brief The signature of the entity reader callback
+ * 
+ * @param visitor
+ * @param id
  */
 using SavepointEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
 
 /**
+ * @brief
+ * 
+ * @param polymorphic
+ * @param id
+ */
+using SavepointPolymorphicEntityFunction = std::function<void(SavepointPolymorphic* polymorphic, SavepointID id)>;
+
+/**
  * @brief The signature of the 2D tile reader callback
+ * 
+ * @param visitor
+ * @param x
+ * @param y
  */
 using SavepointTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 
 /**
+ * @brief
+ * 
+ * @param polymorphic
+ * @param x
+ * @param y
+ */
+using SavepointPolymorphicTile2DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y)>;
+
+/**
  * @brief The signature of the 3D tile reader callback
+ * 
+ * @param visitor
+ * @param x
+ * @param y
+ * @param z
  */
 using SavepointTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
+
+/**
+ * @brief
+ * 
+ * @param polymorphic
+ * @param x
+ * @param y
+ * @param z
+ */
+using SavepointPolymorphicTile3DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y, int z)>;
 
 /**
  * @brief Return codes
