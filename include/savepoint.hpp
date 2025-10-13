@@ -384,6 +384,7 @@ class Savepoint
 {
 public:
     Savepoint();
+    ~Savepoint();
     Savepoint(const Savepoint& other) = delete;
     Savepoint& operator=(const Savepoint& other) = delete;
     Savepoint(Savepoint&& other) = delete;
@@ -411,7 +412,8 @@ public:
     void Clear();
 
 private:
-    bool SetVisitor(SavepointPolymorphic* polymorphic);
+    bool SetPolymorphic(SavepointPolymorphic* polymorphic);
+    SavepointPolymorphic* GetPolymorphic(SavepointVisitor& visitor);
 
     typedef struct sqlite3 sqlite;
     typedef struct sqlite3_stmt sqlite_stmt;
