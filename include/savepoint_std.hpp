@@ -27,7 +27,45 @@
 
 #pragma once
 
-class Savepoint;
-class SavepointID;
-class SavepointVersion;
-class SavepointVisitor;
+#include <savepoint.hpp>
+
+#include <array>
+#include <cstddef>
+#include <type_traits>
+#include <vector>
+
+template<typename T>
+struct SavepointVectorImpl : std::false_type {};
+
+template<typename T, typename Allocator>
+struct SavepointVectorImpl<std::vector<T, Allocator>> : std::true_type {};
+
+template<typename T>
+concept SavepointVector = SavepointVectorImpl<T>::value;
+
+template<SavepointVector T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    size_t size = item.size() * sizeof(T::value_type);
+    visitor(size);
+    item.resize(size);
+    visitor(item.data(), size, size);
+}
+
+template<typename T>
+struct SavepointArrayImpl : std::false_type {};
+
+template<typename T, size_t N>
+struct SavepointArrayImpl<std::array<T, N>> : std::true_type {};
+
+template<typename T>
+concept SavepointArray = SavepointArrayImpl<T>::value;
+
+template<SavepointArray T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    static constexpr size_t kCapacity = item.size() * sizeof(T::value_type);
+    size_t size = kCapacity;
+    visitor(size);
+    visitor(item.data(), kCapacity, size);
+}

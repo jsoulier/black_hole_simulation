@@ -1,7 +1,36 @@
+/*
+ * This is free and unencumbered software released into the public domain.
+ * 
+ * Anyone is free to copy, modify, publish, use, compile, sell, or
+ * distribute this software, either in source code form or as a compiled
+ * binary, for any purpose, commercial or non-commercial, and by any
+ * means.
+ * 
+ * In jurisdictions that recognize copyright laws, the author or authors
+ * of this software dedicate any and all copyright interest in the
+ * software to the public domain. We make this dedication for the benefit
+ * of the public at large and to the detriment of our heirs and
+ * successors. We intend this dedication to be an overt act of
+ * relinquishment in perpetuity of all present and future rights to this
+ * software under copyright law.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ * 
+ * For more information, please refer to <https://unlicense.org>
+ */
+
 #pragma once
 
 #include <savepoint_fwd.hpp>
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <format>
@@ -240,7 +269,7 @@ private:
 /**
  * @brief Check if a type is a pointer
  * 
- * @tparam The type
+ * @tparam T The type
  */
 template<typename T>
 struct SavepointPointerImpl : std::is_pointer<T> {};
@@ -261,23 +290,31 @@ struct SavepointPointerImpl<std::unique_ptr<T, Deleter>> : std::true_type {};
  * @copydoc SavepointPointerImpl
  */
 template<typename T>
-inline constexpr bool SavepointPointer = SavepointPointerImpl<T>::value;
+concept SavepointPointer = SavepointPointerImpl<T>::value;
 
 /**
- * @brief Check if a type is visitable
+ * @brief Check if a type has a free visit function
  * 
- * @tparam The type
+ * @tparam T The type
  */
 template<typename T>
-concept SavepointVisitable = requires { { &T::Visit }; };
+concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { SavepointVisit(visitor, item) }; };
+
+/**
+ * @brief Check if a type has a member visit function
+ * 
+ * @tparam T The type
+ */
+template<typename T>
+concept SavepointMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
 
 /**
  * @brief Check if a type is a primitive (can be copied)
  * 
- * @tparam The type
+ * @tparam T The type
  */
 template<typename T>
-concept SavepointPrimitive = !SavepointPointer<T> && !SavepointVisitable<T>;
+concept SavepointPrimitive = !SavepointPointer<T> && !SavepointFreeVisit<T> && !SavepointMemberVisit<T>;
 
 /**
  * Visitor for serializing to/from a byte stream
@@ -318,7 +355,7 @@ public:
     template<SavepointPrimitive T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (!Reader.empty())
+        if (IsReader())
         {
             if (Version < version)
             {
@@ -350,7 +387,27 @@ public:
     /**
      * @copydoc operator()
      */
-    template<SavepointVisitable T, typename... Args>
+    template<SavepointFreeVisit T, typename... Args>
+    void operator()(T& item, SavepointVersion version = {}, Args&&... args)
+    {
+        if (!Reader.empty())
+        {
+            if (Version < version)
+            {
+                if constexpr (sizeof...(Args) > 0)
+                {
+                    item = T{std::forward<Args>(args)...};
+                }
+                return;
+            }
+        }
+        SavepointVisit(*this, item);
+    }
+
+    /**
+     * @copydoc operator()
+     */
+    template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         if (!Reader.empty())
@@ -368,11 +425,69 @@ public:
     }
 
     /**
+     * @brief Serialize a buffer to/from a byte stream
+     * 
+     * @tparam T The pointer type
+     * @param data The data to serialize
+     * @param maxSize The size in bytes of the memory referenced by data
+     * @param size The size in bytes of the serialized memory
+     */
+    template<typename T> requires SavepointPointer<T>
+    void operator()(T* data, size_t maxSize, size_t size)
+    {
+        if (IsReader())
+        {
+            if (maxSize < size)
+            {
+                SavepointLog(std::format("Truncating buffer: {}, {} -> {}"), Version.GetString(), size, maxSize);
+                size = maxSize;
+            }
+            if (Offset + size > Reader.size())
+            {
+                SavepointLog(std::format("Tried to read past visitor: {}", Version.GetString()));
+                return;
+            }
+            std::memcpy(data, Reader.data() + Offset, size);
+            Offset += size;
+        }
+        else
+        {
+            if (maxSize != size)
+            {
+                SavepointLog(std::format("Sizes don't match: {}, {}", maxSize, size));
+                size = maxSize;
+            }
+            Writer.resize(Writer.size() + size);
+            std::memcpy(Writer.data() + Writer.size() - size, data, size);
+        }
+    }
+
+    /**
      * @brief Reset the visitor
      */
     void Reset()
     {
         Writer.resize(sizeof(Version));
+    }
+
+    /**
+     * @brief Check if the visitor is reading
+     * 
+     * @return If visitor is reading
+     */
+    bool IsReader() const
+    {
+        return !Reader.empty();
+    }
+
+    /**
+     * @brief Check if the visitor is writing
+     * 
+     * @return If visitor is writing
+     */
+    bool IsWriter() const
+    {
+        return !IsReader();
     }
 
 private:
@@ -463,7 +578,7 @@ public:
      * @brief Write a visitor referenced by an ID
      * 
      * @param visitor The visitor to write
-     * @param id The ID to use (not unique between levels). If invalid, writes to id
+     * @param id The ID to use (not unique between levels). If invalid, creates a new ID
      * @param level The level to write. If id exists, moves to the new level
      */
     void Write(const SavepointVisitor& visitor, SavepointID& id, int level);
