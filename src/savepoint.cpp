@@ -52,7 +52,8 @@ void SavepointLog(const std::string_view& string)
 }
 
 Savepoint::Savepoint()
-    : Handle{nullptr}
+    : Version{}
+    , Handle{nullptr}
     , WriteStatusStmt{nullptr}
     , WriteStmt{nullptr}
     , InsertEntityStmt{nullptr}
@@ -71,8 +72,9 @@ Savepoint::Savepoint()
 {
 }
 
-SavepointStatus Savepoint::Open(const std::string_view& path)
+SavepointStatus Savepoint::Open(const std::string_view& path, SavepointVersion version)
 {
+    Version = version;
     if (sqlite3_open(path.data(), &Handle) != SQLITE_OK)
     {
         SavepointLog(std::format("Failed to open database: {}, {}", path, sqlite3_errmsg(Handle)));
@@ -278,17 +280,18 @@ void Savepoint::Save()
     }
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor)
+void Savepoint::Write(SavepointVisitor& visitor)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
     uint32_t size = visitor.Writer.size();
     sqlite3_bind_blob(WriteStmt, 1, data, size, SQLITE_TRANSIENT);
@@ -299,17 +302,18 @@ void Savepoint::Write(const SavepointVisitor& visitor)
     sqlite3_reset(WriteStmt);
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor, SavepointID& id, int level)
+void Savepoint::Write(SavepointVisitor& visitor, SavepointID& id, int level)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
     uint32_t size = visitor.Writer.size();
     if (!id)
@@ -340,17 +344,18 @@ void Savepoint::Write(const SavepointVisitor& visitor, SavepointID& id, int leve
     }
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor, int x, int y, int level)
+void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int level)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
     uint32_t size = visitor.Writer.size();
     sqlite3_bind_int(WriteTile2DStmt, 1, x);
@@ -364,17 +369,18 @@ void Savepoint::Write(const SavepointVisitor& visitor, int x, int y, int level)
     sqlite3_reset(WriteTile2DStmt);
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor, int x, int y, int z, int level)
+void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
     uint32_t size = visitor.Writer.size();
     sqlite3_bind_int(WriteTile3DStmt, 1, x);
