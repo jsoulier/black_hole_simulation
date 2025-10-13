@@ -31,6 +31,7 @@
 
 #include <array>
 #include <cstddef>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -74,4 +75,22 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     size_t size = kCapacity;
     visitor(size);
     visitor(item.data(), kCapacity, size);
+}
+
+template<typename T>
+struct SavepointStringImpl : std::false_type {};
+
+template<typename T, typename Traits, typename Allocator>
+struct SavepointStringImpl<std::basic_string<T, Traits, Allocator>> : std::true_type {};
+
+template<typename T>
+concept SavepointString = SavepointStringImpl<T>::value;
+
+template<SavepointString T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    size_t size = item.size() * sizeof(T::value_type);
+    visitor(size);
+    item.resize(size);
+    visitor(item.data(), size, size);
 }

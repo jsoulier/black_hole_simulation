@@ -44,164 +44,73 @@
 #include <utility>
 #include <vector>
 
-/**
- * @brief The signature of the log function
- * 
- * @param string The message
- */
 using SavepointLogFunction = std::function<void(const std::string_view& string)>;
 
-/**
- * @brief Replace the default log function
- * 
- * @param function 
- */
 void SavepointSetLogFunction(const SavepointLogFunction& function);
-
-/**
- * @brief Log to stderr
- * 
- * @param string 
- */
 void SavepointDefaultLogFunction(const std::string_view& string);
-
-/**
- * @brief Forward a message to the set log function
- * 
- * @param string 
- */
 void SavepointLog(const std::string_view& string);
 
-/**
- * @brief Representation of a major.minor.patch version
- */
 class SavepointVersion
 {
 private:
     friend class Savepoint;
 
 public:
-    /**
-     * @brief Create a version with the smallest value
-     */
     constexpr SavepointVersion()
         : Value{0}
     {
     }
 
-    /**
-     * @brief Create a version
-     * 
-     * @param major The major version
-     * @param minor The minor version
-     * @param patch The patch version
-     */
     constexpr SavepointVersion(uint32_t major, uint32_t minor, uint32_t patch)
         : Value{major << 24 | minor << 16 | patch}
     {
     }
 
-    /**
-     * @brief Get the major version
-     * 
-     * @return The major version
-     */
     constexpr uint32_t GetMajor() const
     {
         return (Value >> 24) & 0xFF;
     }
 
-    /**
-     * @brief Get the minor version
-     * 
-     * @return The minor version
-     */
     constexpr uint32_t GetMinor() const
     {
         return (Value >> 16) & 0xFF;
     }
 
-    /**
-     * @brief Get the patch version
-     * 
-     * @return The patch version
-     */
     constexpr uint32_t GetPatch() const
     {
         return Value & 0xFFFF;
     }
 
-    /**
-     * @brief Get the version as a string with the format major.minor.patch
-     * 
-     * @return The version string
-     */
     std::string GetString() const
     {
         return std::format("{}.{}.{}", GetMajor(), GetMinor(), GetPatch());
     }
 
-    /**
-     * @brief Check if the version is equal to the other
-     * 
-     * @param other The other version
-     * @return If the version is equal
-     */
     constexpr bool operator==(const SavepointVersion other) const
     {
         return Value == other.Value;
     }
 
-    /**
-     * @brief Check if the version is not equal to the other
-     * 
-     * @param other The other version
-     * @return If the version is not equal
-     */
     constexpr bool operator!=(const SavepointVersion other) const
     {
         return Value != other.Value;
     }
 
-    /**
-     * @brief Check if the version is less than to the other
-     * 
-     * @param other The other version
-     * @return If the version is less than
-     */
     constexpr bool operator<(const SavepointVersion other) const
     {
         return Value < other.Value;
     }
 
-    /**
-     * @brief Check if the version is greater than to the other
-     * 
-     * @param other The other version
-     * @return If the version is greater than
-     */
     constexpr bool operator>(const SavepointVersion other) const
     {
         return Value > other.Value;
     }
 
-    /**
-     * @brief Check if the version is less than or equal to the other
-     * 
-     * @param other The other version
-     * @return If the version is less than or equal
-     */
     constexpr bool operator<=(const SavepointVersion other) const
     {
         return Value <= other.Value;
     }
 
-    /**
-     * @brief Check if the version is greater than or equal to the other
-     * 
-     * @param other The other version
-     * @return If the version is greater than or equal
-     */
     constexpr bool operator>=(const SavepointVersion other) const
     {
         return Value >= other.Value;
@@ -211,52 +120,27 @@ private:
     uint32_t Value;
 };
 
-/**
- * Unique ID for referencing entities (not unique across different savepoints)
- */
 class SavepointID
 {
 private:
     friend class Savepoint;
 
 public:
-    /**
-     * @brief Create an invalid ID
-     */
     constexpr SavepointID()
         : Value{std::numeric_limits<uint32_t>::max()}
     {
     }
 
-    /**
-     * @brief Check if the ID is equal to the other
-     * 
-     * @param other The other ID
-     * 
-     * @return If the ID is equal
-     */
     constexpr bool operator==(const SavepointID other) const
     {
         return Value == other.Value;
     }
 
-    /**
-     * @brief Check if the ID is not equal to the other
-     * 
-     * @param other The other ID
-     * 
-     * @return If the ID is not equal
-     */
     constexpr bool operator!=(const SavepointID other) const
     {
         return Value != other.Value;
     }
 
-    /**
-     * @brief Check if the ID is valid
-     * 
-     * @return If the ID is valid
-     */
     constexpr operator bool() const
     {
         return Value != SavepointID{}.Value;
@@ -266,47 +150,22 @@ private:
     uint32_t Value;
 };
 
-/**
- * @brief
- */
 class SavepointPolymorphic
 {
-public:
-    /**
-     * @brief
-     * 
-     * @param visitor
-     */
-    virtual void Visit(SavepointVisitor& visitor) = 0;
+private:
+    friend class Savepoint;
 
-    /**
-     * @brief
-     * 
-     * @return
-     */
+public:
+    virtual void Visit(SavepointVisitor& visitor) = 0;
+    
+private:
     virtual const std::string_view SavepointGetString() const = 0;
 };
 
-/**
- * @brief
- * 
- * @return
- */
 using SavepointPolymorphicFunction = std::function<SavepointPolymorphic*()>;
 
-/**
- * @brief
- * 
- * @param string
- * @param function
- */
 void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function);
 
-/**
- * @brief
- * 
- * @param T
- */
 #define SAVEPOINT_POLYMORPHIC(T) \
     struct SavepointPolymorphicRegistrar##T \
     { \
@@ -322,92 +181,45 @@ void SavepointAddPolymorphicFunction(const std::string_view& string, const Savep
         return #T;\
     } \
 
-/**
- * @brief Check if a type is a pointer
- * 
- * @tparam T The type
- */
 template<typename T>
 struct SavepointPointerImpl : std::is_pointer<T> {};
 
-/**
- * @copydoc SavepointPointerImpl
- */
 template<typename T>
 struct SavepointPointerImpl<std::shared_ptr<T>> : std::true_type {};
 
-/**
- * @copydoc SavepointPointerImpl
- */
 template<typename T, typename Deleter>
 struct SavepointPointerImpl<std::unique_ptr<T, Deleter>> : std::true_type {};
 
-/**
- * @copydoc SavepointPointerImpl
- */
 template<typename T>
 concept SavepointPointer = SavepointPointerImpl<T>::value;
 
-/**
- * @brief Check if a type has a free visit function
- * 
- * @tparam T The type
- */
 template<typename T>
 concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { SavepointVisit(visitor, item) }; };
 
-/**
- * @brief Check if a type has a member visit function
- * 
- * @tparam T The type
- */
 template<typename T>
 concept SavepointMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
 
-/**
- * @brief Check if a type is a primitive (can be copied)
- * 
- * @tparam T The type
- */
 template<typename T>
 concept SavepointPrimitive = !SavepointPointer<T> && !SavepointFreeVisit<T> && !SavepointMemberVisit<T>;
 
-/**
- * Visitor for serializing to/from a byte stream
- */
 class SavepointVisitor
 {
 private:
     friend class Savepoint;
 
-    SavepointVisitor() = default;
     SavepointVisitor(const SavepointVisitor& other) = delete;
     SavepointVisitor& operator=(const SavepointVisitor& other) = delete;
 
 public:
-    /**
-     * @brief Create a new visitor
-     * 
-     * @param version The version (should be the version of your application)
-     */
-    SavepointVisitor(SavepointVersion version)
-        : Version{version}
+    SavepointVisitor()
+        : Version{}
         , Writer{}
         , Reader{}
         , Offset{0}
     {
-        operator()(version);
+        Reset();
     }
 
-    /**
-     * @brief Serialize to/from the byte stream
-     * 
-     * @tparam T The type to serialize
-     * @tparam Args The types of the arguments for construction
-     * @param item The item to serialize
-     * @param version The visitor version required to deserialize
-     * @param args The args to forward for construction if deserialization requirements aren't met
-     */
     template<SavepointPrimitive T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -440,9 +252,6 @@ public:
         }
     }
 
-    /**
-     * @copydoc operator()
-     */
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -460,9 +269,6 @@ public:
         SavepointVisit(*this, item);
     }
 
-    /**
-     * @copydoc operator()
-     */
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -480,31 +286,31 @@ public:
         item.Visit(*this);
     }
 
-    /**
-     * @brief Serialize a buffer to/from a byte stream
-     * 
-     * @tparam T The pointer type
-     * @param data The data to serialize
-     * @param maxSize The size in bytes of the memory referenced by data
-     * @param size The size in bytes of the serialized memory
-     */
     template<typename T>
     void operator()(T* data, size_t maxSize, size_t size)
     {
         if (IsReader())
         {
-            if (maxSize < size)
+            if constexpr (std::is_const_v<T>)
             {
-                SavepointLog(std::format("Truncating buffer: {}, {} -> {}", Version.GetString(), size, maxSize));
-                size = maxSize;
-            }
-            if (Offset + size > Reader.size())
-            {
-                SavepointLog(std::format("Tried to read past visitor: {}", Version.GetString()));
+                SavepointLog("Tried to read into a const pointer");
                 return;
             }
-            std::memcpy(data, Reader.data() + Offset, size);
-            Offset += size;
+            else
+            {
+                if (maxSize < size)
+                {
+                    SavepointLog(std::format("Truncating buffer: {}, {} -> {}", Version.GetString(), size, maxSize));
+                    size = maxSize;
+                }
+                if (Offset + size > Reader.size())
+                {
+                    SavepointLog(std::format("Tried to read past visitor: {}", Version.GetString()));
+                    return;
+                }
+                std::memcpy(data, Reader.data() + Offset, size);
+                Offset += size;
+            }
         }
         else
         {
@@ -518,36 +324,33 @@ public:
         }
     }
 
-    /**
-     * @brief Reset the visitor
-     */
     void Reset()
     {
-        Writer.resize(sizeof(Version));
+        Writer.resize(sizeof(SavepointVersion));
     }
 
-    /**
-     * @brief Check if the visitor is reading
-     * 
-     * @return If visitor is reading
-     */
     bool IsReader() const
     {
         return !Reader.empty();
     }
 
-    /**
-     * @brief Check if the visitor is writing
-     * 
-     * @return If visitor is writing
-     */
     bool IsWriter() const
     {
         return !IsReader();
     }
 
 private:
-    void Reset(void* data, uint32_t size)
+    bool Empty() const
+    {
+        return Writer.size() == sizeof(SavepointVersion);
+    }
+
+    void SetVersion(SavepointVersion version)
+    {
+        std::memcpy(Writer.data(), &version, sizeof(version));
+    }
+
+    void Reset(void* data, size_t size)
     {
         Reader = {static_cast<uint8_t*>(data), size};
         Offset = 0;
@@ -557,196 +360,63 @@ private:
     SavepointVersion Version;
     std::vector<uint8_t> Writer;
     std::span<uint8_t> Reader;
-    uint32_t Offset;
+    size_t Offset;
 };
 
-/**
- * @brief The signature of the reader callback
- * 
- * @param visitor
- */
-using SavepointFunction = std::function<void(SavepointVisitor& visitor)>;
+using SavepointReadFunction = std::function<void(SavepointVisitor& visitor)>;
+using SavepointReadEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
+using SavepointReadTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
+using SavepointReadTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
 
-/**
- * @brief The signature of the entity reader callback
- * 
- * @param visitor
- * @param id
- */
-using SavepointEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
+using SavepointReadPolymorphicFunction = std::function<void(SavepointPolymorphic* polymorphic)>;
+using SavepointReadPolymorphicEntityFunction = std::function<void(SavepointPolymorphic* polymorphic, SavepointID id)>;
+using SavepointReadPolymorphicTile2DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y)>;
+using SavepointReadPolymorphicTile3DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y, int z)>;
 
-/**
- * @brief
- * 
- * @param polymorphic
- * @param id
- */
-using SavepointPolymorphicEntityFunction = std::function<void(SavepointPolymorphic* polymorphic, SavepointID id)>;
-
-/**
- * @brief The signature of the 2D tile reader callback
- * 
- * @param visitor
- * @param x
- * @param y
- */
-using SavepointTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
-
-/**
- * @brief
- * 
- * @param polymorphic
- * @param x
- * @param y
- */
-using SavepointPolymorphicTile2DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y)>;
-
-/**
- * @brief The signature of the 3D tile reader callback
- * 
- * @param visitor
- * @param x
- * @param y
- * @param z
- */
-using SavepointTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
-
-/**
- * @brief
- * 
- * @param polymorphic
- * @param x
- * @param y
- * @param z
- */
-using SavepointPolymorphicTile3DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y, int z)>;
-
-/**
- * @brief Return codes
- */
 enum class SavepointStatus
 {
-    Failed,   /**< A failure occured */
-    Existing, /**< An existing savepoint was opened */
-    New,      /**< A new savepoint was opened */
+    Failed,
+    Existing,
+    New,
 };
 
-/**
- * Database connection handle
- */
 class Savepoint
 {
 public:
-    /**
-     * Create a new savepoint
-     */
     Savepoint();
     Savepoint(const Savepoint& other) = delete;
     Savepoint& operator=(const Savepoint& other) = delete;
     Savepoint(Savepoint&& other) = delete;
     Savepoint& operator=(Savepoint&& other) = delete;
-    
-    /**
-     * @brief Open the savepoint
-     * 
-     * @param path The path to the file
-     * @return The savepoint status
-     */
-    SavepointStatus Open(const std::string_view& path);
-
-    /**
-     * @brief Close the savepoint (does NOT save!)
-     */
+    SavepointStatus Open(const std::string_view& path, SavepointVersion version);
     void Close();
-    
-    /**
-     * @brief Save pending changes
-     */
     void Save();
-
-    /**
-     * @brief Write a global visitor (not shared between savepoints)
-     * 
-     * @param visitor The visitor to write
-     */
-    void Write(const SavepointVisitor& visitor);
-
-    /**
-     * @brief Write a visitor referenced by an ID
-     * 
-     * @param visitor The visitor to write
-     * @param id The ID to use (not unique between levels). If invalid, creates a new ID
-     * @param level The level to write. If id exists, moves to the new level
-     */
-    void Write(const SavepointVisitor& visitor, SavepointID& id, int level);
-
-    /**
-     * @brief Write a visitor to a 2D tile location
-     * 
-     * @param visitor The visitor to write
-     * @param x The x coordinate
-     * @param y The y coordinate
-     * @param level The level to write
-     */
-    void Write(const SavepointVisitor& visitor, int x, int y, int level);
-
-    /**
-     * @brief Write a visitor to a 2D tile location
-     * 
-     * @param visitor The visitor to write
-     * @param x The x coordinate
-     * @param y The y coordinate
-     * @param z The z coordinate
-     * @param level The level to write
-     */
-    void Write(const SavepointVisitor& visitor, int x, int y, int z, int level);
-
-    /**
-     * @brief Read a global visitor (not shared between savepoints)
-     * 
-     * @param function The callback to use
-     */
-    void Read(const SavepointFunction& function);
-
-    /**
-     * @brief Read visitors referenced by an ID
-     * 
-     * @param function The callback to use
-     * @param level The level to read
-     */
-    void Read(const SavepointEntityFunction& function, int level);
-
-    /**
-     * @brief Read visitors referenced by 2D coordinates
-     * 
-     * @param function The callback to use
-     * @param level The level to read
-     */
-    void Read(const SavepointTile2DFunction& function, int level);
-
-    /**
-     * @brief Read visitors referenced by 3D coordinates
-     * 
-     * @param function The callback to use
-     * @param level The level to read
-     */
-    void Read(const SavepointTile3DFunction& function, int level);
-
-    /**
-     * @brief Delete an ID
-     * 
-     * @param id The ID to delete
-     */
+    void Write(SavepointVisitor& visitor);
+    void Write(SavepointVisitor& visitor, SavepointID& id, int level);
+    void Write(SavepointVisitor& visitor, int x, int y, int level);
+    void Write(SavepointVisitor& visitor, int x, int y, int z, int level);
+    void Write(SavepointPolymorphic* polymorphic);
+    void Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level);
+    void Write(SavepointPolymorphic* polymorphic, int x, int y, int level);
+    void Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level);
+    void Read(const SavepointReadFunction& function);
+    void Read(const SavepointReadEntityFunction& function, int level);
+    void Read(const SavepointReadTile2DFunction& function, int level);
+    void Read(const SavepointReadTile3DFunction& function, int level);
+    void Read(const SavepointReadPolymorphicFunction& function);
+    void Read(const SavepointReadPolymorphicEntityFunction& function, int level);
+    void Read(const SavepointReadPolymorphicTile2DFunction& function, int level);
+    void Read(const SavepointReadPolymorphicTile3DFunction& function, int level);
     void Delete(const SavepointID id);
-
-    /**
-     * @brief Delete all entities and tiles
-     */
     void Clear();
 
 private:
+    bool SetVisitor(SavepointPolymorphic* polymorphic);
+
     typedef struct sqlite3 sqlite;
     typedef struct sqlite3_stmt sqlite_stmt;
+    SavepointVersion Version;
+    SavepointVisitor Visitor;
     sqlite3* Handle;
     sqlite3_stmt* WriteStatusStmt;
     sqlite3_stmt* WriteStmt;

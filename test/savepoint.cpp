@@ -469,9 +469,14 @@ struct ArrayV3
 };
 
 template<typename InT, typename OutT>
-void Test(Savepoint& savepoint, SavepointVersion inVersion)
+void Test(SavepointVersion inVersion)
 {
-    SavepointVisitor inVisitor{inVersion};
+    std::filesystem::remove(kFileName);
+    std::filesystem::remove(kFileName + "-journal");
+    Savepoint savepoint;
+    SavepointStatus status = savepoint.Open(kFileName, inVersion);
+    assert(status != SavepointStatus::Failed);
+    SavepointVisitor inVisitor;
     SavepointID inID;
     std::shared_ptr<InT> inEntity = std::make_shared<InT>();
     inVisitor(*inEntity);
@@ -486,7 +491,7 @@ void Test(Savepoint& savepoint, SavepointVersion inVersion)
         i++;
     }, 0);
     assert(i == 1);
-    savepoint.Clear();
+    savepoint.Close();
 };
 
 int main()
@@ -495,17 +500,17 @@ int main()
     std::filesystem::remove(kFileName + "-journal");
     Savepoint savepoint;
     SavepointStatus status;
-    status = savepoint.Open(kFileName);
+    status = savepoint.Open(kFileName, SavepointVersion{});
     assert(status == SavepointStatus::New);
     savepoint.Close();
-    status = savepoint.Open(kFileName);
+    status = savepoint.Open(kFileName, SavepointVersion{});
     assert(status == SavepointStatus::New);
     savepoint.Save();
     savepoint.Close();
-    status = savepoint.Open(kFileName);
+    status = savepoint.Open(kFileName, SavepointVersion{});
     assert(status == SavepointStatus::Existing);
     {
-        SavepointVisitor inVisitor{SavepointVersion{}};
+        SavepointVisitor inVisitor;
         Header header;
         header.Major = 1;
         header.Minor = 2;
@@ -532,28 +537,8 @@ int main()
             assert(header.Patch = 6);
         });
     }
-    Test<EntityV1, EntityV1>(savepoint, kVersion1);
-    Test<EntityV1, EntityV2>(savepoint, kVersion1);
-    Test<EntityV2, EntityV2>(savepoint, kVersion2);
-    Test<EntityV1, EntityV3>(savepoint, kVersion1);
-    Test<EntityV2, EntityV3>(savepoint, kVersion2);
-    Test<EntityV3, EntityV3>(savepoint, kVersion3);
-    Test<EntityV1, EntityV4>(savepoint, kVersion1);
-    Test<EntityV2, EntityV4>(savepoint, kVersion2);
-    Test<EntityV3, EntityV4>(savepoint, kVersion3);
-    Test<EntityV4, EntityV4>(savepoint, kVersion4);
-    Test<ZombieV1, ZombieV1>(savepoint, kVersion1);
-    Test<ZombieV1, ZombieV2>(savepoint, kVersion1);
-    Test<ZombieV2, ZombieV2>(savepoint, kVersion2);
-    Test<ZombieV1, ZombieV3>(savepoint, kVersion1);
-    Test<ZombieV2, ZombieV3>(savepoint, kVersion2);
-    Test<ZombieV3, ZombieV3>(savepoint, kVersion3);
-    Test<ZombieV1, ZombieV4>(savepoint, kVersion1);
-    Test<ZombieV2, ZombieV4>(savepoint, kVersion2);
-    Test<ZombieV3, ZombieV4>(savepoint, kVersion3);
-    Test<ZombieV4, ZombieV4>(savepoint, kVersion4);
     {
-        SavepointVisitor inVisitor{SavepointVersion{}};
+        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 256; inX++)
         for (int inY = 0; inY < 256; inY++)
         {
@@ -574,7 +559,7 @@ int main()
         assert(i == 256 * 256);
     }
     {
-        SavepointVisitor inVisitor{SavepointVersion{}};
+        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         for (int inZ = 0; inZ < 32; inZ++)
@@ -598,7 +583,7 @@ int main()
     }
     savepoint.Clear();
     {
-        SavepointVisitor inVisitor{SavepointVersion{}};
+        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         {
@@ -619,7 +604,7 @@ int main()
         assert(i == 32 * 32);
     }
     {
-        SavepointVisitor inVisitor{SavepointVersion{}};
+        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         {
@@ -641,7 +626,7 @@ int main()
     }
     savepoint.Clear();
     {
-        SavepointVisitor inVisitor{SavepointVersion{}};
+        SavepointVisitor inVisitor;
         SavepointID inID;
         Vector inVector{{1, 5, 3, 7}};
         inVisitor(inVector) ;
@@ -657,14 +642,32 @@ int main()
         }, 0);
         assert(i == 1);
     }
-    savepoint.Clear();
-    Test<ArrayV1, ArrayV1>(savepoint, kVersion1);
-    Test<ArrayV1, ArrayV2>(savepoint, kVersion1);
-    Test<ArrayV1, ArrayV3>(savepoint, kVersion1);
-    Test<ArrayV2, ArrayV2>(savepoint, kVersion1);
-    Test<ArrayV2, ArrayV3>(savepoint, kVersion1);
-    Test<ArrayV3, ArrayV3>(savepoint, kVersion1);
-    savepoint.Save();
     savepoint.Close();
+    Test<EntityV1, EntityV1>(kVersion1);
+    Test<EntityV1, EntityV2>(kVersion1);
+    Test<EntityV2, EntityV2>(kVersion2);
+    Test<EntityV1, EntityV3>(kVersion1);
+    Test<EntityV2, EntityV3>(kVersion2);
+    Test<EntityV3, EntityV3>(kVersion3);
+    Test<EntityV1, EntityV4>(kVersion1);
+    Test<EntityV2, EntityV4>(kVersion2);
+    Test<EntityV3, EntityV4>(kVersion3);
+    Test<EntityV4, EntityV4>(kVersion4);
+    Test<ZombieV1, ZombieV1>(kVersion1);
+    Test<ZombieV1, ZombieV2>(kVersion1);
+    Test<ZombieV2, ZombieV2>(kVersion2);
+    Test<ZombieV1, ZombieV3>(kVersion1);
+    Test<ZombieV2, ZombieV3>(kVersion2);
+    Test<ZombieV3, ZombieV3>(kVersion3);
+    Test<ZombieV1, ZombieV4>(kVersion1);
+    Test<ZombieV2, ZombieV4>(kVersion2);
+    Test<ZombieV3, ZombieV4>(kVersion3);
+    Test<ZombieV4, ZombieV4>(kVersion4);
+    Test<ArrayV1, ArrayV1>(kVersion1);
+    Test<ArrayV1, ArrayV2>(kVersion1);
+    Test<ArrayV1, ArrayV3>(kVersion1);
+    Test<ArrayV2, ArrayV2>(kVersion1);
+    Test<ArrayV2, ArrayV3>(kVersion1);
+    Test<ArrayV3, ArrayV3>(kVersion1);
     return 0;
 }

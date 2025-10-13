@@ -25,11 +25,14 @@
  * For more information, please refer to <https://unlicense.org>
  */
 
+#include <savepoint_std.hpp>
 #include <savepoint.hpp>
 
-#include <cstdint>
+#include <cstddef>
 #include <cstdio>
 #include <format>
+#include <functional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 
@@ -52,7 +55,27 @@ void SavepointLog(const std::string_view& string)
     logFunction(string);
 }
 
-static std::unordered_map<std::string, SavepointPolymorphicFunction> polymorphicFunctions;
+struct Hash
+{
+    using is_transparent = void;
+
+    size_t operator()(const char* string) const
+    {
+        return std::hash<std::string_view>{}(string);
+    }
+
+    size_t operator()(const std::string_view& string) const
+    {
+        return std::hash<std::string_view>{}(string);
+    }
+
+    size_t operator()(const std::string& string) const
+    {
+        return std::hash<std::string_view>{}(string);
+    }
+};
+
+static std::unordered_map<std::string, SavepointPolymorphicFunction, Hash, std::equal_to<>> polymorphicFunctions;
 
 void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function)
 {
@@ -60,7 +83,8 @@ void SavepointAddPolymorphicFunction(const std::string_view& string, const Savep
 }
 
 Savepoint::Savepoint()
-    : Handle{nullptr}
+    : Version{}
+    , Handle{nullptr}
     , WriteStatusStmt{nullptr}
     , WriteStmt{nullptr}
     , InsertEntityStmt{nullptr}
@@ -79,7 +103,7 @@ Savepoint::Savepoint()
 {
 }
 
-SavepointStatus Savepoint::Open(const std::string_view& path)
+SavepointStatus Savepoint::Open(const std::string_view& path, SavepointVersion version)
 {
     if (sqlite3_open(path.data(), &Handle) != SQLITE_OK)
     {
@@ -233,6 +257,8 @@ SavepointStatus Savepoint::Open(const std::string_view& path)
         SavepointLog(std::format("Failed to begin transaction: {}", sqlite3_errmsg(Handle)));
         return SavepointStatus::Failed;
     }
+    Version = version;
+    Visitor.SetVersion(Version);
     SavepointStatus status;
     if (sqlite3_step(ReadStatusStmt) == SQLITE_ROW)
     {
@@ -286,19 +312,20 @@ void Savepoint::Save()
     }
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor)
+void Savepoint::Write(SavepointVisitor& visitor)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
-    uint32_t size = visitor.Writer.size();
+    size_t size = visitor.Writer.size();
     sqlite3_bind_blob(WriteStmt, 1, data, size, SQLITE_TRANSIENT);
     if (sqlite3_step(WriteStmt) != SQLITE_DONE)
     {
@@ -307,19 +334,20 @@ void Savepoint::Write(const SavepointVisitor& visitor)
     sqlite3_reset(WriteStmt);
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor, SavepointID& id, int level)
+void Savepoint::Write(SavepointVisitor& visitor, SavepointID& id, int level)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
-    uint32_t size = visitor.Writer.size();
+    size_t size = visitor.Writer.size();
     if (!id)
     {
         sqlite3_bind_int(InsertEntityStmt, 1, level);
@@ -348,19 +376,20 @@ void Savepoint::Write(const SavepointVisitor& visitor, SavepointID& id, int leve
     }
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor, int x, int y, int level)
+void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int level)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
-    uint32_t size = visitor.Writer.size();
+    size_t size = visitor.Writer.size();
     sqlite3_bind_int(WriteTile2DStmt, 1, x);
     sqlite3_bind_int(WriteTile2DStmt, 2, y);
     sqlite3_bind_int(WriteTile2DStmt, 3, level);
@@ -372,19 +401,20 @@ void Savepoint::Write(const SavepointVisitor& visitor, int x, int y, int level)
     sqlite3_reset(WriteTile2DStmt);
 }
 
-void Savepoint::Write(const SavepointVisitor& visitor, int x, int y, int z, int level)
+void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
 {
     if (!Handle)
     {
         return;
     }
-    if (visitor.Writer.empty())
+    if (visitor.Empty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
+    visitor.SetVersion(Version);
     const void* data = visitor.Writer.data();
-    uint32_t size = visitor.Writer.size();
+    size_t size = visitor.Writer.size();
     sqlite3_bind_int(WriteTile3DStmt, 1, x);
     sqlite3_bind_int(WriteTile3DStmt, 2, y);
     sqlite3_bind_int(WriteTile3DStmt, 3, z);
@@ -397,19 +427,88 @@ void Savepoint::Write(const SavepointVisitor& visitor, int x, int y, int z, int 
     sqlite3_reset(WriteTile3DStmt);
 }
 
-void Savepoint::Read(const SavepointFunction& function)
+bool Savepoint::SetVisitor(SavepointPolymorphic* polymorphic)
+{
+    if (!polymorphic)
+    {
+        SavepointLog("Tried to write null polymorphic");
+        return false;
+    }
+    const std::string_view& string = polymorphic->SavepointGetString();
+    auto it = polymorphicFunctions.find(string);
+    if (it == polymorphicFunctions.end())
+    {
+        SavepointLog(std::format("Failed to find polymorphic string: {}", string));
+        return false;
+    }
+    size_t size = string.size();
+    Visitor.Reset();
+    Visitor(size);
+    Visitor(string.data(), size, size);
+    Visitor(*polymorphic);
+    return true;
+}
+
+void Savepoint::Write(SavepointPolymorphic* polymorphic)
 {
     if (!Handle)
     {
         return;
     }
-    SavepointVisitor visitor;
+    if (SetVisitor(polymorphic))
+    {
+        Write(Visitor);
+    }
+}
+
+void Savepoint::Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level)
+{
+    if (!Handle)
+    {
+        return;
+    }
+    if (SetVisitor(polymorphic))
+    {
+        Write(Visitor, id, level);
+    }
+}
+
+void Savepoint::Write(SavepointPolymorphic* polymorphic, int x, int y, int level)
+{
+    if (!Handle)
+    {
+        return;
+    }
+    if (SetVisitor(polymorphic))
+    {
+        Write(Visitor, x, y, level);
+    }
+}
+
+void Savepoint::Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level)
+{
+    if (!Handle)
+    {
+        return;
+    }
+    if (SetVisitor(polymorphic))
+    {
+        Write(Visitor, x, y, z, level);
+    }
+}
+
+void Savepoint::Read(const SavepointReadFunction& function)
+{
+    if (!Handle)
+    {
+        return;
+    }
     if (sqlite3_step(ReadStmt) == SQLITE_ROW)
     {
         void* data = const_cast<void*>(sqlite3_column_blob(ReadStmt, 0));
-        uint32_t size = sqlite3_column_bytes(ReadStmt, 0);
-        visitor.Reset(data, size);
-        function(visitor);
+        size_t size = sqlite3_column_bytes(ReadStmt, 0);
+        Visitor.Reset(data, size);
+        function(Visitor);
     }
     else
     {
@@ -418,53 +517,50 @@ void Savepoint::Read(const SavepointFunction& function)
     sqlite3_reset(ReadStmt);
 }
 
-void Savepoint::Read(const SavepointEntityFunction& function, int level)
+void Savepoint::Read(const SavepointReadEntityFunction& function, int level)
 {
     if (!Handle)
     {
         return;
     }
-    SavepointVisitor visitor;
     SavepointID id;
     sqlite3_bind_int(ReadEntitiesStmt, 1, level);
     while (sqlite3_step(ReadEntitiesStmt) == SQLITE_ROW)
     {
         id.Value = sqlite3_column_int(ReadEntitiesStmt, 0);
         void* data = const_cast<void*>(sqlite3_column_blob(ReadEntitiesStmt, 1));
-        uint32_t size = sqlite3_column_bytes(ReadEntitiesStmt, 1);
-        visitor.Reset(data, size);
-        function(visitor, id);
+        size_t size = sqlite3_column_bytes(ReadEntitiesStmt, 1);
+        Visitor.Reset(data, size);
+        function(Visitor, id);
     }
     sqlite3_reset(ReadEntitiesStmt);
 }
 
-void Savepoint::Read(const SavepointTile2DFunction& function, int level)
+void Savepoint::Read(const SavepointReadTile2DFunction& function, int level)
 {
     if (!Handle)
     {
         return;
     }
-    SavepointVisitor visitor;
     sqlite3_bind_int(ReadTiles2DStmt, 1, level);
     while (sqlite3_step(ReadTiles2DStmt) == SQLITE_ROW)
     {
         int x = sqlite3_column_int(ReadTiles2DStmt, 0);
         int y = sqlite3_column_int(ReadTiles2DStmt, 1);
         void* data = const_cast<void*>(sqlite3_column_blob(ReadTiles2DStmt, 2));
-        uint32_t size = sqlite3_column_bytes(ReadTiles2DStmt, 2);
-        visitor.Reset(data, size);
-        function(visitor, x, y);
+        size_t size = sqlite3_column_bytes(ReadTiles2DStmt, 2);
+        Visitor.Reset(data, size);
+        function(Visitor, x, y);
     }
     sqlite3_reset(ReadTiles2DStmt);
 }
 
-void Savepoint::Read(const SavepointTile3DFunction& function, int level)
+void Savepoint::Read(const SavepointReadTile3DFunction& function, int level)
 {
     if (!Handle)
     {
         return;
     }
-    SavepointVisitor visitor;
     sqlite3_bind_int(ReadTiles3DStmt, 1, level);
     while (sqlite3_step(ReadTiles3DStmt) == SQLITE_ROW)
     {
@@ -472,9 +568,9 @@ void Savepoint::Read(const SavepointTile3DFunction& function, int level)
         int y = sqlite3_column_int(ReadTiles3DStmt, 1);
         int z = sqlite3_column_int(ReadTiles3DStmt, 2);
         void* data = const_cast<void*>(sqlite3_column_blob(ReadTiles3DStmt, 3));
-        uint32_t size = sqlite3_column_bytes(ReadTiles3DStmt, 3);
-        visitor.Reset(data, size);
-        function(visitor, x, y, z);
+        size_t size = sqlite3_column_bytes(ReadTiles3DStmt, 3);
+        Visitor.Reset(data, size);
+        function(Visitor, x, y, z);
     }
     sqlite3_reset(ReadTiles3DStmt);
 }
