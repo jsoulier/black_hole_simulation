@@ -1,5 +1,4 @@
 #include <savepoint.hpp>
-#include <savepoint_std.hpp>
 
 #include <array>
 #include <cassert>
@@ -393,7 +392,7 @@ struct Tile3D
 
 struct Vector
 {
-    std::vector<int> Data;
+    std::vector<int> Data = {1, 5, 3, 7};
 
     void Visit(SavepointVisitor& visitor)
     {
@@ -491,21 +490,24 @@ struct PolymorphicEntity : public SavepointPolymorphic
 struct PolymorphicMob : PolymorphicEntity
 {
     int Health;
+    int Damage;
 
     void Visit(SavepointVisitor& visitor) override
     {
         PolymorphicEntity::Visit(visitor);
         visitor(Health);
+        visitor(Damage);
     }
 
     bool operator==(const PolymorphicMob& other) const
     {
         return PolymorphicEntity::operator==(other) &&
-            Health == other.Health;
+            Health == other.Health &&
+            Damage == other.Damage;
     }
 };
 
-struct PolymorphicItem : public PolymorphicEntity
+struct PolymorphicItem : PolymorphicEntity
 {
     SAVEPOINT_POLYMORPHIC(PolymorphicItem)
 };
@@ -518,19 +520,27 @@ struct PolymorphicZombie : PolymorphicMob
 struct PolymorphicSkeleton : PolymorphicMob
 {
     SAVEPOINT_POLYMORPHIC(PolymorphicSkeleton)
+};
 
-    int Arrows;
+struct PolymorphicSpider : PolymorphicMob
+{
+    SAVEPOINT_POLYMORPHIC(PolymorphicSpider)
+
+    int Eyes = 8;
+    int Legs = 8;
 
     void Visit(SavepointVisitor& visitor) override
     {
         PolymorphicMob::Visit(visitor);
-        visitor(Arrows);
+        visitor(Eyes);
+        visitor(Legs);
     }
 
-    bool operator==(const PolymorphicSkeleton& other) const
+    bool operator==(const PolymorphicSpider& other) const
     {
         return PolymorphicMob::operator==(other) &&
-            Arrows == other.Arrows;
+            Eyes == other.Eyes &&
+            Legs == other.Legs;
     }
 };
 
@@ -692,30 +702,14 @@ int main()
     }
     savepoint.Clear();
     {
-        SavepointVisitor inVisitor;
-        SavepointID inID;
-        Vector inVector{{1, 5, 3, 7}};
-        inVisitor(inVector) ;
-        savepoint.Write(inVisitor, inID, 0);
-        int i = 0;
-        savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID outID)
-        {
-            Vector outVector;
-            outVisitor(outVector);
-            assert(outVector == inVector);
-            assert(outID == inID);
-            i++;
-        }, 0);
-        assert(i == 1);
-    }
-    savepoint.Clear();
-    {
         std::shared_ptr<PolymorphicItem> inItem = std::make_shared<PolymorphicItem>();
         std::shared_ptr<PolymorphicZombie> inZombie = std::make_shared<PolymorphicZombie>();
         std::shared_ptr<PolymorphicSkeleton> inSkeleton = std::make_shared<PolymorphicSkeleton>();
+        std::shared_ptr<PolymorphicSpider> inSpider = std::make_shared<PolymorphicSpider>();
         savepoint.Write(inItem.get(), inItem->ID, 0);
         savepoint.Write(inZombie.get(), inZombie->ID, 0);
         savepoint.Write(inSkeleton.get(), inSkeleton->ID, 0);
+        savepoint.Write(inSpider.get(), inSpider->ID, 0);
         int i = 0;
         savepoint.Read([&](SavepointPolymorphic* polymorphic, SavepointID outID)
         {
@@ -737,13 +731,19 @@ int main()
                 assert(outSkeleton);
                 *outSkeleton == *inSkeleton;
             }
+            else if (outID == inSpider->ID)
+            {
+                PolymorphicSpider* outSpider = dynamic_cast<PolymorphicSpider*>(polymorphic);
+                assert(outSpider);
+                *outSpider == *inSpider;
+            }
             else
             {
                 assert(false);
             }
             i++;
         }, 0);
-        assert(i == 3);
+        assert(i == 4);
     }
     savepoint.Close();
     Test<EntityV1, EntityV1>(kVersion1);
@@ -766,6 +766,7 @@ int main()
     Test<ZombieV2, ZombieV4>(kVersion2);
     Test<ZombieV3, ZombieV4>(kVersion3);
     Test<ZombieV4, ZombieV4>(kVersion4);
+    Test<Vector, Vector>(kVersion1);
     Test<ArrayV1, ArrayV1>(kVersion1);
     Test<ArrayV1, ArrayV2>(kVersion1);
     Test<ArrayV1, ArrayV3>(kVersion1);

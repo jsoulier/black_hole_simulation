@@ -30,6 +30,7 @@
 #include <savepoint_fwd.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -46,21 +47,26 @@
 
 using SavepointLogFunction = std::function<void(const std::string_view& string)>;
 
+/* Set the log function used internally */
 void SavepointSetLogFunction(const SavepointLogFunction& function);
-void SavepointDefaultLogFunction(const std::string_view& string);
+
+/* Internal */
 void SavepointLog(const std::string_view& string);
 
+/* A major.minor.minor version number as a uint32 for quick comparisons */
 class SavepointVersion
 {
 private:
     friend class Savepoint;
 
 public:
+    /* Create the lowest version */
     constexpr SavepointVersion()
         : Value{0}
     {
     }
 
+    /* Create a version from major, minor, patch */
     constexpr SavepointVersion(uint32_t major, uint32_t minor, uint32_t patch)
         : Value{major << 24 | minor << 16 | patch}
     {
@@ -81,6 +87,7 @@ public:
         return Value & 0xFFFF;
     }
 
+    /* Get the version as a string in the format major.minor.patch */
     std::string GetString() const
     {
         return std::format("{}.{}.{}", GetMajor(), GetMinor(), GetPatch());
@@ -120,12 +127,14 @@ private:
     uint32_t Value;
 };
 
+/* A unique ID (per savepoint) for referencing entities */
 class SavepointID
 {
 private:
     friend class Savepoint;
 
 public:
+    /* Create an invalid ID */
     constexpr SavepointID()
         : Value{std::numeric_limits<uint32_t>::max()}
     {
@@ -141,6 +150,7 @@ public:
         return Value != other.Value;
     }
 
+    /* Check if an ID is valid */
     constexpr operator bool() const
     {
         return Value != SavepointID{}.Value;
@@ -150,22 +160,44 @@ private:
     uint32_t Value;
 };
 
+/*
+ * Savepoint base class for the user base class
+ * 
+ * class Entity : public SavepointPolymorphic
+ * {
+ * };
+ * 
+ * class Player : public Entity
+ * {
+ *     SAVEPOINT_POLYMORPHIC(Player)
+ * 
+ *     void Visit(SavepointVisitor& visitor) override
+ *     {
+ *         // ...
+ *     }
+ * };
+ */
 class SavepointPolymorphic
 {
 private:
     friend class Savepoint;
 
 public:
+    /* Visit function users must implement */
     virtual void Visit(SavepointVisitor& visitor) = 0;
 
 private:
+    /* Get the class name of a concrete type (internal) */
     virtual const std::string_view SavepointGetString() const = 0;
 };
 
+/* Internal */
 using SavepointPolymorphicFunction = std::function<SavepointPolymorphic*()>;
 
+/* Internal */
 void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function);
 
+/* Register a concrete type as a polymorphic (see SavepointPolymorphic) */
 #define SAVEPOINT_POLYMORPHIC(T) \
     private: \
         struct SavepointPolymorphicRegistrar##T \
@@ -197,6 +229,39 @@ template<typename T>
 concept SavepointPointer = SavepointPointerImpl<T>::value;
 
 template<typename T>
+struct SavepointVectorImpl : std::false_type {};
+
+template<typename T, typename Allocator>
+struct SavepointVectorImpl<std::vector<T, Allocator>> : std::true_type {};
+
+template<typename T>
+concept SavepointVector = SavepointVectorImpl<T>::value;
+
+template<typename T>
+struct SavepointArrayImpl : std::false_type {};
+
+template<typename T, size_t N>
+struct SavepointArrayImpl<std::array<T, N>> : std::true_type
+{
+    static constexpr size_t kSize = N;
+};
+
+template<typename T>
+concept SavepointArray = SavepointArrayImpl<T>::value;
+
+template<typename T>
+inline constexpr size_t SavepointArraySize = SavepointArrayImpl<T>::kSize;
+
+template<typename T>
+struct SavepointStringImpl : std::false_type {};
+
+template<typename T, typename Traits, typename Allocator>
+struct SavepointStringImpl<std::basic_string<T, Traits, Allocator>> : std::true_type {};
+
+template<typename T>
+concept SavepointString = SavepointStringImpl<T>::value;
+
+template<typename T>
 concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { SavepointVisit(visitor, item) }; };
 
 template<typename T>
@@ -205,15 +270,79 @@ concept SavepointMemberVisit = requires(SavepointVisitor visitor, T item) { { it
 template<typename T>
 concept SavepointPrimitive = !SavepointPointer<T> && !SavepointFreeVisit<T> && !SavepointMemberVisit<T>;
 
+/*
+ * Byte buffer for reading/writing using the visitor pattern
+ * 
+ * class Entity
+ * {
+ *     int X;
+ *     int Z;
+ * 
+ *     void Visit(SavepointVisitor& visitor)
+ *     {
+ *         visitor(X);
+ *         visitor(Z);
+ *     }
+ * };
+ * 
+ * class Player : public Entity
+ * {
+ *     int Health;
+ * 
+ *     void Visit(SavepointVisitor& visitor)
+ *     {
+ *         Entity::Visit(visitor);
+ *         visitor(Health);
+ *     }
+ * };
+ * 
+ * For a new version, avoid corrupting old saves by versioning
+ * 
+ * class EntityV2
+ * {
+ *     int X;
+ *     int Y; // new
+ *     int Z;
+ *     int W = 1; // new
+ * 
+ *     void Visit(SavepointVisitor& visitor)
+ *     {
+ *         visitor(X);
+ *         visitor(Y, {0, 2, 1}, 0); // Added in 0.2.1. Default to 0
+ *         visitor(Z);
+ *         visitor(W, {0, 2, 1}); // Added in 0.2.1. Don't change value
+ *     }
+ * };
+ * 
+ * For external types, use the free function
+ * 
+ * struct ExternalEntity
+ * {
+ *     std::vector<int> Data;
+ * };
+ * 
+ * void SavepointVisit(SavepointVisitor& visitor, ExternalEntity& entity)
+ * {
+ *     visitor(entity.Data);
+ * }
+ */
 class SavepointVisitor
 {
 private:
     friend class Savepoint;
 
+    /* 
+     * Header is composed of 2 versions:
+     * 1. The application version
+     * 2. The savepoint version (reserved for future use)
+     */
+    static constexpr size_t kHeaderSize = sizeof(SavepointVersion) * 2;
+
     SavepointVisitor(const SavepointVisitor& other) = delete;
     SavepointVisitor& operator=(const SavepointVisitor& other) = delete;
 
 public:
+    /* Create a visitor for writing */
     SavepointVisitor()
         : Version{}
         , Writer{}
@@ -223,6 +352,7 @@ public:
         Reset();
     }
 
+    /* Visit a primitive (e.g. float, uint32_t). If reading, checks that the version is satisfied */
     template<SavepointPrimitive T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -255,6 +385,7 @@ public:
         }
     }
 
+    /* Visit an object with a SavepointVisit free function defined. If reading, checks that the version is satisfied */
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -272,6 +403,7 @@ public:
         SavepointVisit(*this, item);
     }
 
+    /* Visit an object with a Visit member function defined. If reading, checks that the version is satisfied */
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -289,11 +421,13 @@ public:
         item.Visit(*this);
     }
 
-    template<typename T>
+    /* Visit an allocated buffer. Copies up to maxSize but expects size in the visitor. Try to avoid using */
+    template<SavepointPrimitive T>
     void operator()(T* data, size_t maxSize, size_t size)
     {
         if (IsReader())
         {
+            /* Should never happen. Used to avoid compile error when using memcpy on a const pointer */
             if constexpr (std::is_const_v<T>)
             {
                 SavepointLog("Tried to read into a const pointer");
@@ -327,39 +461,49 @@ public:
         }
     }
 
+    /* Check if visitor is reading. Try to avoid using */
     bool IsReader() const
     {
         return !Reader.empty();
     }
 
+    /* Check if visitor is reading. Try to avoid using */
     bool IsWriter() const
     {
         return !IsReader();
     }
 
+    /* Reset a visitor for writing */
     void Reset()
     {
         Reader = {};
-        Offset = 0;
-        Writer.resize(sizeof(SavepointVersion));
+        Writer.resize(kHeaderSize);
     }
 
 private:
     bool Empty() const
     {
-        return Writer.size() == sizeof(SavepointVersion);
+        return Writer.size() == kHeaderSize;
     }
 
-    void SetVersion(SavepointVersion version)
+    void SetApplicationVersion(SavepointVersion version)
     {
         std::memcpy(Writer.data(), &version, sizeof(SavepointVersion));
     }
 
+    void SetSavepointVersion(SavepointVersion version)
+    {
+        std::memcpy(Writer.data() + sizeof(SavepointVersion), &version, sizeof(SavepointVersion));
+    }
+
+    /* Reset a visitor for reading */
     void Reset(void* data, size_t size)
     {
         Reader = {static_cast<uint8_t*>(data), size};
         Offset = 0;
         operator()(Version);
+        /* Skip savepoint version. Reserved for future use */
+        Offset += sizeof(SavepointVersion);
     }
 
     SavepointVersion Version;
@@ -368,11 +512,43 @@ private:
     size_t Offset;
 };
 
+/* Visit a vector */
+template<SavepointVector T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    size_t size = item.size() * sizeof(T::value_type);
+    visitor(size);
+    item.resize(size);
+    visitor(item.data(), size, size);
+}
+
+/* Visit an array. Truncates if not large enough */
+template<SavepointArray T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    static constexpr size_t kCapacity = SavepointArraySize<T> * sizeof(T::value_type);
+    size_t size = kCapacity;
+    visitor(size);
+    visitor(item.data(), kCapacity, size);
+}
+
+/* Visit a string */
+template<SavepointString T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    size_t size = item.size() * sizeof(T::value_type);
+    visitor(size);
+    item.resize(size);
+    visitor(item.data(), size, size);
+}
+
+/* Read callbacks */
 using SavepointReadFunction = std::function<void(SavepointVisitor& visitor)>;
 using SavepointReadEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
 using SavepointReadTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 using SavepointReadTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
 
+/* Polymorphic read callbacks */
 using SavepointReadPolymorphicFunction = std::function<void(SavepointPolymorphic* polymorphic)>;
 using SavepointReadPolymorphicEntityFunction = std::function<void(SavepointPolymorphic* polymorphic, SavepointID id)>;
 using SavepointReadPolymorphicTile2DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y)>;
@@ -380,40 +556,114 @@ using SavepointReadPolymorphicTile3DFunction = std::function<void(SavepointPolym
 
 enum class SavepointStatus
 {
+    /* Failed to open savepoint */
     Failed,
+
+    /* Opened an existing savepoint */
     Existing,
+
+    /* Opened a new savepoint */
     New,
 };
 
+/*
+ * Database connection handle (over sqlite3)
+ *
+ * int main()
+ * {
+ *     Savepoint savepoint;
+ *     switch (savepoint.Open("<path>", {1, 1, 1}))
+ *     {
+ *     case SavepointStatus::Failed:
+ *         // Failed to open
+ *         return 1;
+ *     case SavepointStatus::Existing:
+ *         // Read entities and tiles
+ *         break;
+ *     case SavepointStatus::New:
+ *         // Generate new world
+ *         break;
+ *     }
+ *     savepoint.Save();
+ *     savepoint.Close();
+ *     return 0;
+ * }
+ */
 class Savepoint
 {
 public:
+    /* Default initialize */
     Savepoint();
+    
+    /* Does not close the database */
     ~Savepoint();
+
     Savepoint(const Savepoint& other) = delete;
     Savepoint& operator=(const Savepoint& other) = delete;
     Savepoint(Savepoint&& other) = delete;
     Savepoint& operator=(Savepoint&& other) = delete;
+    
+    /* Open a database connection. Version should be your application version */
     SavepointStatus Open(const std::string_view& path, SavepointVersion version);
+    
+    /* Close the database connection */
     void Close();
+
+    /* Commit changes and change status to Existing */
     void Save();
+
+    /* Write a single instance to the database */
     void Write(SavepointVisitor& visitor);
+
+    /* Write an entity to a level. If ID is invalid, sets the ID. Otherwise updates entity (possibly changes its level) */
     void Write(SavepointVisitor& visitor, SavepointID& id, int level);
+
+    /* Write a tile to an xy coordinate and level */
     void Write(SavepointVisitor& visitor, int x, int y, int level);
+
+    /* Write a tile to an xyz coordinate and level */
     void Write(SavepointVisitor& visitor, int x, int y, int z, int level);
+
+    /* Write a single instance to the database */
     void Write(SavepointPolymorphic* polymorphic);
+
+    /* Write an entity to a level */
     void Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level);
+
+    /* Write a tile to an xy coordinate and level */
     void Write(SavepointPolymorphic* polymorphic, int x, int y, int level);
+
+    /* Write a tile to an xyz coordinate and level */
     void Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level);
+    
+    /* Read a single instance from the database */
     void Read(const SavepointReadFunction& function);
+
+    /* Read all entities from level */
     void Read(const SavepointReadEntityFunction& function, int level);
+
+    /* Read all xy tiles from level */
     void Read(const SavepointReadTile2DFunction& function, int level);
+
+    /* Read all xyz tiles from level */
     void Read(const SavepointReadTile3DFunction& function, int level);
+
+    /* Read a single instance from the database */
     void Read(const SavepointReadPolymorphicFunction& function);
+
+    /* Read all entities from level */
     void Read(const SavepointReadPolymorphicEntityFunction& function, int level);
+
+    /* Read all xy tiles from level */
     void Read(const SavepointReadPolymorphicTile2DFunction& function, int level);
+
+    /* Read all xyz tiles from level */
     void Read(const SavepointReadPolymorphicTile3DFunction& function, int level);
+    
+    /* Delete an entity from the database */
     void Delete(const SavepointID id);
+    
+    /* Delete all entities and tiles */
     void Clear();
 
 private:
