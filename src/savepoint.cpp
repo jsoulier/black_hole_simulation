@@ -87,7 +87,7 @@ void SavepointAddPolymorphicFunction(const std::string_view& string, const Savep
     GetPolymorphicFunctions().emplace(string, function);
 }
 
-Savepoint::Savepoint()
+SavepointDB::SavepointDB()
     : Version{}
     , Visitor{}
     , Handle{nullptr}
@@ -175,7 +175,7 @@ static constexpr const char* kClearTiles2DSQL =
 static constexpr const char* kClearTiles3DSQL =
     "DELETE FROM tiles_3d;";
 
-SavepointStatus Savepoint::Open(const std::string_view& path, SavepointVersion version)
+SavepointStatus SavepointDB::Open(const std::string_view& path, SavepointVersion version)
 {
     if (sqlite3_open(path.data(), &Handle) != SQLITE_OK)
     {
@@ -283,7 +283,7 @@ SavepointStatus Savepoint::Open(const std::string_view& path, SavepointVersion v
     return status;
 }
 
-Savepoint::~Savepoint()
+SavepointDB::~SavepointDB()
 {
     if (Handle)
     {
@@ -291,7 +291,7 @@ Savepoint::~Savepoint()
     }
 }
 
-void Savepoint::Close()
+void SavepointDB::Close()
 {
     sqlite3_finalize(WriteStatusStmt);
     sqlite3_finalize(WriteStmt);
@@ -312,7 +312,7 @@ void Savepoint::Close()
     Handle = nullptr;
 }
 
-void Savepoint::Save()
+void SavepointDB::Save()
 {
     if (!Handle)
     {
@@ -332,7 +332,7 @@ void Savepoint::Save()
     }
 }
 
-void Savepoint::Write(SavepointVisitor& visitor)
+void SavepointDB::Write(SavepointVisitor& visitor)
 {
     if (!Handle)
     {
@@ -355,7 +355,7 @@ void Savepoint::Write(SavepointVisitor& visitor)
     sqlite3_reset(WriteStmt);
 }
 
-void Savepoint::Write(SavepointVisitor& visitor, SavepointID& id, int level)
+void SavepointDB::Write(SavepointVisitor& visitor, SavepointID& id, int level)
 {
     if (!Handle)
     {
@@ -402,7 +402,7 @@ void Savepoint::Write(SavepointVisitor& visitor, SavepointID& id, int level)
     }
 }
 
-void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int level)
+void SavepointDB::Write(SavepointVisitor& visitor, int x, int y, int level)
 {
     if (!Handle)
     {
@@ -428,7 +428,7 @@ void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int level)
     sqlite3_reset(WriteTile2DStmt);
 }
 
-void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
+void SavepointDB::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
 {
     if (!Handle)
     {
@@ -455,7 +455,7 @@ void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
     sqlite3_reset(WriteTile3DStmt);
 }
 
-bool Savepoint::SetPolymorphic(SavepointPolymorphic* polymorphic)
+bool SavepointDB::SetPolymorphic(SavepointPolymorphic* polymorphic)
 {
     if (!Handle)
     {
@@ -481,7 +481,7 @@ bool Savepoint::SetPolymorphic(SavepointPolymorphic* polymorphic)
     return true;
 }
 
-void Savepoint::Write(SavepointPolymorphic* polymorphic)
+void SavepointDB::Write(SavepointPolymorphic* polymorphic)
 {
     if (SetPolymorphic(polymorphic))
     {
@@ -489,7 +489,7 @@ void Savepoint::Write(SavepointPolymorphic* polymorphic)
     }
 }
 
-void Savepoint::Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level)
+void SavepointDB::Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level)
 {
     if (SetPolymorphic(polymorphic))
     {
@@ -497,7 +497,7 @@ void Savepoint::Write(SavepointPolymorphic* polymorphic, SavepointID& id, int le
     }
 }
 
-void Savepoint::Write(SavepointPolymorphic* polymorphic, int x, int y, int level)
+void SavepointDB::Write(SavepointPolymorphic* polymorphic, int x, int y, int level)
 {
     if (SetPolymorphic(polymorphic))
     {
@@ -505,7 +505,7 @@ void Savepoint::Write(SavepointPolymorphic* polymorphic, int x, int y, int level
     }
 }
 
-void Savepoint::Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level)
+void SavepointDB::Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level)
 {
     if (SetPolymorphic(polymorphic))
     {
@@ -513,7 +513,7 @@ void Savepoint::Write(SavepointPolymorphic* polymorphic, int x, int y, int z, in
     }
 }
 
-void Savepoint::Read(const SavepointReadFunction& function)
+void SavepointDB::Read(const SavepointReadFunction& function)
 {
     if (!Handle)
     {
@@ -533,7 +533,7 @@ void Savepoint::Read(const SavepointReadFunction& function)
     sqlite3_reset(ReadStmt);
 }
 
-void Savepoint::Read(const SavepointReadEntityFunction& function, int level)
+void SavepointDB::Read(const SavepointReadEntityFunction& function, int level)
 {
     if (!Handle)
     {
@@ -552,7 +552,7 @@ void Savepoint::Read(const SavepointReadEntityFunction& function, int level)
     sqlite3_reset(ReadEntitiesStmt);
 }
 
-void Savepoint::Read(const SavepointReadTile2DFunction& function, int level)
+void SavepointDB::Read(const SavepointReadTile2DFunction& function, int level)
 {
     if (!Handle)
     {
@@ -571,7 +571,7 @@ void Savepoint::Read(const SavepointReadTile2DFunction& function, int level)
     sqlite3_reset(ReadTiles2DStmt);
 }
 
-void Savepoint::Read(const SavepointReadTile3DFunction& function, int level)
+void SavepointDB::Read(const SavepointReadTile3DFunction& function, int level)
 {
     if (!Handle)
     {
@@ -591,7 +591,7 @@ void Savepoint::Read(const SavepointReadTile3DFunction& function, int level)
     sqlite3_reset(ReadTiles3DStmt);
 }
 
-SavepointPolymorphic* Savepoint::GetPolymorphic(SavepointVisitor& visitor)
+SavepointPolymorphic* SavepointDB::GetPolymorphic(SavepointVisitor& visitor)
 {
     std::string string;
     visitor(string);
@@ -611,7 +611,7 @@ SavepointPolymorphic* Savepoint::GetPolymorphic(SavepointVisitor& visitor)
     return polymorphic;
 }
 
-void Savepoint::Read(const SavepointReadPolymorphicFunction& function)
+void SavepointDB::Read(const SavepointReadPolymorphicFunction& function)
 {
     Read([this, &function](SavepointVisitor& visitor)
     {
@@ -623,7 +623,7 @@ void Savepoint::Read(const SavepointReadPolymorphicFunction& function)
     });
 }
 
-void Savepoint::Read(const SavepointReadPolymorphicEntityFunction& function, int level)
+void SavepointDB::Read(const SavepointReadPolymorphicEntityFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, SavepointID id)
     {
@@ -635,7 +635,7 @@ void Savepoint::Read(const SavepointReadPolymorphicEntityFunction& function, int
     }, level);
 }
 
-void Savepoint::Read(const SavepointReadPolymorphicTile2DFunction& function, int level)
+void SavepointDB::Read(const SavepointReadPolymorphicTile2DFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, int x, int y)
     {
@@ -647,7 +647,7 @@ void Savepoint::Read(const SavepointReadPolymorphicTile2DFunction& function, int
     }, level);
 }
 
-void Savepoint::Read(const SavepointReadPolymorphicTile3DFunction& function, int level)
+void SavepointDB::Read(const SavepointReadPolymorphicTile3DFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, int x, int y, int z)
     {
@@ -659,7 +659,7 @@ void Savepoint::Read(const SavepointReadPolymorphicTile3DFunction& function, int
     }, level);
 }
 
-void Savepoint::Delete(const SavepointID id)
+void SavepointDB::Delete(const SavepointID id)
 {
     if (!Handle)
     {
@@ -677,7 +677,7 @@ void Savepoint::Delete(const SavepointID id)
     sqlite3_reset(DeleteEntityStmt);
 }
 
-void Savepoint::Clear()
+void SavepointDB::Clear()
 {
     if (!Handle)
     {

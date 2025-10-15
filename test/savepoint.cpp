@@ -549,7 +549,7 @@ void Test(SavepointVersion inVersion)
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
-    Savepoint savepoint;
+    SavepointDB savepoint;
     SavepointStatus status = savepoint.Open(kFileName, inVersion);
     assert(status != SavepointStatus::Failed);
     SavepointVisitor inVisitor;
@@ -574,7 +574,7 @@ int main()
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
-    Savepoint savepoint;
+    SavepointDB savepoint;
     SavepointStatus status;
     status = savepoint.Open(kFileName, SavepointVersion{});
     assert(status == SavepointStatus::New);

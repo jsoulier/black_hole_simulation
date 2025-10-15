@@ -27,7 +27,7 @@
 
 #pragma once
 
-class Savepoint;
+class SavepointDB;
 class SavepointID;
 class SavepointPolymorphic;
 class SavepointVersion;

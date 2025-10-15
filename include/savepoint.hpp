@@ -57,7 +57,7 @@ void SavepointLog(const std::string_view& string);
 class SavepointVersion
 {
 private:
-    friend class Savepoint;
+    friend class SavepointDB;
 
 public:
     /* Create the lowest version */
@@ -131,7 +131,7 @@ private:
 class SavepointID
 {
 private:
-    friend class Savepoint;
+    friend class SavepointDB;
 
 public:
     /* Create an invalid ID */
@@ -161,7 +161,7 @@ private:
 };
 
 /*
- * Savepoint base class for the user base class
+ * Base class for the user base class
  * 
  * class Entity : public SavepointPolymorphic
  * {
@@ -180,7 +180,7 @@ private:
 class SavepointPolymorphic
 {
 private:
-    friend class Savepoint;
+    friend class SavepointDB;
 
 public:
     /* Visit function users must implement */
@@ -329,7 +329,7 @@ concept SavepointPrimitive = !SavepointPointer<T> && !SavepointFreeVisit<T> && !
 class SavepointVisitor
 {
 private:
-    friend class Savepoint;
+    friend class SavepointDB;
 
     /* 
      * Header is composed of 2 versions:
@@ -589,19 +589,19 @@ enum class SavepointStatus
  *     return 0;
  * }
  */
-class Savepoint
+class SavepointDB
 {
 public:
     /* Default initialize */
-    Savepoint();
+    SavepointDB();
     
     /* Does not close the database */
-    ~Savepoint();
+    ~SavepointDB();
 
-    Savepoint(const Savepoint& other) = delete;
-    Savepoint& operator=(const Savepoint& other) = delete;
-    Savepoint(Savepoint&& other) = delete;
-    Savepoint& operator=(Savepoint&& other) = delete;
+    SavepointDB(const SavepointDB& other) = delete;
+    SavepointDB& operator=(const SavepointDB& other) = delete;
+    SavepointDB(SavepointDB&& other) = delete;
+    SavepointDB& operator=(SavepointDB&& other) = delete;
     
     /* Open a database connection. Version should be your application version */
     SavepointStatus Open(const std::string_view& path, SavepointVersion version);
