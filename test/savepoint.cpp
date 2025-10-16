@@ -467,7 +467,7 @@ struct ArrayV3
     }
 };
 
-struct PolymorphicEntity : public SavepointPolymorphic
+struct ObjectEntity : public SavepointObject
 {
     SavepointID ID;
     int X;
@@ -479,7 +479,7 @@ struct PolymorphicEntity : public SavepointPolymorphic
         visitor(Y);
     }
 
-    bool operator==(const PolymorphicEntity& other) const
+    bool operator==(const ObjectEntity& other) const
     {
         return ID == other.ID &&
             X == other.X &&
@@ -487,58 +487,58 @@ struct PolymorphicEntity : public SavepointPolymorphic
     }
 };
 
-struct PolymorphicMob : PolymorphicEntity
+struct ObjectMob : ObjectEntity
 {
     int Health;
     int Damage;
 
     void Visit(SavepointVisitor& visitor) override
     {
-        PolymorphicEntity::Visit(visitor);
+        ObjectEntity::Visit(visitor);
         visitor(Health);
         visitor(Damage);
     }
 
-    bool operator==(const PolymorphicMob& other) const
+    bool operator==(const ObjectMob& other) const
     {
-        return PolymorphicEntity::operator==(other) &&
+        return ObjectEntity::operator==(other) &&
             Health == other.Health &&
             Damage == other.Damage;
     }
 };
 
-struct PolymorphicItem : PolymorphicEntity
+struct ObjectItem : ObjectEntity
 {
-    SAVEPOINT_POLYMORPHIC(PolymorphicItem)
+    SAVEPOINT_OBJECT(ObjectItem)
 };
 
-struct PolymorphicZombie : PolymorphicMob
+struct ObjectZombie : ObjectMob
 {
-    SAVEPOINT_POLYMORPHIC(PolymorphicZombie)
+    SAVEPOINT_OBJECT(ObjectZombie)
 };
 
-struct PolymorphicSkeleton : PolymorphicMob
+struct ObjectSkeleton : ObjectMob
 {
-    SAVEPOINT_POLYMORPHIC(PolymorphicSkeleton)
+    SAVEPOINT_OBJECT(ObjectSkeleton)
 };
 
-struct PolymorphicSpider : PolymorphicMob
+struct ObjectSpider : ObjectMob
 {
-    SAVEPOINT_POLYMORPHIC(PolymorphicSpider)
+    SAVEPOINT_OBJECT(ObjectSpider)
 
     int Eyes = 8;
     int Legs = 8;
 
     void Visit(SavepointVisitor& visitor) override
     {
-        PolymorphicMob::Visit(visitor);
+        ObjectMob::Visit(visitor);
         visitor(Eyes);
         visitor(Legs);
     }
 
-    bool operator==(const PolymorphicSpider& other) const
+    bool operator==(const ObjectSpider& other) const
     {
-        return PolymorphicMob::operator==(other) &&
+        return ObjectMob::operator==(other) &&
             Eyes == other.Eyes &&
             Legs == other.Legs;
     }
@@ -702,38 +702,38 @@ int main()
     }
     savepoint.Clear();
     {
-        std::shared_ptr<PolymorphicItem> inItem = std::make_shared<PolymorphicItem>();
-        std::shared_ptr<PolymorphicZombie> inZombie = std::make_shared<PolymorphicZombie>();
-        std::shared_ptr<PolymorphicSkeleton> inSkeleton = std::make_shared<PolymorphicSkeleton>();
-        std::shared_ptr<PolymorphicSpider> inSpider = std::make_shared<PolymorphicSpider>();
+        std::shared_ptr<ObjectItem> inItem = std::make_shared<ObjectItem>();
+        std::shared_ptr<ObjectZombie> inZombie = std::make_shared<ObjectZombie>();
+        std::shared_ptr<ObjectSkeleton> inSkeleton = std::make_shared<ObjectSkeleton>();
+        std::shared_ptr<ObjectSpider> inSpider = std::make_shared<ObjectSpider>();
         savepoint.Write(inItem.get(), inItem->ID, 0);
         savepoint.Write(inZombie.get(), inZombie->ID, 0);
         savepoint.Write(inSkeleton.get(), inSkeleton->ID, 0);
         savepoint.Write(inSpider.get(), inSpider->ID, 0);
         int i = 0;
-        savepoint.Read([&](SavepointPolymorphic* polymorphic, SavepointID outID)
+        savepoint.Read([&](SavepointObject* object, SavepointID outID)
         {
             if (outID == inItem->ID)
             {
-                PolymorphicItem* outItem = dynamic_cast<PolymorphicItem*>(polymorphic);
+                ObjectItem* outItem = dynamic_cast<ObjectItem*>(object);
                 assert(outItem);
                 *outItem == *inItem;
             }
             else if (outID == inZombie->ID)
             {
-                PolymorphicZombie* outZombie = dynamic_cast<PolymorphicZombie*>(polymorphic);
+                ObjectZombie* outZombie = dynamic_cast<ObjectZombie*>(object);
                 assert(outZombie);
                 *outZombie == *inZombie;
             }
             else if (outID == inSkeleton->ID)
             {
-                PolymorphicSkeleton* outSkeleton = dynamic_cast<PolymorphicSkeleton*>(polymorphic);
+                ObjectSkeleton* outSkeleton = dynamic_cast<ObjectSkeleton*>(object);
                 assert(outSkeleton);
                 *outSkeleton == *inSkeleton;
             }
             else if (outID == inSpider->ID)
             {
-                PolymorphicSpider* outSpider = dynamic_cast<PolymorphicSpider*>(polymorphic);
+                ObjectSpider* outSpider = dynamic_cast<ObjectSpider*>(object);
                 assert(outSpider);
                 *outSpider == *inSpider;
             }

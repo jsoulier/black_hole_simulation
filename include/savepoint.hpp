@@ -163,13 +163,13 @@ private:
 /*
  * Base class for the user base class
  * 
- * class Entity : public SavepointPolymorphic
+ * class Entity : public SavepointObject
  * {
  * };
  * 
  * class Player : public Entity
  * {
- *     SAVEPOINT_POLYMORPHIC(Player)
+ *     SAVEPOINT_OBJECT(Player)
  * 
  *     void Visit(SavepointVisitor& visitor) override
  *     {
@@ -177,7 +177,7 @@ private:
  *     }
  * };
  */
-class SavepointPolymorphic
+class SavepointObject
 {
 private:
     friend class SavepointDB;
@@ -192,24 +192,22 @@ private:
 };
 
 /* Internal */
-using SavepointPolymorphicFunction = std::function<SavepointPolymorphic*()>;
+using SavepointObjectFunction = std::function<SavepointObject*()>;
 
 /* Internal */
-void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function);
+void SavepointAddObjectFunction(const std::string_view& string, const SavepointObjectFunction& function);
 
-/* Register a concrete type as a polymorphic (see SavepointPolymorphic) */
-#define SAVEPOINT_POLYMORPHIC(T) \
+/* Register a concrete type as an object (see SavepointObject) */
+#define SAVEPOINT_OBJECT(T) \
     private: \
-        struct SavepointPolymorphicRegistrar##T \
+        struct SavepointObjectRegistrar##T \
         { \
-            SavepointPolymorphicRegistrar##T() \
+            SavepointObjectRegistrar##T() \
             { \
-                SavepointAddPolymorphicFunction(#T, []() { return new T(); }); \
+                SavepointAddObjectFunction(#T, []() { return new T(); }); \
             } \
         }; \
-        \
-        static inline SavepointPolymorphicRegistrar##T SavepointPolymorphicRegistrar; \
-        \
+        static inline SavepointObjectRegistrar##T SavepointObjectRegistrar; \
         const std::string_view SavepointGetString() const override \
         { \
             return #T;\
@@ -548,11 +546,11 @@ using SavepointReadEntityFunction = std::function<void(SavepointVisitor& visitor
 using SavepointReadTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 using SavepointReadTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
 
-/* Polymorphic read callbacks */
-using SavepointReadPolymorphicFunction = std::function<void(SavepointPolymorphic* polymorphic)>;
-using SavepointReadPolymorphicEntityFunction = std::function<void(SavepointPolymorphic* polymorphic, SavepointID id)>;
-using SavepointReadPolymorphicTile2DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y)>;
-using SavepointReadPolymorphicTile3DFunction = std::function<void(SavepointPolymorphic* polymorphic, int x, int y, int z)>;
+/* Object read callbacks */
+using SavepointReadObjectFunction = std::function<void(SavepointObject* object)>;
+using SavepointReadObjectEntityFunction = std::function<void(SavepointObject* object, SavepointID id)>;
+using SavepointReadObjectTile2DFunction = std::function<void(SavepointObject* object, int x, int y)>;
+using SavepointReadObjectTile3DFunction = std::function<void(SavepointObject* object, int x, int y, int z)>;
 
 enum class SavepointStatus
 {
@@ -567,22 +565,26 @@ enum class SavepointStatus
 };
 
 /*
- * Database connection handle (over sqlite3)
+ * Database connection handle
  *
  * int main()
  * {
  *     Savepoint savepoint;
  *     switch (savepoint.Open("<path>", {1, 1, 1}))
  *     {
+ *
+ *     // Failed to open
  *     case SavepointStatus::Failed:
- *         // Failed to open
  *         return 1;
+ *
+ *     // Read entities and tiles
  *     case SavepointStatus::Existing:
- *         // Read entities and tiles
  *         break;
+ *
+ *     // Generate new world
  *     case SavepointStatus::New:
- *         // Generate new world
  *         break;
+ *
  *     }
  *     savepoint.Save();
  *     savepoint.Close();
@@ -625,16 +627,16 @@ public:
     void Write(SavepointVisitor& visitor, int x, int y, int z, int level);
 
     /* Write a single instance to the database */
-    void Write(SavepointPolymorphic* polymorphic);
+    void Write(SavepointObject* object);
 
     /* Write an entity to a level */
-    void Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level);
+    void Write(SavepointObject* object, SavepointID& id, int level);
 
     /* Write a tile to an xy coordinate and level */
-    void Write(SavepointPolymorphic* polymorphic, int x, int y, int level);
+    void Write(SavepointObject* object, int x, int y, int level);
 
     /* Write a tile to an xyz coordinate and level */
-    void Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level);
+    void Write(SavepointObject* object, int x, int y, int z, int level);
     
     /* Read a single instance from the database */
     void Read(const SavepointReadFunction& function);
@@ -649,16 +651,16 @@ public:
     void Read(const SavepointReadTile3DFunction& function, int level);
 
     /* Read a single instance from the database */
-    void Read(const SavepointReadPolymorphicFunction& function);
+    void Read(const SavepointReadObjectFunction& function);
 
     /* Read all entities from level */
-    void Read(const SavepointReadPolymorphicEntityFunction& function, int level);
+    void Read(const SavepointReadObjectEntityFunction& function, int level);
 
     /* Read all xy tiles from level */
-    void Read(const SavepointReadPolymorphicTile2DFunction& function, int level);
+    void Read(const SavepointReadObjectTile2DFunction& function, int level);
 
     /* Read all xyz tiles from level */
-    void Read(const SavepointReadPolymorphicTile3DFunction& function, int level);
+    void Read(const SavepointReadObjectTile3DFunction& function, int level);
     
     /* Delete an entity from the database */
     void Delete(const SavepointID id);
@@ -667,8 +669,8 @@ public:
     void Clear();
 
 private:
-    bool SetPolymorphic(SavepointPolymorphic* polymorphic);
-    SavepointPolymorphic* GetPolymorphic(SavepointVisitor& visitor);
+    bool SetObject(SavepointObject* object);
+    SavepointObject* GetObject(SavepointVisitor& visitor);
 
     typedef struct sqlite3 sqlite;
     typedef struct sqlite3_stmt sqlite_stmt;

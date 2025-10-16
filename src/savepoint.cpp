@@ -73,18 +73,18 @@ struct Hash
     }
 };
 
-using PolymorphicFunctions = std::unordered_map<std::string, SavepointPolymorphicFunction, Hash, std::equal_to<>>;
+using ObjectFunctions = std::unordered_map<std::string, SavepointObjectFunction, Hash, std::equal_to<>>;
 
 /* For avoiding Static Initialization Order Fiasco */
-static PolymorphicFunctions& GetPolymorphicFunctions()
+static ObjectFunctions& GetObjectFunctions()
 {
-    static PolymorphicFunctions functions;
+    static ObjectFunctions functions;
     return functions;
 }
 
-void SavepointAddPolymorphicFunction(const std::string_view& string, const SavepointPolymorphicFunction& function)
+void SavepointAddObjectFunction(const std::string_view& string, const SavepointObjectFunction& function)
 {
-    GetPolymorphicFunctions().emplace(string, function);
+    GetObjectFunctions().emplace(string, function);
 }
 
 SavepointDB::SavepointDB()
@@ -455,59 +455,59 @@ void SavepointDB::Write(SavepointVisitor& visitor, int x, int y, int z, int leve
     sqlite3_reset(WriteTile3DStmt);
 }
 
-bool SavepointDB::SetPolymorphic(SavepointPolymorphic* polymorphic)
+bool SavepointDB::SetObject(SavepointObject* object)
 {
     if (!Handle)
     {
         return false;
     }
-    if (!polymorphic)
+    if (!object)
     {
-        SavepointLog("Tried to write null polymorphic");
+        SavepointLog("Tried to write null object");
         return false;
     }
-    const std::string_view& string = polymorphic->SavepointGetString();
-    auto it = GetPolymorphicFunctions().find(string);
-    if (it == GetPolymorphicFunctions().end())
+    const std::string_view& string = object->SavepointGetString();
+    auto it = GetObjectFunctions().find(string);
+    if (it == GetObjectFunctions().end())
     {
-        SavepointLog(std::format("Failed to find polymorphic string: {}", string));
+        SavepointLog(std::format("Failed to find object string: {}", string));
         return false;
     }
     size_t size = string.size();
     Visitor.Reset();
     Visitor(size);
     Visitor(string.data(), size, size);
-    Visitor(*polymorphic);
+    Visitor(*object);
     return true;
 }
 
-void SavepointDB::Write(SavepointPolymorphic* polymorphic)
+void SavepointDB::Write(SavepointObject* object)
 {
-    if (SetPolymorphic(polymorphic))
+    if (SetObject(object))
     {
         Write(Visitor);
     }
 }
 
-void SavepointDB::Write(SavepointPolymorphic* polymorphic, SavepointID& id, int level)
+void SavepointDB::Write(SavepointObject* object, SavepointID& id, int level)
 {
-    if (SetPolymorphic(polymorphic))
+    if (SetObject(object))
     {
         Write(Visitor, id, level);
     }
 }
 
-void SavepointDB::Write(SavepointPolymorphic* polymorphic, int x, int y, int level)
+void SavepointDB::Write(SavepointObject* object, int x, int y, int level)
 {
-    if (SetPolymorphic(polymorphic))
+    if (SetObject(object))
     {
         Write(Visitor, x, y, level);
     }
 }
 
-void SavepointDB::Write(SavepointPolymorphic* polymorphic, int x, int y, int z, int level)
+void SavepointDB::Write(SavepointObject* object, int x, int y, int z, int level)
 {
-    if (SetPolymorphic(polymorphic))
+    if (SetObject(object))
     {
         Write(Visitor, x, y, z, level);
     }
@@ -591,70 +591,70 @@ void SavepointDB::Read(const SavepointReadTile3DFunction& function, int level)
     sqlite3_reset(ReadTiles3DStmt);
 }
 
-SavepointPolymorphic* SavepointDB::GetPolymorphic(SavepointVisitor& visitor)
+SavepointObject* SavepointDB::GetObject(SavepointVisitor& visitor)
 {
     std::string string;
     visitor(string);
-    auto it = GetPolymorphicFunctions().find(string);
-    if (it == GetPolymorphicFunctions().end())
+    auto it = GetObjectFunctions().find(string);
+    if (it == GetObjectFunctions().end())
     {
-        SavepointLog(std::format("Missing polymorphic function: {}, {} -> {}", string, visitor.Version.GetString(), Version.GetString()));
+        SavepointLog(std::format("Missing object function: {}, {} -> {}", string, visitor.Version.GetString(), Version.GetString()));
         return nullptr;
     }
-    SavepointPolymorphic* polymorphic = it->second();
-    if (!polymorphic)
+    SavepointObject* object = it->second();
+    if (!object)
     {
-        SavepointLog(std::format("Failed to allocate polymorphic: {}", string));
+        SavepointLog(std::format("Failed to allocate object: {}", string));
         return nullptr;
     }
-    visitor(*polymorphic);
-    return polymorphic;
+    visitor(*object);
+    return object;
 }
 
-void SavepointDB::Read(const SavepointReadPolymorphicFunction& function)
+void SavepointDB::Read(const SavepointReadObjectFunction& function)
 {
     Read([this, &function](SavepointVisitor& visitor)
     {
-        SavepointPolymorphic* polymorphic = GetPolymorphic(visitor);
-        if (polymorphic)
+        SavepointObject* object = GetObject(visitor);
+        if (object)
         {
-            function(polymorphic);
+            function(object);
         }
     });
 }
 
-void SavepointDB::Read(const SavepointReadPolymorphicEntityFunction& function, int level)
+void SavepointDB::Read(const SavepointReadObjectEntityFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, SavepointID id)
     {
-        SavepointPolymorphic* polymorphic = GetPolymorphic(visitor);
-        if (polymorphic)
+        SavepointObject* object = GetObject(visitor);
+        if (object)
         {
-            function(polymorphic, id);
+            function(object, id);
         }
     }, level);
 }
 
-void SavepointDB::Read(const SavepointReadPolymorphicTile2DFunction& function, int level)
+void SavepointDB::Read(const SavepointReadObjectTile2DFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, int x, int y)
     {
-        SavepointPolymorphic* polymorphic = GetPolymorphic(visitor);
-        if (polymorphic)
+        SavepointObject* object = GetObject(visitor);
+        if (object)
         {
-            function(polymorphic, x, y);
+            function(object, x, y);
         }
     }, level);
 }
 
-void SavepointDB::Read(const SavepointReadPolymorphicTile3DFunction& function, int level)
+void SavepointDB::Read(const SavepointReadObjectTile3DFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, int x, int y, int z)
     {
-        SavepointPolymorphic* polymorphic = GetPolymorphic(visitor);
-        if (polymorphic)
+        SavepointObject* object = GetObject(visitor);
+        if (object)
         {
-            function(polymorphic, x, y, z);
+            function(object, x, y, z);
         }
     }, level);
 }

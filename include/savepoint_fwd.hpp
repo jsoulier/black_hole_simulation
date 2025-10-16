@@ -29,6 +29,6 @@
 
 class SavepointDB;
 class SavepointID;
-class SavepointPolymorphic;
+class SavepointObject;
 class SavepointVersion;
 class SavepointVisitor;
