@@ -467,7 +467,7 @@ struct ArrayV3
     }
 };
 
-struct ObjectEntity : public SavepointObject
+struct BaseEntity : public SavepointBase
 {
     SavepointID ID;
     int X;
@@ -479,7 +479,7 @@ struct ObjectEntity : public SavepointObject
         visitor(Y);
     }
 
-    bool operator==(const ObjectEntity& other) const
+    bool operator==(const BaseEntity& other) const
     {
         return ID == other.ID &&
             X == other.X &&
@@ -487,58 +487,58 @@ struct ObjectEntity : public SavepointObject
     }
 };
 
-struct ObjectMob : ObjectEntity
+struct BaseMob : BaseEntity
 {
     int Health;
     int Damage;
 
     void Visit(SavepointVisitor& visitor) override
     {
-        ObjectEntity::Visit(visitor);
+        BaseEntity::Visit(visitor);
         visitor(Health);
         visitor(Damage);
     }
 
-    bool operator==(const ObjectMob& other) const
+    bool operator==(const BaseMob& other) const
     {
-        return ObjectEntity::operator==(other) &&
+        return BaseEntity::operator==(other) &&
             Health == other.Health &&
             Damage == other.Damage;
     }
 };
 
-struct ObjectItem : ObjectEntity
+struct DerivedItem : BaseEntity
 {
-    SAVEPOINT_OBJECT(ObjectItem)
+    SAVEPOINT_DERIVED(DerivedItem)
 };
 
-struct ObjectZombie : ObjectMob
+struct DerivedZombie : BaseMob
 {
-    SAVEPOINT_OBJECT(ObjectZombie)
+    SAVEPOINT_DERIVED(DerivedZombie)
 };
 
-struct ObjectSkeleton : ObjectMob
+struct DerivedSkeleton : BaseMob
 {
-    SAVEPOINT_OBJECT(ObjectSkeleton)
+    SAVEPOINT_DERIVED(DerivedSkeleton)
 };
 
-struct ObjectSpider : ObjectMob
+struct DerivedSpider : BaseMob
 {
-    SAVEPOINT_OBJECT(ObjectSpider)
+    SAVEPOINT_DERIVED(DerivedSpider)
 
     int Eyes = 8;
     int Legs = 8;
 
     void Visit(SavepointVisitor& visitor) override
     {
-        ObjectMob::Visit(visitor);
+        BaseMob::Visit(visitor);
         visitor(Eyes);
         visitor(Legs);
     }
 
-    bool operator==(const ObjectSpider& other) const
+    bool operator==(const DerivedSpider& other) const
     {
-        return ObjectMob::operator==(other) &&
+        return BaseMob::operator==(other) &&
             Eyes == other.Eyes &&
             Legs == other.Legs;
     }
@@ -549,7 +549,7 @@ void Test(SavepointVersion inVersion)
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
-    SavepointDB savepoint;
+    SavepointStorage savepoint;
     SavepointStatus status = savepoint.Open(kFileName, inVersion);
     assert(status != SavepointStatus::Failed);
     SavepointVisitor inVisitor;
@@ -574,7 +574,7 @@ int main()
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
-    SavepointDB savepoint;
+    SavepointStorage savepoint;
     SavepointStatus status;
     status = savepoint.Open(kFileName, SavepointVersion{});
     assert(status == SavepointStatus::New);
@@ -702,38 +702,38 @@ int main()
     }
     savepoint.Clear();
     {
-        std::shared_ptr<ObjectItem> inItem = std::make_shared<ObjectItem>();
-        std::shared_ptr<ObjectZombie> inZombie = std::make_shared<ObjectZombie>();
-        std::shared_ptr<ObjectSkeleton> inSkeleton = std::make_shared<ObjectSkeleton>();
-        std::shared_ptr<ObjectSpider> inSpider = std::make_shared<ObjectSpider>();
+        std::shared_ptr<DerivedItem> inItem = std::make_shared<DerivedItem>();
+        std::shared_ptr<DerivedZombie> inZombie = std::make_shared<DerivedZombie>();
+        std::shared_ptr<DerivedSkeleton> inSkeleton = std::make_shared<DerivedSkeleton>();
+        std::shared_ptr<DerivedSpider> inSpider = std::make_shared<DerivedSpider>();
         savepoint.Write(inItem.get(), inItem->ID, 0);
         savepoint.Write(inZombie.get(), inZombie->ID, 0);
         savepoint.Write(inSkeleton.get(), inSkeleton->ID, 0);
         savepoint.Write(inSpider.get(), inSpider->ID, 0);
         int i = 0;
-        savepoint.Read([&](SavepointObject* object, SavepointID outID)
+        savepoint.Read([&](SavepointBase* base, SavepointID outID)
         {
             if (outID == inItem->ID)
             {
-                ObjectItem* outItem = dynamic_cast<ObjectItem*>(object);
+                DerivedItem* outItem = dynamic_cast<DerivedItem*>(base);
                 assert(outItem);
                 *outItem == *inItem;
             }
             else if (outID == inZombie->ID)
             {
-                ObjectZombie* outZombie = dynamic_cast<ObjectZombie*>(object);
+                DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base);
                 assert(outZombie);
                 *outZombie == *inZombie;
             }
             else if (outID == inSkeleton->ID)
             {
-                ObjectSkeleton* outSkeleton = dynamic_cast<ObjectSkeleton*>(object);
+                DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base);
                 assert(outSkeleton);
                 *outSkeleton == *inSkeleton;
             }
             else if (outID == inSpider->ID)
             {
-                ObjectSpider* outSpider = dynamic_cast<ObjectSpider*>(object);
+                DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base);
                 assert(outSpider);
                 *outSpider == *inSpider;
             }

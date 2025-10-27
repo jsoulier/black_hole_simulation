@@ -27,8 +27,8 @@
 
 #pragma once
 
-class SavepointDB;
+class SavepointBase;
 class SavepointID;
-class SavepointObject;
+class SavepointStorage;
 class SavepointVersion;
 class SavepointVisitor;

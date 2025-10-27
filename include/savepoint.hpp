@@ -57,7 +57,7 @@ void SavepointLog(const std::string_view& string);
 class SavepointVersion
 {
 private:
-    friend class SavepointDB;
+    friend class SavepointStorage;
 
 public:
     /* Create the lowest version */
@@ -131,7 +131,7 @@ private:
 class SavepointID
 {
 private:
-    friend class SavepointDB;
+    friend class SavepointStorage;
 
 public:
     /* Create an invalid ID */
@@ -163,13 +163,13 @@ private:
 /*
  * Base class for the user base class
  * 
- * class Entity : public SavepointObject
+ * class Entity : public SavepointBase
  * {
  * };
  * 
  * class Player : public Entity
  * {
- *     SAVEPOINT_OBJECT(Player)
+ *     SAVEPOINT_DERIVED(Player)
  * 
  *     void Visit(SavepointVisitor& visitor) override
  *     {
@@ -177,38 +177,38 @@ private:
  *     }
  * };
  */
-class SavepointObject
+class SavepointBase
 {
 private:
-    friend class SavepointDB;
+    friend class SavepointStorage;
 
 public:
     /* Visit function users must implement */
     virtual void Visit(SavepointVisitor& visitor) = 0;
 
 private:
-    /* Get the class name of a concrete type (internal) */
-    virtual const std::string_view SavepointGetString() const = 0;
+    /* Get the class name of a derived type (internal) */
+    virtual const std::string_view SavepointDerivedGetString() const = 0;
 };
 
 /* Internal */
-using SavepointObjectFunction = std::function<SavepointObject*()>;
+using SavepointDerivedFunction = std::function<SavepointBase*()>;
 
 /* Internal */
-void SavepointAddObjectFunction(const std::string_view& string, const SavepointObjectFunction& function);
+void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction& function);
 
-/* Register a concrete type as an object (see SavepointObject) */
-#define SAVEPOINT_OBJECT(T) \
+/* Register a derived type as an base (see SavepointBase) */
+#define SAVEPOINT_DERIVED(T) \
     private: \
-        struct SavepointObjectRegistrar##T \
+        struct SavepointDerivedRegistrar##T \
         { \
-            SavepointObjectRegistrar##T() \
+            SavepointDerivedRegistrar##T() \
             { \
-                SavepointAddObjectFunction(#T, []() { return new T(); }); \
+                SavepointAddDerivedFunction(#T, []() { return new T(); }); \
             } \
         }; \
-        static inline SavepointObjectRegistrar##T SavepointObjectRegistrar; \
-        const std::string_view SavepointGetString() const override \
+        static inline SavepointDerivedRegistrar##T SavepointDerivedRegistrar; \
+        const std::string_view SavepointDerivedGetString() const override \
         { \
             return #T;\
         } \
@@ -327,7 +327,7 @@ concept SavepointPrimitive = !SavepointPointer<T> && !SavepointFreeVisit<T> && !
 class SavepointVisitor
 {
 private:
-    friend class SavepointDB;
+    friend class SavepointStorage;
 
     /* 
      * Header is composed of 2 versions:
@@ -383,7 +383,7 @@ public:
         }
     }
 
-    /* Visit an object with a SavepointVisit free function defined. If reading, checks that the version is satisfied */
+    /* Visit an base with a SavepointVisit free function defined. If reading, checks that the version is satisfied */
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -401,7 +401,7 @@ public:
         SavepointVisit(*this, item);
     }
 
-    /* Visit an object with a Visit member function defined. If reading, checks that the version is satisfied */
+    /* Visit an base with a Visit member function defined. If reading, checks that the version is satisfied */
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -546,11 +546,11 @@ using SavepointReadEntityFunction = std::function<void(SavepointVisitor& visitor
 using SavepointReadTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 using SavepointReadTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
 
-/* Object read callbacks */
-using SavepointReadObjectFunction = std::function<void(SavepointObject* object)>;
-using SavepointReadObjectEntityFunction = std::function<void(SavepointObject* object, SavepointID id)>;
-using SavepointReadObjectTile2DFunction = std::function<void(SavepointObject* object, int x, int y)>;
-using SavepointReadObjectTile3DFunction = std::function<void(SavepointObject* object, int x, int y, int z)>;
+/* Base read callbacks */
+using SavepointReadBaseFunction = std::function<void(SavepointBase* base)>;
+using SavepointReadBaseEntityFunction = std::function<void(SavepointBase* base, SavepointID id)>;
+using SavepointReadBaseTile2DFunction = std::function<void(SavepointBase* base, int x, int y)>;
+using SavepointReadBaseTile3DFunction = std::function<void(SavepointBase* base, int x, int y, int z)>;
 
 enum class SavepointStatus
 {
@@ -569,7 +569,7 @@ enum class SavepointStatus
  *
  * int main()
  * {
- *     Savepoint savepoint;
+ *     SavepointStorage savepoint;
  *     switch (savepoint.Open("<path>", {1, 1, 1}))
  *     {
  *
@@ -591,19 +591,19 @@ enum class SavepointStatus
  *     return 0;
  * }
  */
-class SavepointDB
+class SavepointStorage
 {
 public:
     /* Default initialize */
-    SavepointDB();
+    SavepointStorage();
     
     /* Does not close the database */
-    ~SavepointDB();
+    ~SavepointStorage();
 
-    SavepointDB(const SavepointDB& other) = delete;
-    SavepointDB& operator=(const SavepointDB& other) = delete;
-    SavepointDB(SavepointDB&& other) = delete;
-    SavepointDB& operator=(SavepointDB&& other) = delete;
+    SavepointStorage(const SavepointStorage& other) = delete;
+    SavepointStorage& operator=(const SavepointStorage& other) = delete;
+    SavepointStorage(SavepointStorage&& other) = delete;
+    SavepointStorage& operator=(SavepointStorage&& other) = delete;
     
     /* Open a database connection. Version should be your application version */
     SavepointStatus Open(const std::string_view& path, SavepointVersion version);
@@ -627,16 +627,16 @@ public:
     void Write(SavepointVisitor& visitor, int x, int y, int z, int level);
 
     /* Write a single instance to the database */
-    void Write(SavepointObject* object);
+    void Write(SavepointBase* base);
 
     /* Write an entity to a level */
-    void Write(SavepointObject* object, SavepointID& id, int level);
+    void Write(SavepointBase* base, SavepointID& id, int level);
 
     /* Write a tile to an xy coordinate and level */
-    void Write(SavepointObject* object, int x, int y, int level);
+    void Write(SavepointBase* base, int x, int y, int level);
 
     /* Write a tile to an xyz coordinate and level */
-    void Write(SavepointObject* object, int x, int y, int z, int level);
+    void Write(SavepointBase* base, int x, int y, int z, int level);
     
     /* Read a single instance from the database */
     void Read(const SavepointReadFunction& function);
@@ -651,16 +651,16 @@ public:
     void Read(const SavepointReadTile3DFunction& function, int level);
 
     /* Read a single instance from the database */
-    void Read(const SavepointReadObjectFunction& function);
+    void Read(const SavepointReadBaseFunction& function);
 
     /* Read all entities from level */
-    void Read(const SavepointReadObjectEntityFunction& function, int level);
+    void Read(const SavepointReadBaseEntityFunction& function, int level);
 
     /* Read all xy tiles from level */
-    void Read(const SavepointReadObjectTile2DFunction& function, int level);
+    void Read(const SavepointReadBaseTile2DFunction& function, int level);
 
     /* Read all xyz tiles from level */
-    void Read(const SavepointReadObjectTile3DFunction& function, int level);
+    void Read(const SavepointReadBaseTile3DFunction& function, int level);
     
     /* Delete an entity from the database */
     void Delete(const SavepointID id);
@@ -669,8 +669,8 @@ public:
     void Clear();
 
 private:
-    bool SetObject(SavepointObject* object);
-    SavepointObject* GetObject(SavepointVisitor& visitor);
+    bool SetBase(SavepointBase* base);
+    SavepointBase* GetBase(SavepointVisitor& visitor);
 
     typedef struct sqlite3 sqlite;
     typedef struct sqlite3_stmt sqlite_stmt;
