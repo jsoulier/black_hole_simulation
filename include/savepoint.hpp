@@ -57,7 +57,7 @@ void SavepointLog(const std::string_view& string);
 class SavepointVersion
 {
 private:
-    friend class SavepointStorage;
+    friend class SavepointDatabase;
 
 public:
     /* Create the lowest version */
@@ -131,7 +131,7 @@ private:
 class SavepointID
 {
 private:
-    friend class SavepointStorage;
+    friend class SavepointDatabase;
 
 public:
     /* Create an invalid ID */
@@ -180,7 +180,7 @@ private:
 class SavepointBase
 {
 private:
-    friend class SavepointStorage;
+    friend class SavepointDatabase;
 
 public:
     /* Visit function users must implement */
@@ -327,7 +327,7 @@ concept SavepointPrimitive = !SavepointPointer<T> && !SavepointFreeVisit<T> && !
 class SavepointVisitor
 {
 private:
-    friend class SavepointStorage;
+    friend class SavepointDatabase;
 
     /* 
      * Header is composed of 2 versions:
@@ -569,7 +569,7 @@ enum class SavepointStatus
  *
  * int main()
  * {
- *     SavepointStorage savepoint;
+ *     SavepointDatabase savepoint;
  *     switch (savepoint.Open("<path>", {1, 1, 1}))
  *     {
  *
@@ -591,19 +591,19 @@ enum class SavepointStatus
  *     return 0;
  * }
  */
-class SavepointStorage
+class SavepointDatabase
 {
 public:
     /* Default initialize */
-    SavepointStorage();
+    SavepointDatabase();
     
     /* Does not close the database */
-    ~SavepointStorage();
+    ~SavepointDatabase();
 
-    SavepointStorage(const SavepointStorage& other) = delete;
-    SavepointStorage& operator=(const SavepointStorage& other) = delete;
-    SavepointStorage(SavepointStorage&& other) = delete;
-    SavepointStorage& operator=(SavepointStorage&& other) = delete;
+    SavepointDatabase(const SavepointDatabase& other) = delete;
+    SavepointDatabase& operator=(const SavepointDatabase& other) = delete;
+    SavepointDatabase(SavepointDatabase&& other) = delete;
+    SavepointDatabase& operator=(SavepointDatabase&& other) = delete;
     
     /* Open a database connection. Version should be your application version */
     SavepointStatus Open(const std::string_view& path, SavepointVersion version);

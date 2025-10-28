@@ -87,7 +87,7 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
     GetDerivedFunctions().emplace(string, function);
 }
 
-SavepointStorage::SavepointStorage()
+SavepointDatabase::SavepointDatabase()
     : Version{}
     , Visitor{}
     , Handle{nullptr}
@@ -175,7 +175,7 @@ static constexpr const char* kClearTiles2DSQL =
 static constexpr const char* kClearTiles3DSQL =
     "DELETE FROM tiles_3d;";
 
-SavepointStatus SavepointStorage::Open(const std::string_view& path, SavepointVersion version)
+SavepointStatus SavepointDatabase::Open(const std::string_view& path, SavepointVersion version)
 {
     if (sqlite3_open(path.data(), &Handle) != SQLITE_OK)
     {
@@ -283,7 +283,7 @@ SavepointStatus SavepointStorage::Open(const std::string_view& path, SavepointVe
     return status;
 }
 
-SavepointStorage::~SavepointStorage()
+SavepointDatabase::~SavepointDatabase()
 {
     if (Handle)
     {
@@ -291,7 +291,7 @@ SavepointStorage::~SavepointStorage()
     }
 }
 
-void SavepointStorage::Close()
+void SavepointDatabase::Close()
 {
     sqlite3_finalize(WriteStatusStmt);
     sqlite3_finalize(WriteStmt);
@@ -312,7 +312,7 @@ void SavepointStorage::Close()
     Handle = nullptr;
 }
 
-void SavepointStorage::Save()
+void SavepointDatabase::Save()
 {
     if (!Handle)
     {
@@ -332,7 +332,7 @@ void SavepointStorage::Save()
     }
 }
 
-void SavepointStorage::Write(SavepointVisitor& visitor)
+void SavepointDatabase::Write(SavepointVisitor& visitor)
 {
     if (!Handle)
     {
@@ -355,7 +355,7 @@ void SavepointStorage::Write(SavepointVisitor& visitor)
     sqlite3_reset(WriteStmt);
 }
 
-void SavepointStorage::Write(SavepointVisitor& visitor, SavepointID& id, int level)
+void SavepointDatabase::Write(SavepointVisitor& visitor, SavepointID& id, int level)
 {
     if (!Handle)
     {
@@ -402,7 +402,7 @@ void SavepointStorage::Write(SavepointVisitor& visitor, SavepointID& id, int lev
     }
 }
 
-void SavepointStorage::Write(SavepointVisitor& visitor, int x, int y, int level)
+void SavepointDatabase::Write(SavepointVisitor& visitor, int x, int y, int level)
 {
     if (!Handle)
     {
@@ -428,7 +428,7 @@ void SavepointStorage::Write(SavepointVisitor& visitor, int x, int y, int level)
     sqlite3_reset(WriteTile2DStmt);
 }
 
-void SavepointStorage::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
+void SavepointDatabase::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
 {
     if (!Handle)
     {
@@ -455,7 +455,7 @@ void SavepointStorage::Write(SavepointVisitor& visitor, int x, int y, int z, int
     sqlite3_reset(WriteTile3DStmt);
 }
 
-bool SavepointStorage::SetBase(SavepointBase* base)
+bool SavepointDatabase::SetBase(SavepointBase* base)
 {
     if (!Handle)
     {
@@ -481,7 +481,7 @@ bool SavepointStorage::SetBase(SavepointBase* base)
     return true;
 }
 
-void SavepointStorage::Write(SavepointBase* base)
+void SavepointDatabase::Write(SavepointBase* base)
 {
     if (SetBase(base))
     {
@@ -489,7 +489,7 @@ void SavepointStorage::Write(SavepointBase* base)
     }
 }
 
-void SavepointStorage::Write(SavepointBase* base, SavepointID& id, int level)
+void SavepointDatabase::Write(SavepointBase* base, SavepointID& id, int level)
 {
     if (SetBase(base))
     {
@@ -497,7 +497,7 @@ void SavepointStorage::Write(SavepointBase* base, SavepointID& id, int level)
     }
 }
 
-void SavepointStorage::Write(SavepointBase* base, int x, int y, int level)
+void SavepointDatabase::Write(SavepointBase* base, int x, int y, int level)
 {
     if (SetBase(base))
     {
@@ -505,7 +505,7 @@ void SavepointStorage::Write(SavepointBase* base, int x, int y, int level)
     }
 }
 
-void SavepointStorage::Write(SavepointBase* base, int x, int y, int z, int level)
+void SavepointDatabase::Write(SavepointBase* base, int x, int y, int z, int level)
 {
     if (SetBase(base))
     {
@@ -513,7 +513,7 @@ void SavepointStorage::Write(SavepointBase* base, int x, int y, int z, int level
     }
 }
 
-void SavepointStorage::Read(const SavepointReadFunction& function)
+void SavepointDatabase::Read(const SavepointReadFunction& function)
 {
     if (!Handle)
     {
@@ -533,7 +533,7 @@ void SavepointStorage::Read(const SavepointReadFunction& function)
     sqlite3_reset(ReadStmt);
 }
 
-void SavepointStorage::Read(const SavepointReadEntityFunction& function, int level)
+void SavepointDatabase::Read(const SavepointReadEntityFunction& function, int level)
 {
     if (!Handle)
     {
@@ -552,7 +552,7 @@ void SavepointStorage::Read(const SavepointReadEntityFunction& function, int lev
     sqlite3_reset(ReadEntitiesStmt);
 }
 
-void SavepointStorage::Read(const SavepointReadTile2DFunction& function, int level)
+void SavepointDatabase::Read(const SavepointReadTile2DFunction& function, int level)
 {
     if (!Handle)
     {
@@ -571,7 +571,7 @@ void SavepointStorage::Read(const SavepointReadTile2DFunction& function, int lev
     sqlite3_reset(ReadTiles2DStmt);
 }
 
-void SavepointStorage::Read(const SavepointReadTile3DFunction& function, int level)
+void SavepointDatabase::Read(const SavepointReadTile3DFunction& function, int level)
 {
     if (!Handle)
     {
@@ -591,7 +591,7 @@ void SavepointStorage::Read(const SavepointReadTile3DFunction& function, int lev
     sqlite3_reset(ReadTiles3DStmt);
 }
 
-SavepointBase* SavepointStorage::GetBase(SavepointVisitor& visitor)
+SavepointBase* SavepointDatabase::GetBase(SavepointVisitor& visitor)
 {
     std::string string;
     visitor(string);
@@ -611,7 +611,7 @@ SavepointBase* SavepointStorage::GetBase(SavepointVisitor& visitor)
     return base;
 }
 
-void SavepointStorage::Read(const SavepointReadBaseFunction& function)
+void SavepointDatabase::Read(const SavepointReadBaseFunction& function)
 {
     Read([this, &function](SavepointVisitor& visitor)
     {
@@ -623,7 +623,7 @@ void SavepointStorage::Read(const SavepointReadBaseFunction& function)
     });
 }
 
-void SavepointStorage::Read(const SavepointReadBaseEntityFunction& function, int level)
+void SavepointDatabase::Read(const SavepointReadBaseEntityFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, SavepointID id)
     {
@@ -635,7 +635,7 @@ void SavepointStorage::Read(const SavepointReadBaseEntityFunction& function, int
     }, level);
 }
 
-void SavepointStorage::Read(const SavepointReadBaseTile2DFunction& function, int level)
+void SavepointDatabase::Read(const SavepointReadBaseTile2DFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, int x, int y)
     {
@@ -647,7 +647,7 @@ void SavepointStorage::Read(const SavepointReadBaseTile2DFunction& function, int
     }, level);
 }
 
-void SavepointStorage::Read(const SavepointReadBaseTile3DFunction& function, int level)
+void SavepointDatabase::Read(const SavepointReadBaseTile3DFunction& function, int level)
 {
     Read([this, &function](SavepointVisitor& visitor, int x, int y, int z)
     {
@@ -659,7 +659,7 @@ void SavepointStorage::Read(const SavepointReadBaseTile3DFunction& function, int
     }, level);
 }
 
-void SavepointStorage::Delete(const SavepointID id)
+void SavepointDatabase::Delete(const SavepointID id)
 {
     if (!Handle)
     {
@@ -677,7 +677,7 @@ void SavepointStorage::Delete(const SavepointID id)
     sqlite3_reset(DeleteEntityStmt);
 }
 
-void SavepointStorage::Clear()
+void SavepointDatabase::Clear()
 {
     if (!Handle)
     {

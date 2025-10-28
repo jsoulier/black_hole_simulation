@@ -29,6 +29,6 @@
 
 class SavepointBase;
 class SavepointID;
-class SavepointStorage;
+class SavepointDatabase;
 class SavepointVersion;
 class SavepointVisitor;
