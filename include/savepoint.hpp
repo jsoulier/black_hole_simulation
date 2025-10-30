@@ -607,6 +607,9 @@ public:
     
     /* Open a database connection. Version should be your application version */
     SavepointStatus Open(const std::string_view& path, SavepointVersion version);
+
+    /* Check if database is connected */
+    bool IsOpen() const;
     
     /* Close the database connection */
     void Close();

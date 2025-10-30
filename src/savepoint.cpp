@@ -177,94 +177,95 @@ static constexpr const char* kClearTiles3DSQL =
 
 SavepointStatus SavepointDatabase::Open(const std::string_view& path, SavepointVersion version)
 {
-    if (sqlite3_open(path.data(), &Handle) != SQLITE_OK)
+    sqlite3* handle = nullptr;
+    if (sqlite3_open(path.data(), &handle) != SQLITE_OK)
     {
         SavepointLog(std::format("Failed to open database: {}, {}", path, sqlite3_errmsg(Handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_exec(Handle, kSQL, nullptr, nullptr, nullptr) != SQLITE_OK)
+    if (sqlite3_exec(handle, kSQL, nullptr, nullptr, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to execute kSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to execute kSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kWriteStatusSQL, -1, &WriteStatusStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kWriteStatusSQL, -1, &WriteStatusStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kWriteStatusSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kWriteStatusSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kWriteSQL, -1, &WriteStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kWriteSQL, -1, &WriteStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kWriteSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kWriteSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kInsertEntitySQL, -1, &InsertEntityStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kInsertEntitySQL, -1, &InsertEntityStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kInsertEntitySQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kInsertEntitySQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kUpdateEntitySQL, -1, &UpdateEntityStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kUpdateEntitySQL, -1, &UpdateEntityStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kUpdateEntitySQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kUpdateEntitySQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kWriteTile2DSQL, -1, &WriteTile2DStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kWriteTile2DSQL, -1, &WriteTile2DStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kWriteTile2DSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kWriteTile2DSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kWriteTile3DSQL, -1, &WriteTile3DStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kWriteTile3DSQL, -1, &WriteTile3DStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kWriteTile3DSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kWriteTile3DSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kReadStatusSQL, -1, &ReadStatusStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kReadStatusSQL, -1, &ReadStatusStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kReadStatusSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kReadStatusSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kReadSQL, -1, &ReadStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kReadSQL, -1, &ReadStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kReadSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kReadSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kReadEntitiesSQL, -1, &ReadEntitiesStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kReadEntitiesSQL, -1, &ReadEntitiesStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kReadEntitiesSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kReadEntitiesSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kReadTiles2DSQL, -1, &ReadTiles2DStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kReadTiles2DSQL, -1, &ReadTiles2DStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kReadTiles2DSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kReadTiles2DSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kReadTiles3DSQL, -1, &ReadTiles3DStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kReadTiles3DSQL, -1, &ReadTiles3DStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kReadTiles3DSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kReadTiles3DSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kDeleteEntitySQL, -1, &DeleteEntityStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kDeleteEntitySQL, -1, &DeleteEntityStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kDeleteEntitySQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kDeleteEntitySQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kClearEntitiesSQL, -1, &ClearEntitiesStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kClearEntitiesSQL, -1, &ClearEntitiesStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kClearEntitiesSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kClearEntitiesSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kClearTiles2DSQL, -1, &ClearTiles2DStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kClearTiles2DSQL, -1, &ClearTiles2DStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kClearTiles2DSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kClearTiles2DSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_prepare_v2(Handle, kClearTiles3DSQL, -1, &ClearTiles3DStmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(handle, kClearTiles3DSQL, -1, &ClearTiles3DStmt, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to prepare kClearTiles3DSQL: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to prepare kClearTiles3DSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    if (sqlite3_exec(Handle, "BEGIN;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    if (sqlite3_exec(handle, "BEGIN;", nullptr, nullptr, nullptr) != SQLITE_OK)
     {
-        SavepointLog(std::format("Failed to begin transaction: {}", sqlite3_errmsg(Handle)));
+        SavepointLog(std::format("Failed to begin transaction: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
     Version = version;
@@ -280,12 +281,18 @@ SavepointStatus SavepointDatabase::Open(const std::string_view& path, SavepointV
         status = SavepointStatus::New;
     }
     sqlite3_reset(ReadStatusStmt);
+    Handle = handle;
     return status;
+}
+
+bool SavepointDatabase::IsOpen() const
+{
+    return Handle != nullptr;
 }
 
 SavepointDatabase::~SavepointDatabase()
 {
-    if (Handle)
+    if (IsOpen())
     {
         SavepointLog("Destroyed savepoint without closing");
     }
@@ -314,7 +321,7 @@ void SavepointDatabase::Close()
 
 void SavepointDatabase::Save()
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -334,7 +341,7 @@ void SavepointDatabase::Save()
 
 void SavepointDatabase::Write(SavepointVisitor& visitor)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -357,7 +364,7 @@ void SavepointDatabase::Write(SavepointVisitor& visitor)
 
 void SavepointDatabase::Write(SavepointVisitor& visitor, SavepointID& id, int level)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -404,7 +411,7 @@ void SavepointDatabase::Write(SavepointVisitor& visitor, SavepointID& id, int le
 
 void SavepointDatabase::Write(SavepointVisitor& visitor, int x, int y, int level)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -430,7 +437,7 @@ void SavepointDatabase::Write(SavepointVisitor& visitor, int x, int y, int level
 
 void SavepointDatabase::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -457,7 +464,7 @@ void SavepointDatabase::Write(SavepointVisitor& visitor, int x, int y, int z, in
 
 bool SavepointDatabase::SetBase(SavepointBase* base)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return false;
     }
@@ -515,7 +522,7 @@ void SavepointDatabase::Write(SavepointBase* base, int x, int y, int z, int leve
 
 void SavepointDatabase::Read(const SavepointReadFunction& function)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -535,7 +542,7 @@ void SavepointDatabase::Read(const SavepointReadFunction& function)
 
 void SavepointDatabase::Read(const SavepointReadEntityFunction& function, int level)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -554,7 +561,7 @@ void SavepointDatabase::Read(const SavepointReadEntityFunction& function, int le
 
 void SavepointDatabase::Read(const SavepointReadTile2DFunction& function, int level)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -573,7 +580,7 @@ void SavepointDatabase::Read(const SavepointReadTile2DFunction& function, int le
 
 void SavepointDatabase::Read(const SavepointReadTile3DFunction& function, int level)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -661,7 +668,7 @@ void SavepointDatabase::Read(const SavepointReadBaseTile3DFunction& function, in
 
 void SavepointDatabase::Delete(const SavepointID id)
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
@@ -679,7 +686,7 @@ void SavepointDatabase::Delete(const SavepointID id)
 
 void SavepointDatabase::Clear()
 {
-    if (!Handle)
+    if (!IsOpen())
     {
         return;
     }
