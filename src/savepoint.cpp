@@ -37,7 +37,6 @@
 
 #include "sqlite3.h"
 
-/* The current savepoint version */
 static constexpr SavepointVersion kVersion{0, 0, 1};
 
 static void DefaultLogFunction(const std::string_view& string)
@@ -57,7 +56,6 @@ void SavepointLog(const std::string_view& string)
     logFunction(string);
 }
 
-/* Allow heterogeneous lookups */
 struct Hash
 {
     using is_transparent = void;
@@ -75,7 +73,6 @@ struct Hash
 
 using DerivedFunctions = std::unordered_map<std::string, SavepointDerivedFunction, Hash, std::equal_to<>>;
 
-/* For avoiding Static Initialization Order Fiasco */
 static DerivedFunctions& GetDerivedFunctions()
 {
     static DerivedFunctions functions;
@@ -109,7 +106,6 @@ SavepointDatabase::SavepointDatabase()
 {
 }
 
-/* SQL tables and indexes */
 static constexpr const char* kSQL =
     "CREATE TABLE IF NOT EXISTS status ("
     "    id INTEGER PRIMARY KEY"
@@ -143,7 +139,6 @@ static constexpr const char* kSQL =
     "CREATE INDEX IF NOT EXISTS tiles_3d_index ON tiles_3d (level);"
     " ";
 
-/* SQL statements */
 static constexpr const char* kWriteStatusSQL =
     "INSERT OR REPLACE INTO status (id) VALUES (0);";
 static constexpr const char* kWriteSQL =
@@ -377,7 +372,6 @@ void SavepointDatabase::Write(SavepointVisitor& visitor, SavepointID& id, int le
     visitor.SetSavepointVersion(kVersion);
     const void* data = visitor.Writer.data();
     size_t size = visitor.Writer.size();
-    /* ID is invalid, insert new entity */
     if (!id)
     {
         sqlite3_bind_int(InsertEntityStmt, 1, level);
@@ -392,7 +386,6 @@ void SavepointDatabase::Write(SavepointVisitor& visitor, SavepointID& id, int le
         }
         sqlite3_reset(InsertEntityStmt);
     }
-    /* ID should be valid, update entity */
     else
     {
         sqlite3_bind_int(UpdateEntityStmt, 1, level);
@@ -401,7 +394,6 @@ void SavepointDatabase::Write(SavepointVisitor& visitor, SavepointID& id, int le
         if (sqlite3_step(UpdateEntityStmt) != SQLITE_DONE)
         {
             SavepointLog(std::format("Failed to update entity: {}", sqlite3_errmsg(Handle)));
-            /* Invalidate ID and try to insert */
             id = SavepointID{};
             Write(visitor, id, level);
         }
