@@ -199,39 +199,6 @@ template<typename T>
 concept SavepointPointer = SavepointPointerImpl<T>::value;
 
 template<typename T>
-struct SavepointVectorImpl : std::false_type {};
-
-template<typename T, typename Allocator>
-struct SavepointVectorImpl<std::vector<T, Allocator>> : std::true_type {};
-
-template<typename T>
-concept SavepointVector = SavepointVectorImpl<T>::value;
-
-template<typename T>
-struct SavepointArrayImpl : std::false_type {};
-
-template<typename T, size_t N>
-struct SavepointArrayImpl<std::array<T, N>> : std::true_type
-{
-    static constexpr size_t kSize = N;
-};
-
-template<typename T>
-concept SavepointArray = SavepointArrayImpl<T>::value;
-
-template<typename T>
-inline constexpr size_t SavepointArraySize = SavepointArrayImpl<T>::kSize;
-
-template<typename T>
-struct SavepointStringImpl : std::false_type {};
-
-template<typename T, typename Traits, typename Allocator>
-struct SavepointStringImpl<std::basic_string<T, Traits, Allocator>> : std::true_type {};
-
-template<typename T>
-concept SavepointString = SavepointStringImpl<T>::value;
-
-template<typename T>
 concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { SavepointVisit(visitor, item) }; };
 
 template<typename T>
@@ -410,6 +377,15 @@ private:
     size_t Offset;
 };
 
+template<typename T>
+struct SavepointVectorImpl : std::false_type {};
+
+template<typename T, typename Allocator>
+struct SavepointVectorImpl<std::vector<T, Allocator>> : std::true_type {};
+
+template<typename T>
+concept SavepointVector = SavepointVectorImpl<T>::value;
+
 template<SavepointVector T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
@@ -418,6 +394,21 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     item.resize(size);
     visitor(item.data(), size, size);
 }
+
+template<typename T>
+struct SavepointArrayImpl : std::false_type {};
+
+template<typename T, size_t N>
+struct SavepointArrayImpl<std::array<T, N>> : std::true_type
+{
+    static constexpr size_t kSize = N;
+};
+
+template<typename T>
+concept SavepointArray = SavepointArrayImpl<T>::value;
+
+template<typename T>
+inline constexpr size_t SavepointArraySize = SavepointArrayImpl<T>::kSize;
 
 template<SavepointArray T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
@@ -428,12 +419,43 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     visitor(item.data(), kCapacity, size);
 }
 
+template<typename T>
+struct SavepointStringImpl : std::false_type {};
+
+template<typename T, typename Traits, typename Allocator>
+struct SavepointStringImpl<std::basic_string<T, Traits, Allocator>> : std::true_type {};
+
+template<typename T>
+concept SavepointString = SavepointStringImpl<T>::value;
+
 template<SavepointString T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
     size_t size = item.size() * sizeof(T::value_type);
     visitor(size);
     item.resize(size);
+    visitor(item.data(), size, size);
+}
+
+template<typename T>
+struct SavepointStringViewImpl : std::false_type {};
+
+template<typename T, typename Traits>
+struct SavepointStringViewImpl<std::basic_string_view<T, Traits>> : std::true_type {};
+
+template<typename T>
+concept SavepointStringView = SavepointStringViewImpl<std::decay_t<T>>::value;
+
+template<SavepointStringView T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    if (visitor.IsReader())
+    {
+        SavepointLog("Tried to read into a string view");
+        return;
+    }
+    size_t size = item.size() * sizeof(T::value_type);
+    visitor(size);
     visitor(item.data(), size, size);
 }
 

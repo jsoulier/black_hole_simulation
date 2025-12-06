@@ -472,10 +472,8 @@ bool SavepointDatabase::SetBase(SavepointBase* base)
         SavepointLog(std::format("Failed to find base string: {}", string));
         return false;
     }
-    size_t size = string.size();
     Visitor.Reset();
-    Visitor(size);
-    Visitor(string.data(), size, size);
+    Visitor(string);
     Visitor(*base);
     return true;
 }
