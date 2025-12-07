@@ -53,7 +53,7 @@ void SavepointLog(const std::string_view& string);
 class SavepointVersion
 {
 private:
-    friend class SavepointDatabase;
+    friend class Savepoint;
 
 public:
     constexpr SavepointVersion()
@@ -123,7 +123,7 @@ private:
 class SavepointID
 {
 private:
-    friend class SavepointDatabase;
+    friend class Savepoint;
 
 public:
     constexpr SavepointID()
@@ -153,7 +153,7 @@ private:
 class SavepointBase
 {
 private:
-    friend class SavepointDatabase;
+    friend class Savepoint;
 
 public:
     virtual void Visit(SavepointVisitor& visitor) = 0;
@@ -210,7 +210,7 @@ concept SavepointPrimitive = !SavepointPointer<T> && !SavepointFreeVisit<T> && !
 class SavepointVisitor
 {
 private:
-    friend class SavepointDatabase;
+    friend class Savepoint;
 
     static constexpr size_t kHeaderSize = sizeof(SavepointVersion) * 2;
 
@@ -475,16 +475,16 @@ enum class SavepointStatus
     New,
 };
 
-class SavepointDatabase
+class Savepoint
 {
 public:
-    SavepointDatabase();
-    ~SavepointDatabase();
+    Savepoint();
+    ~Savepoint();
 
-    SavepointDatabase(const SavepointDatabase& other) = delete;
-    SavepointDatabase& operator=(const SavepointDatabase& other) = delete;
-    SavepointDatabase(SavepointDatabase&& other) = delete;
-    SavepointDatabase& operator=(SavepointDatabase&& other) = delete;
+    Savepoint(const Savepoint& other) = delete;
+    Savepoint& operator=(const Savepoint& other) = delete;
+    Savepoint(Savepoint&& other) = delete;
+    Savepoint& operator=(Savepoint&& other) = delete;
     SavepointStatus Open(const std::string_view& path, SavepointVersion version);
     bool IsOpen() const;
     void Close();
