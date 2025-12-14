@@ -159,7 +159,7 @@ public:
     virtual void Visit(SavepointVisitor& visitor) = 0;
 
 private:
-    virtual const std::string_view SavepointDerivedGetString() const = 0;
+    virtual std::string_view SavepointDerivedGetString() const = 0;
 };
 
 using SavepointDerivedFunction = std::function<SavepointBase*()>;
@@ -168,19 +168,19 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
 
 #define SAVEPOINT_DERIVED(T) \
     private: \
-        struct SavepointDerivedAddFactory \
+        struct SavepointDerivedFunctionRegistrar \
         { \
-            static SavepointBase* Factory() \
+            static SavepointBase* Function() \
             { \
                 return new T(); \
             } \
-            SavepointDerivedAddFactory() \
+            SavepointDerivedFunctionRegistrar() \
             { \
-                SavepointAddDerivedFunction(#T, Factory); \
+                SavepointAddDerivedFunction(#T, Function); \
             } \
         }; \
-        static inline SavepointDerivedAddFactory SavepointFactory; \
-        const std::string_view SavepointDerivedGetString() const override \
+        static inline SavepointDerivedFunctionRegistrar SavepointDerivedFunctionRegistrar; \
+        std::string_view SavepointDerivedGetString() const override \
         { \
             return #T;\
         } \

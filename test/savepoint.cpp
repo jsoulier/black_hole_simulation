@@ -7,6 +7,59 @@
 #include <string>
 #include <vector>
 
+static_assert(SavepointPointer<void*>);
+static_assert(SavepointPointer<void**>);
+static_assert(SavepointPointer<const void*>);
+static_assert(SavepointPointer<void const*>);
+static_assert(SavepointPointer<const void* const>);
+static_assert(!SavepointPointer<int>);
+static_assert(SavepointPointer<std::shared_ptr<int>>);
+static_assert(SavepointPointer<std::unique_ptr<int>>);
+
+struct NoVisit {};
+struct MemberVisit { void Visit(SavepointVisitor& visitor) {} };
+struct FreeVisit {};
+static void SavepointVisit(SavepointVisitor& visitor, FreeVisit& item) {}
+
+static_assert(SavepointFreeVisit<FreeVisit>);
+static_assert(!SavepointFreeVisit<MemberVisit>);
+static_assert(!SavepointFreeVisit<NoVisit>);
+static_assert(!SavepointMemberVisit<FreeVisit>);
+static_assert(SavepointMemberVisit<MemberVisit>);
+static_assert(!SavepointMemberVisit<NoVisit>);
+
+static_assert(SavepointVector<std::vector<int>>);
+static_assert(!SavepointVector<const std::vector<int>>);
+static_assert(!SavepointVector<std::vector<int>&>);
+static_assert(!SavepointVector<const std::vector<int>&>);
+static_assert(!SavepointVector<std::array<int, 9>>);
+static_assert(!SavepointVector<std::string>);
+static_assert(!SavepointVector<std::string_view>);
+
+static_assert(!SavepointArray<std::vector<int>>);
+static_assert(SavepointArray<std::array<int, 9>>);
+static_assert(!SavepointArray<const std::array<int, 9>>);
+static_assert(!SavepointArray<std::array<int, 9>&>);
+static_assert(!SavepointArray<const std::array<int, 9>&>);
+static_assert(!SavepointArray<std::string>);
+static_assert(!SavepointArray<std::string_view>);
+
+static_assert(!SavepointString<std::vector<int>>);
+static_assert(!SavepointString<std::array<int, 9>>);
+static_assert(SavepointString<std::string>);
+static_assert(!SavepointString<const std::string>);
+static_assert(!SavepointString<std::string&>);
+static_assert(!SavepointString<const std::string&>);
+static_assert(!SavepointString<std::string_view>);
+
+static_assert(!SavepointStringView<std::vector<int>>);
+static_assert(!SavepointStringView<std::array<int, 9>>);
+static_assert(!SavepointStringView<std::string>);
+static_assert(SavepointStringView<std::string_view>);
+static_assert(SavepointStringView<const std::string_view>);
+static_assert(SavepointStringView<std::string_view&>);
+static_assert(SavepointStringView<const std::string_view&>);
+
 static const std::string kFileName = "savepoint.sqlite3";
 
 static constexpr SavepointVersion kVersion1{0, 0, 1};
@@ -545,7 +598,7 @@ struct DerivedSpider : BaseMob
 };
 
 template<typename InT, typename OutT>
-void Test(SavepointVersion inVersion)
+static void Test(SavepointVersion inVersion)
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
