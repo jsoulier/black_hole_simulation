@@ -75,6 +75,7 @@ using DerivedFunctions = std::unordered_map<std::string, SavepointDerivedFunctio
 
 static DerivedFunctions& GetDerivedFunctions()
 {
+    // Required because of SIOF
     static DerivedFunctions functions;
     return functions;
 }

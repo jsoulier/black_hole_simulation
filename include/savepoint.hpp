@@ -341,6 +341,22 @@ public:
         }
     }
 
+    template<typename T>
+    void Skip()
+    {
+        if (IsWriter())
+        {
+            SavepointLog("Tried to skip on a writer");
+            return;
+        }
+        if (Offset + sizeof(T) > Reader.size())
+        {
+            SavepointLog(std::format("Tried to skip past visitor: {}", Version.GetString()));
+            return;
+        }
+        Offset += sizeof(T);
+    }
+
     bool IsReader() const
     {
         return !Reader.empty();
@@ -454,12 +470,16 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             {
                 SavepointLog(std::format("Fixed range is too small: %d < %d", maxSize, size));
             }
-            size = std::min(size, maxSize);
-            for (size_t i = 0; i < size; i++)
+            maxSize = std::min(size, maxSize);
+            for (size_t i = 0; i < maxSize; i++)
             {
                 E element;
                 visitor(element);
                 item[i] = element;
+            }
+            for (; maxSize < size; maxSize++)
+            {
+                visitor.Skip<E>();
             }
         }
         else

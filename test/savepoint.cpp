@@ -1,7 +1,7 @@
 /*
  * Expected:
  * Tried to read into non-empty range
- * Fixed range is too small: %d < %d (x2)
+ * Fixed range is too small: %d < %d (x3)
  * Tried to read into non-empty range (x2)
  */
 
@@ -469,47 +469,58 @@ struct ArrayV1
 struct ArrayV2
 {
     std::array<int, 3> Data = {1, 3, 2};
+    int Sentinel = 4;
 
     void Visit(SavepointVisitor& visitor)
     {
         visitor(Data);
+        visitor(Sentinel, kVersion2);
     }
 
     bool operator==(const ArrayV1& other) const
     {
         return Data[0] == other.Data[0] &&
             Data[1] == other.Data[1] &&
-            Data[2] == 2;
+            Data[2] == 2 &&
+            Sentinel == 4;
     }
 
     bool operator==(const ArrayV2& other) const
     {
-        return Data == other.Data;
+        return
+            Data == other.Data &&
+            Sentinel == other.Sentinel;
     }
 };
 
 struct ArrayV3
 {
     std::array<int, 1> Data = {1};
+    int Sentinel = 4;
 
     void Visit(SavepointVisitor& visitor)
     {
         visitor(Data);
+        visitor(Sentinel, kVersion2);
     }
 
     bool operator==(const ArrayV1& other) const
     {
-        return Data[0] == other.Data[0];
+        return
+            Data[0] == other.Data[0] &&
+            Sentinel == 4;
     }
 
     bool operator==(const ArrayV2& other) const
     {
-        return Data[0] == other.Data[0];
+        return Data[0] == other.Data[0] &&
+            Sentinel == other.Sentinel;
     }
 
     bool operator==(const ArrayV3& other) const
     {
-        return Data[0] == other.Data[0];
+        return Data[0] == other.Data[0] &&
+            Sentinel == other.Sentinel;
     }
 };
 
@@ -849,6 +860,9 @@ int main()
     Test<ArrayV2, ArrayV2>(kVersion1);
     Test<ArrayV2, ArrayV3>(kVersion1);
     Test<ArrayV3, ArrayV3>(kVersion1);
+    Test<ArrayV2, ArrayV2>(kVersion2);
+    Test<ArrayV2, ArrayV3>(kVersion2);
+    Test<ArrayV3, ArrayV3>(kVersion2);
     Test<Map, Map>(kVersion1);
     Test<Set, Set>(kVersion1);
     return 0;
