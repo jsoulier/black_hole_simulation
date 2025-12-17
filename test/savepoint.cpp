@@ -1,10 +1,21 @@
+/*
+ * Expected:
+ * Tried to read into non-empty range
+ * Fixed range is too small: %d < %d (x2)
+ * Tried to read into non-empty range (x2)
+ */
+
 #include <savepoint.hpp>
 
 #include <array>
 #include <cassert>
 #include <filesystem>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 
 static_assert(SavepointPointer<void*>);
@@ -28,37 +39,19 @@ static_assert(!SavepointMemberVisit<FreeVisit>);
 static_assert(SavepointMemberVisit<MemberVisit>);
 static_assert(!SavepointMemberVisit<NoVisit>);
 
-static_assert(SavepointVector<std::vector<int>>);
-static_assert(!SavepointVector<const std::vector<int>>);
-static_assert(!SavepointVector<std::vector<int>&>);
-static_assert(!SavepointVector<const std::vector<int>&>);
-static_assert(!SavepointVector<std::array<int, 9>>);
-static_assert(!SavepointVector<std::string>);
-static_assert(!SavepointVector<std::string_view>);
+static_assert(!SavepointDynamicRange<std::array<int, 1>>);
+static_assert(SavepointDynamicRange<std::vector<int>>);
+static_assert(!SavepointDynamicRange<std::string_view>);
+static_assert(SavepointDynamicRange<std::map<int, int>>);
+static_assert(SavepointDynamicRange<std::unordered_map<int, int>>);
+static_assert(SavepointDynamicRange<std::set<int>>);
 
-static_assert(!SavepointArray<std::vector<int>>);
-static_assert(SavepointArray<std::array<int, 9>>);
-static_assert(!SavepointArray<const std::array<int, 9>>);
-static_assert(!SavepointArray<std::array<int, 9>&>);
-static_assert(!SavepointArray<const std::array<int, 9>&>);
-static_assert(!SavepointArray<std::string>);
-static_assert(!SavepointArray<std::string_view>);
-
-static_assert(!SavepointString<std::vector<int>>);
-static_assert(!SavepointString<std::array<int, 9>>);
-static_assert(SavepointString<std::string>);
-static_assert(!SavepointString<const std::string>);
-static_assert(!SavepointString<std::string&>);
-static_assert(!SavepointString<const std::string&>);
-static_assert(!SavepointString<std::string_view>);
-
-static_assert(!SavepointStringView<std::vector<int>>);
-static_assert(!SavepointStringView<std::array<int, 9>>);
-static_assert(!SavepointStringView<std::string>);
-static_assert(SavepointStringView<std::string_view>);
-static_assert(SavepointStringView<const std::string_view>);
-static_assert(SavepointStringView<std::string_view&>);
-static_assert(SavepointStringView<const std::string_view&>);
+static_assert(SavepointStaticRange<std::array<int, 1>>);
+static_assert(!SavepointStaticRange<std::vector<int>>);
+static_assert(!SavepointStaticRange<std::string_view>);
+static_assert(!SavepointStaticRange<std::map<int, int>>);
+static_assert(!SavepointStaticRange<std::unordered_map<int, int>>);
+static_assert(!SavepointStaticRange<std::set<int>>);
 
 static const std::string kFileName = "savepoint.sqlite3";
 
@@ -520,6 +513,36 @@ struct ArrayV3
     }
 };
 
+struct Map
+{
+    std::map<int, int> Data = {{1, 2}, {2, 3}};
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const Map& other) const
+    {
+        return Data == other.Data;
+    }
+};
+
+struct Set
+{
+    std::set<int> Data = {1, 2, 3};
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const Set& other) const
+    {
+        return Data == other.Data;
+    }
+};
+
 struct BaseEntity : public SavepointBase
 {
     SavepointID ID;
@@ -826,5 +849,7 @@ int main()
     Test<ArrayV2, ArrayV2>(kVersion1);
     Test<ArrayV2, ArrayV3>(kVersion1);
     Test<ArrayV3, ArrayV3>(kVersion1);
+    Test<Map, Map>(kVersion1);
+    Test<Set, Set>(kVersion1);
     return 0;
 }

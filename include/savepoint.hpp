@@ -30,7 +30,6 @@
 #include <savepoint_fwd.hpp>
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -38,6 +37,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
@@ -232,25 +232,34 @@ public:
     {
         if (IsReader())
         {
-            if (Version < version)
+            // Required for write-only containers (e.g. views)
+            if constexpr (std::is_const_v<T>)
             {
-                if constexpr (sizeof...(Args) > 0)
-                {
-                    item = T{std::forward<Args>(args)...};
-                }
+                SavepointLog("Tried to read into a const");
                 return;
             }
-            if (Offset + sizeof(T) > Reader.size())
+            else
             {
-                SavepointLog(std::format("Tried to read past visitor: {} -> {}", Version.GetString(), version.GetString()));
-                if constexpr (sizeof...(Args) > 0)
+                if (Version < version)
                 {
-                    item = T{std::forward<Args>(args)...};
+                    if constexpr (sizeof...(Args) > 0)
+                    {
+                        item = T{std::forward<Args>(args)...};
+                    }
+                    return;
                 }
-                return;
+                if (Offset + sizeof(T) > Reader.size())
+                {
+                    SavepointLog(std::format("Tried to read past visitor: {} -> {}", Version.GetString(), version.GetString()));
+                    if constexpr (sizeof...(Args) > 0)
+                    {
+                        item = T{std::forward<Args>(args)...};
+                    }
+                    return;
+                }
+                std::memcpy(std::addressof(item), Reader.data() + Offset, sizeof(T));
+                Offset += sizeof(T);
             }
-            std::memcpy(std::addressof(item), Reader.data() + Offset, sizeof(T));
-            Offset += sizeof(T);
         }
         else
         {
@@ -298,6 +307,7 @@ public:
     {
         if (IsReader())
         {
+            // Required for write-only containers (e.g. views)
             if constexpr (std::is_const_v<T>)
             {
                 SavepointLog("Tried to read into a const pointer");
@@ -378,85 +388,93 @@ private:
 };
 
 template<typename T>
-struct SavepointVectorImpl : std::false_type {};
+struct SavepointPairImpl : std::false_type {};
 
-template<typename T, typename Allocator>
-struct SavepointVectorImpl<std::vector<T, Allocator>> : std::true_type {};
+template<typename First, typename Second>
+struct SavepointPairImpl<std::pair<First, Second>> : std::true_type {};
 
 template<typename T>
-concept SavepointVector = SavepointVectorImpl<T>::value;
+concept SavepointPair = SavepointPairImpl<T>::value;
 
-template<SavepointVector T>
+template<SavepointPair T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
-    size_t size = item.size() * sizeof(T::value_type);
-    visitor(size);
-    item.resize(size);
-    visitor(item.data(), size, size);
+    // Required because maps use const for value_type::first_type
+    using First = std::remove_const_t<typename T::first_type>;
+    First& first = const_cast<First&>(item.first);
+    visitor(first);
+    visitor(item.second);
 }
 
 template<typename T>
-struct SavepointArrayImpl : std::false_type {};
-
-template<typename T, size_t N>
-struct SavepointArrayImpl<std::array<T, N>> : std::true_type
+concept SavepointDynamicRange = requires(T item)
 {
-    static constexpr size_t kSize = N;
+    item.insert(std::ranges::end(item), std::declval<typename T::value_type>());
 };
 
 template<typename T>
-concept SavepointArray = SavepointArrayImpl<T>::value;
+concept SavepointStaticRange = !SavepointDynamicRange<T> && requires(T item)
+{
+    item[0] = std::declval<typename T::value_type>();
+};
 
 template<typename T>
-inline constexpr size_t SavepointArraySize = SavepointArrayImpl<T>::kSize;
+concept SavepointRange = std::ranges::range<T>;
 
-template<SavepointArray T>
+template<SavepointRange T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
-    static constexpr size_t kCapacity = SavepointArraySize<T> * sizeof(T::value_type);
-    size_t size = kCapacity;
+    using E = typename T::value_type;
+    size_t size = item.size();
+    if constexpr (SavepointDynamicRange<T>)
+    {
+        if (visitor.IsReader() && size)
+        {
+            SavepointLog("Tried to read into non-empty range");
+            item.clear();
+        }
+    }
     visitor(size);
-    visitor(item.data(), kCapacity, size);
-}
-
-template<typename T>
-struct SavepointStringImpl : std::false_type {};
-
-template<typename T, typename Traits, typename Allocator>
-struct SavepointStringImpl<std::basic_string<T, Traits, Allocator>> : std::true_type {};
-
-template<typename T>
-concept SavepointString = SavepointStringImpl<T>::value;
-
-template<SavepointString T>
-void SavepointVisit(SavepointVisitor& visitor, T& item)
-{
-    size_t size = item.size() * sizeof(T::value_type);
-    visitor(size);
-    item.resize(size);
-    visitor(item.data(), size, size);
-}
-
-template<typename T>
-struct SavepointStringViewImpl : std::false_type {};
-
-template<typename T, typename Traits>
-struct SavepointStringViewImpl<std::basic_string_view<T, Traits>> : std::true_type {};
-
-template<typename T>
-concept SavepointStringView = SavepointStringViewImpl<std::decay_t<T>>::value;
-
-template<SavepointStringView T>
-void SavepointVisit(SavepointVisitor& visitor, T& item)
-{
     if (visitor.IsReader())
     {
-        SavepointLog("Tried to read into a string view");
-        return;
+        if constexpr (SavepointDynamicRange<T>)
+        {
+            auto inserter = std::inserter(item, std::ranges::end(item));
+            for (size_t i = 0; i < size; i++)
+            {
+                E element;
+                visitor(element);
+                *inserter++ = element;
+            }
+        }
+        else if constexpr (SavepointStaticRange<T>)
+        {
+            size_t maxSize = std::ranges::size(item);
+            if (size > maxSize)
+            {
+                SavepointLog(std::format("Fixed range is too small: %d < %d", maxSize, size));
+            }
+            size = std::min(size, maxSize);
+            for (size_t i = 0; i < size; i++)
+            {
+                E element;
+                visitor(element);
+                item[i] = element;
+            }
+        }
+        else
+        {
+            // Required for write-only containers (e.g. views)
+            SavepointLog("Unknown range");
+        }
     }
-    size_t size = item.size() * sizeof(T::value_type);
-    visitor(size);
-    visitor(item.data(), size, size);
+    else
+    {
+        for (auto& element : item)
+        {
+            visitor(element);
+        }
+    }
 }
 
 using SavepointReadFunction = std::function<void(SavepointVisitor& visitor)>;
