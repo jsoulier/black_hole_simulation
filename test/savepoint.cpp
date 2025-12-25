@@ -54,7 +54,6 @@ static_assert(!SavepointStaticRange<std::unordered_map<int, int>>);
 static_assert(!SavepointStaticRange<std::set<int>>);
 
 static const std::string kFileName = "savepoint.sqlite3";
-static const std::string kBackupFileName = "savepoint.sqlite3.bak";
 
 static constexpr SavepointVersion kVersion1{0, 0, 1};
 static constexpr SavepointVersion kVersion2{0, 1, 0};
@@ -673,7 +672,6 @@ int main()
     savepoint.Close();
     status = savepoint.Open(kFileName, SavepointVersion{});
     assert(status == SavepointStatus::Existing);
-    savepoint.Backup(kBackupFileName);
     {
         SavepointVisitor inVisitor;
         Header header;

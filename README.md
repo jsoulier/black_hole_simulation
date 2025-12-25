@@ -10,8 +10,6 @@ A simple, fast, and reliable key-value database for games written in C++
 - Inherited and nested values
 - Polymorphic types
 - Arrays, vectors, sets, maps, etc
-- Backups
-- Under 2k lines of code (not including sqlite3)
 
 ### Examples
 
