@@ -527,6 +527,7 @@ public:
     bool IsOpen() const;
     void Close();
     void Save();
+    void Backup(const std::string_view& path);
     void Write(SavepointVisitor& visitor);
     void Write(SavepointVisitor& visitor, SavepointID& id, int level);
     void Write(SavepointVisitor& visitor, int x, int y, int level);

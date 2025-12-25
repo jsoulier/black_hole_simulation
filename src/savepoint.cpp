@@ -335,6 +335,35 @@ void Savepoint::Save()
     }
 }
 
+void Savepoint::Backup(const std::string_view& path)
+{
+    if (!IsOpen())
+    {
+        return;
+    }
+    sqlite3* handle = nullptr;
+    if (sqlite3_open(path.data(), &handle) != SQLITE_OK)
+    {
+        SavepointLog(std::format("Failed to create backup: {}, {}", path.data(), sqlite3_errmsg(handle)));
+        sqlite3_close(handle);
+        return;
+    }
+    sqlite3_backup* backup = sqlite3_backup_init(handle, "main", Handle, "main");
+    if (backup)
+    {
+        if (sqlite3_backup_step(backup, -1) != SQLITE_DONE)
+        {
+            SavepointLog(std::format("Failed to create backup: {}", sqlite3_errmsg(handle)));
+        }
+        sqlite3_backup_finish(backup);
+    }
+    else
+    {
+        SavepointLog(std::format("Failed to create backup: {}", sqlite3_errmsg(handle)));
+    }
+    sqlite3_close(handle);
+}
+
 void Savepoint::Write(SavepointVisitor& visitor)
 {
     if (!IsOpen())
