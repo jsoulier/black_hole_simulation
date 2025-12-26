@@ -187,16 +187,34 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
     public: \
 
 template<typename T>
-struct SavepointPointerImpl : std::is_pointer<T> {};
+struct SavepointRawPointerImpl : std::is_pointer<T> {};
 
 template<typename T>
-struct SavepointPointerImpl<std::shared_ptr<T>> : std::true_type {};
+concept SavepointRawPointer = SavepointRawPointerImpl<T>::value;
+
+template<typename T>
+struct SavepointUniquePointerImpl : std::false_type {};
 
 template<typename T, typename Deleter>
-struct SavepointPointerImpl<std::unique_ptr<T, Deleter>> : std::true_type {};
+struct SavepointUniquePointerImpl<std::unique_ptr<T, Deleter>> : std::true_type {};
 
 template<typename T>
-concept SavepointPointer = SavepointPointerImpl<T>::value;
+concept SavepointUniquePointer = SavepointUniquePointerImpl<T>::value;
+
+template<typename T>
+struct SavepointSharedPointerImpl : std::false_type {};
+
+template<typename T>
+struct SavepointSharedPointerImpl<std::shared_ptr<T>> : std::true_type {};
+
+template<typename T>
+concept SavepointSharedPointer = SavepointSharedPointerImpl<T>::value;
+
+template<typename T>
+concept SavepointStdPointer = SavepointUniquePointer<T> || SavepointSharedPointer<T>;
+
+template<typename T>
+concept SavepointPointer = SavepointRawPointer<T> || SavepointStdPointer<T>;
 
 template<typename T>
 concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { SavepointVisit(visitor, item) }; };
@@ -420,6 +438,42 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     First& first = const_cast<First&>(item.first);
     visitor(first);
     visitor(item.second);
+}
+
+template<SavepointStdPointer T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    using E = typename T::element_type;
+    if (visitor.IsReader())
+    {
+        if (!item)
+        {
+            if constexpr (SavepointUniquePointer<T>)
+            {
+                item = std::make_unique<E>();
+            }
+            else if constexpr (SavepointSharedPointer<T>)
+            {
+                item = std::make_shared<E>();
+            }
+            else
+            {
+                static_assert(false, "Unknown pointer");
+            }
+        }
+        visitor(*item);
+    }
+    else
+    {
+        if (item)
+        {
+            visitor(*item);
+        }
+        else
+        {
+            SavepointLog("Tried to write null pointer");
+        }
+    }
 }
 
 template<typename T>

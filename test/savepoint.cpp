@@ -554,6 +554,59 @@ struct Set
     }
 };
 
+struct UniquePtr
+{
+    std::unique_ptr<int> Data = std::make_unique<int>(1);
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const UniquePtr& other) const
+    {
+        return *Data == *(other.Data);
+    }
+};
+
+struct SharedPtr
+{
+    std::shared_ptr<int> Data = std::make_shared<int>(1);
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const SharedPtr& other) const
+    {
+        return *Data == *(other.Data);
+    }
+};
+
+struct SharedPtrVector
+{
+    std::vector<std::shared_ptr<int>> Data;
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        if (visitor.IsWriter())
+        {
+            Data.push_back(std::make_shared<int>(1));
+            Data.push_back(std::make_shared<int>(3));
+            Data.push_back(std::make_shared<int>(2));
+        }
+        visitor(Data);
+    }
+
+    bool operator==(const SharedPtrVector& other) const
+    {
+        return *Data[0] == *(other.Data[0]) &&
+            *Data[1] == *(other.Data[1]) &&
+            *Data[2] == *(other.Data[2]);
+    }
+};
+
 struct BaseEntity : public SavepointBase
 {
     SavepointID ID;
@@ -865,5 +918,8 @@ int main()
     Test<ArrayV3, ArrayV3>(kVersion2);
     Test<Map, Map>(kVersion1);
     Test<Set, Set>(kVersion1);
+    Test<UniquePtr, UniquePtr>(kVersion1);
+    Test<SharedPtr, SharedPtr>(kVersion1);
+    Test<SharedPtrVector, SharedPtrVector>(kVersion1);
     return 0;
 }
