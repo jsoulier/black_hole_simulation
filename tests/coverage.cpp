@@ -621,8 +621,7 @@ struct BaseEntity : public SavepointBase
 
     bool operator==(const BaseEntity& other) const
     {
-        return ID == other.ID &&
-            X == other.X &&
+        return X == other.X &&
             Y == other.Y;
     }
 };
@@ -857,25 +856,25 @@ int main()
             {
                 DerivedItem* outItem = dynamic_cast<DerivedItem*>(base);
                 assert(outItem);
-                *outItem == *inItem;
+                assert(*outItem == *inItem);
             }
             else if (outID == inZombie->ID)
             {
                 DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base);
                 assert(outZombie);
-                *outZombie == *inZombie;
+                assert(*outZombie == *inZombie);
             }
             else if (outID == inSkeleton->ID)
             {
                 DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base);
                 assert(outSkeleton);
-                *outSkeleton == *inSkeleton;
+                assert(*outSkeleton == *inSkeleton);
             }
             else if (outID == inSpider->ID)
             {
                 DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base);
                 assert(outSpider);
-                *outSpider == *inSpider;
+                assert(*outSpider == *inSpider);
             }
             else
             {
