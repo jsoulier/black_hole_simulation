@@ -49,15 +49,11 @@ int main()
 
     // Writing the entity
     Entity inEntity{1, 2};
-    SavepointVisitor inVisitor;
-    inVisitor(inEntity);
-    savepoint.Write(inVisitor, inEntity.ID, 0);
+    savepoint.Write(inEntity, inEntity.ID, 0);
 
     // Reading the entity
-    savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID id)
+    savepoint.Read<Entity>([&](Entity& outEntity, SavepointID id)
     {
-        Entity outEntity;
-        outVisitor(outEntity);
         assert(outEntity == inEntity);
     }, 0);
 

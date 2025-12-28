@@ -53,15 +53,11 @@ int main()
 
     // Writing the V1 entity
     EntityV1 inEntity{1, 2};
-    SavepointVisitor inVisitor;
-    inVisitor(inEntity);
-    savepoint.Write(inVisitor, inEntity.ID, 0);
+    savepoint.Write(inEntity, inEntity.ID, 0);
 
     // Reading the V1 entity as a V2 entity
-    savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID id)
+    savepoint.Read<EntityV2>([&](EntityV2& outEntity, SavepointID id)
     {
-        EntityV2 outEntity;
-        outVisitor(outEntity);
         assert(outEntity == inEntity); // Check old values
         assert(outEntity.Z == 3); // Check default value
         assert(outEntity.W == 5); // Check default value

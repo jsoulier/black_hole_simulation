@@ -115,15 +115,11 @@ int main()
     inEntity.Inventory->Items = {{1, 50}, {2, 50}, {5, 50}};
     inEntity.Effects = {EffectStrength, EffectSlowness};
     inEntity.Position = {100, 200};
-    SavepointVisitor inVisitor;
-    inVisitor(inEntity);
-    savepoint.Write(inVisitor, inEntity.ID, 0);
+    savepoint.Write(inEntity, inEntity.ID, 0);
 
     // Reading the entity
-    savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID id)
+    savepoint.Read<Entity>([&](Entity& outEntity, SavepointID id)
     {
-        Entity outEntity;
-        outVisitor(outEntity);
         assert(outEntity == inEntity);
     }, 0);
 

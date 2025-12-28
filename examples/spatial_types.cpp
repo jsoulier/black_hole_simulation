@@ -41,23 +41,18 @@ int main()
     std::uniform_int_distribution<std::mt19937::result_type> distribution(0, 2);
 
     // Writing tiles
-    SavepointVisitor inVisitor;
     std::array<std::array<Tile, 32>, 32> inTiles;
     for (int x = 0; x < 32; x++)
     for (int y = 0; y < 32; y++)
     {
         inTiles[x][y].Type = TileType(distribution(generator));
-        inVisitor.Reset();
-        inVisitor(inTiles[x][y]);
-        savepoint.Write(inVisitor, x, y, 0);
+        savepoint.Write(inTiles[x][y], x, y, 0);
     }
 
     // Reading tiles
     int reads = 0;
-    savepoint.Read([&](SavepointVisitor& outVisitor, int x, int y)
+    savepoint.Read<Tile>([&](Tile& outTile, int x, int y)
     {
-        Tile outTile;
-        outVisitor(outTile);
         assert(outTile == inTiles[x][y]);
         reads++;
     }, 0);

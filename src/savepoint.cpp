@@ -86,7 +86,8 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
 }
 
 Savepoint::Savepoint()
-    : Version{}
+    : ApplicationVersion{}
+    , InternalVersion{kVersion}
     , Visitor{}
     , Handle{nullptr}
     , WriteStatusStmt{nullptr}
@@ -105,6 +106,15 @@ Savepoint::Savepoint()
     , ClearTiles2DStmt{nullptr}
     , ClearTiles3DStmt{nullptr}
 {
+}
+
+Savepoint::~Savepoint()
+{
+    if (!IsOpen())
+    {
+        return;
+    }
+    Close();
 }
 
 static constexpr const char* kSQL =
@@ -264,9 +274,6 @@ SavepointStatus Savepoint::Open(const std::string_view& path, SavepointVersion v
         SavepointLog(std::format("Failed to begin transaction: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
-    Version = version;
-    Visitor.SetApplicationVersion(Version);
-    Visitor.SetSavepointVersion(kVersion);
     SavepointStatus status;
     if (sqlite3_step(ReadStatusStmt) == SQLITE_ROW)
     {
@@ -277,6 +284,7 @@ SavepointStatus Savepoint::Open(const std::string_view& path, SavepointVersion v
         status = SavepointStatus::New;
     }
     sqlite3_reset(ReadStatusStmt);
+    ApplicationVersion = version;
     Handle = handle;
     return status;
 }
@@ -284,14 +292,6 @@ SavepointStatus Savepoint::Open(const std::string_view& path, SavepointVersion v
 bool Savepoint::IsOpen() const
 {
     return Handle != nullptr;
-}
-
-Savepoint::~Savepoint()
-{
-    if (IsOpen())
-    {
-        SavepointLog("Destroyed savepoint without closing");
-    }
 }
 
 void Savepoint::Close()
@@ -341,13 +341,11 @@ void Savepoint::Write(SavepointVisitor& visitor)
     {
         return;
     }
-    if (visitor.Empty())
+    if (visitor.IsEmpty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
-    visitor.SetApplicationVersion(Version);
-    visitor.SetSavepointVersion(kVersion);
     const void* data = visitor.Writer.data();
     size_t size = visitor.Writer.size();
     sqlite3_bind_blob(WriteStmt, 1, data, size, SQLITE_TRANSIENT);
@@ -364,13 +362,11 @@ void Savepoint::Write(SavepointVisitor& visitor, SavepointID& id, int level)
     {
         return;
     }
-    if (visitor.Empty())
+    if (visitor.IsEmpty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
-    visitor.SetApplicationVersion(Version);
-    visitor.SetSavepointVersion(kVersion);
     const void* data = visitor.Writer.data();
     size_t size = visitor.Writer.size();
     if (!id)
@@ -408,13 +404,11 @@ void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int level)
     {
         return;
     }
-    if (visitor.Empty())
+    if (visitor.IsEmpty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
-    visitor.SetApplicationVersion(Version);
-    visitor.SetSavepointVersion(kVersion);
     const void* data = visitor.Writer.data();
     size_t size = visitor.Writer.size();
     sqlite3_bind_int(WriteTile2DStmt, 1, x);
@@ -434,13 +428,11 @@ void Savepoint::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
     {
         return;
     }
-    if (visitor.Empty())
+    if (visitor.IsEmpty())
     {
         SavepointLog("Tried to write an empty visitor");
         return;
     }
-    visitor.SetApplicationVersion(Version);
-    visitor.SetSavepointVersion(kVersion);
     const void* data = visitor.Writer.data();
     size_t size = visitor.Writer.size();
     sqlite3_bind_int(WriteTile3DStmt, 1, x);
@@ -473,7 +465,7 @@ bool Savepoint::SetBase(SavepointBase* base)
         SavepointLog(std::format("Failed to find base string: {}", string));
         return false;
     }
-    Visitor.Reset();
+    Visitor.Reset(ApplicationVersion, InternalVersion);
     Visitor(string);
     Visitor(*base);
     return true;
@@ -511,7 +503,7 @@ void Savepoint::Write(SavepointBase* base, int x, int y, int z, int level)
     }
 }
 
-void Savepoint::Read(const SavepointReadFunction& function)
+void Savepoint::Read(const ReadFunction& function)
 {
     if (!IsOpen())
     {
@@ -531,7 +523,7 @@ void Savepoint::Read(const SavepointReadFunction& function)
     sqlite3_reset(ReadStmt);
 }
 
-void Savepoint::Read(const SavepointReadEntityFunction& function, int level)
+void Savepoint::Read(const ReadEntityFunction& function, int level)
 {
     if (!IsOpen())
     {
@@ -550,7 +542,7 @@ void Savepoint::Read(const SavepointReadEntityFunction& function, int level)
     sqlite3_reset(ReadEntitiesStmt);
 }
 
-void Savepoint::Read(const SavepointReadTile2DFunction& function, int level)
+void Savepoint::Read(const ReadTile2DFunction& function, int level)
 {
     if (!IsOpen())
     {
@@ -569,7 +561,7 @@ void Savepoint::Read(const SavepointReadTile2DFunction& function, int level)
     sqlite3_reset(ReadTiles2DStmt);
 }
 
-void Savepoint::Read(const SavepointReadTile3DFunction& function, int level)
+void Savepoint::Read(const ReadTile3DFunction& function, int level)
 {
     if (!IsOpen())
     {
@@ -596,7 +588,7 @@ SavepointBase* Savepoint::GetBase(SavepointVisitor& visitor)
     auto it = GetDerivedFunctions().find(string);
     if (it == GetDerivedFunctions().end())
     {
-        SavepointLog(std::format("Missing base function: {}, {} -> {}", string, visitor.Version.GetString(), Version.GetString()));
+        SavepointLog(std::format("Missing base function: {}", string, visitor.Version.GetString()));
         return nullptr;
     }
     SavepointBase* base = it->second();

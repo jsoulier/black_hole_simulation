@@ -553,7 +553,7 @@ struct SharedPtrVector
 
     void Visit(SavepointVisitor& visitor)
     {
-        if (visitor.IsWriter())
+        if (visitor.IsWriting())
         {
             Data.push_back(std::make_shared<int>(1));
             Data.push_back(std::make_shared<int>(3));
@@ -654,17 +654,13 @@ static void Test(SavepointVersion inVersion)
     Savepoint savepoint;
     SavepointStatus status = savepoint.Open(kFileName, inVersion);
     assert(status != SavepointStatus::Failed);
-    SavepointVisitor inVisitor;
     SavepointID inID;
-    std::shared_ptr<InT> inEntity = std::make_shared<InT>();
-    inVisitor(*inEntity);
-    savepoint.Write(inVisitor, inID, 0);
+    InT inEntity;
+    savepoint.Write(inEntity, inID, 0);
     int i = 0;
-    savepoint.Read([&](SavepointVisitor& outVisitor, SavepointID outID)
+    savepoint.Read<OutT>([&](OutT& outEntity, SavepointID outID)
     {
-        std::shared_ptr<OutT> outEntity = std::make_shared<OutT>();
-        outVisitor(*outEntity);
-        assert(*outEntity == *inEntity);
+        assert(outEntity == inEntity);
         assert(outID == inID);
         i++;
     }, 0);
@@ -688,16 +684,13 @@ int main()
     status = savepoint.Open(kFileName, SavepointVersion{});
     assert(status == SavepointStatus::Existing);
     {
-        SavepointVisitor inVisitor;
         Header header;
         header.Major = 1;
         header.Minor = 2;
         header.Patch = 3;
-        inVisitor(header);
-        savepoint.Write(inVisitor);
-        savepoint.Read([&](SavepointVisitor& outVisitor)
+        savepoint.Write(header);
+        savepoint.Read<Header>([&](Header& header)
         {
-            outVisitor(header);
             assert(header.Major = 1);
             assert(header.Minor = 2);
             assert(header.Patch = 3);
@@ -705,31 +698,24 @@ int main()
         header.Major = 4;
         header.Minor = 5;
         header.Patch = 6;
-        inVisitor(header);
-        savepoint.Write(inVisitor);
-        savepoint.Read([&](SavepointVisitor& outVisitor)
+        savepoint.Write(header);
+        savepoint.Read<Header>([&](Header& header)
         {
-            outVisitor(header);
             assert(header.Major = 4);
             assert(header.Minor = 5);
             assert(header.Patch = 6);
         });
     }
     {
-        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 256; inX++)
         for (int inY = 0; inY < 256; inY++)
         {
-            inVisitor.Reset();
             Tile2D inTile2D{inX, inY};
-            inVisitor(inTile2D);
-            savepoint.Write(inVisitor, inX, inY, 0);
+            savepoint.Write(inTile2D, inX, inY, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY)
+        savepoint.Read<Tile2D>([&](Tile2D& outTile2D, int outX, int outY)
         {
-            Tile2D outTile2D;
-            outVisitor(outTile2D);
             assert(outTile2D.X == outX);
             assert(outTile2D.Y == outY);
             i++;
@@ -737,21 +723,16 @@ int main()
         assert(i == 256 * 256);
     }
     {
-        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         for (int inZ = 0; inZ < 32; inZ++)
         {
-            inVisitor.Reset();
             Tile3D inTile3D{inX, inY, inZ};
-            inVisitor(inTile3D);
-            savepoint.Write(inVisitor, inX, inY, inZ, 0);
+            savepoint.Write(inTile3D, inX, inY, inZ, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY, int outZ)
+        savepoint.Read<Tile3D>([&](Tile3D& outTile3D, int outX, int outY, int outZ)
         {
-            Tile3D outTile3D;
-            outVisitor(outTile3D);
             assert(outTile3D.X == outX);
             assert(outTile3D.Y == outY);
             assert(outTile3D.Z == outZ);
@@ -761,20 +742,15 @@ int main()
     }
     savepoint.Clear();
     {
-        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         {
-            inVisitor.Reset();
             Tile2D inTile2D{5, 5};
-            inVisitor(inTile2D);
-            savepoint.Write(inVisitor, inX, inY, 0);
+            savepoint.Write(inTile2D, inX, inY, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY)
+        savepoint.Read<Tile2D>([&](Tile2D& outTile2D, int outX, int outY)
         {
-            Tile2D outTile2D;
-            outVisitor(outTile2D);
             assert(outTile2D.X == 5);
             assert(outTile2D.Y == 5);
             i++;
@@ -782,20 +758,15 @@ int main()
         assert(i == 32 * 32);
     }
     {
-        SavepointVisitor inVisitor;
         for (int inX = 0; inX < 32; inX++)
         for (int inY = 0; inY < 32; inY++)
         {
-            inVisitor.Reset();
             Tile2D inTile2D{10, 10};
-            inVisitor(inTile2D);
-            savepoint.Write(inVisitor, inX, inY, 0);
+            savepoint.Write(inTile2D, inX, inY, 0);
         }
         int i = 0;
-        savepoint.Read([&](SavepointVisitor& outVisitor, int outX, int outY)
+        savepoint.Read<Tile2D>([&](Tile2D& outTile2D, int outX, int outY)
         {
-            Tile2D outTile2D;
-            outVisitor(outTile2D);
             assert(outTile2D.X == 10);
             assert(outTile2D.Y == 10);
             i++;

@@ -162,7 +162,7 @@ private:
     virtual std::string_view SavepointDerivedGetString() const = 0;
 };
 
-using SavepointDerivedFunction = std::function<SavepointBase*()>;
+using SavepointDerivedFunction = SavepointBase*(*)();
 
 void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction& function);
 
@@ -230,25 +230,13 @@ class SavepointVisitor
 private:
     friend class Savepoint;
 
-    static constexpr size_t kHeaderSize = sizeof(SavepointVersion) * 2;
-
-    SavepointVisitor(const SavepointVisitor& other) = delete;
-    SavepointVisitor& operator=(const SavepointVisitor& other) = delete;
+    static constexpr size_t kHeader = sizeof(SavepointVersion) * 2;
 
 public:
-    SavepointVisitor()
-        : Version{}
-        , Writer{}
-        , Reader{}
-        , Offset{0}
-    {
-        Reset();
-    }
-
     template<SavepointPrimitive T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (IsReader())
+        if (IsReading())
         {
             // Required for write-only containers (e.g. views)
             if constexpr (std::is_const_v<T>)
@@ -266,7 +254,7 @@ public:
                     }
                     return;
                 }
-                if (Offset + sizeof(T) > Reader.size())
+                if (sizeof(T) > GetSize())
                 {
                     SavepointLog(std::format("Tried to read past visitor: {} -> {}", Version.GetString(), version.GetString()));
                     if constexpr (sizeof...(Args) > 0)
@@ -289,7 +277,7 @@ public:
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (IsReader())
+        if (IsReading())
         {
             if (Version < version)
             {
@@ -306,7 +294,7 @@ public:
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (IsReader())
+        if (IsReading())
         {
             if (Version < version)
             {
@@ -323,7 +311,7 @@ public:
     template<SavepointPrimitive T>
     void operator()(T* data, size_t maxSize, size_t size)
     {
-        if (IsReader())
+        if (IsReading())
         {
             // Required for write-only containers (e.g. views)
             if constexpr (std::is_const_v<T>)
@@ -338,7 +326,7 @@ public:
                     SavepointLog(std::format("Truncating buffer: {}, {} -> {}", Version.GetString(), size, maxSize));
                     size = maxSize;
                 }
-                if (Offset + size > Reader.size())
+                if (size > GetSize())
                 {
                     SavepointLog(std::format("Tried to read past visitor: {}", Version.GetString()));
                     return;
@@ -360,59 +348,65 @@ public:
     }
 
     template<typename T>
-    void Skip()
+    void Skip(size_t size = 1)
     {
-        if (IsWriter())
+        if (IsWriting())
         {
             SavepointLog("Tried to skip on a writer");
             return;
         }
-        if (Offset + sizeof(T) > Reader.size())
+        if (sizeof(T) * size > GetSize())
         {
+            // We don't return since we can use it to completely skip bad visitors
             SavepointLog(std::format("Tried to skip past visitor: {}", Version.GetString()));
-            return;
         }
-        Offset += sizeof(T);
+        Offset += sizeof(T) * size;
     }
 
-    bool IsReader() const
+    bool IsReading() const
     {
         return !Reader.empty();
     }
 
-    bool IsWriter() const
+    bool IsWriting() const
     {
-        return !IsReader();
+        return !IsReading();
     }
 
-    void Reset()
+    bool IsEmpty() const
     {
-        Reader = {};
-        Writer.resize(kHeaderSize);
+        return Writer.size() == kHeader;
+    }
+
+    size_t GetSize() const
+    {
+        if (IsReading())
+        {
+            return Reader.size() - std::min(Offset, Reader.size());
+        }
+        else
+        {
+            return Writer.size();
+        }
     }
 
 private:
-    bool Empty() const
-    {
-        return Writer.size() == kHeaderSize;
-    }
-
-    void SetApplicationVersion(SavepointVersion version)
-    {
-        std::memcpy(Writer.data(), &version, sizeof(SavepointVersion));
-    }
-
-    void SetSavepointVersion(SavepointVersion version)
-    {
-        std::memcpy(Writer.data() + sizeof(SavepointVersion), &version, sizeof(SavepointVersion));
-    }
-
     void Reset(void* data, size_t size)
     {
         Reader = {static_cast<uint8_t*>(data), size};
         Offset = 0;
         operator()(Version);
-        Offset += sizeof(SavepointVersion);
+        // Reserved for future use
+        Skip<SavepointVersion>();
+    }
+
+    void Reset(SavepointVersion application, SavepointVersion savepoint)
+    {
+        Reader = {};
+        Writer.resize(kHeader);
+        std::memcpy(Writer.data(), &application, sizeof(SavepointVersion));
+        // Reserved for future use
+        std::memcpy(Writer.data() + sizeof(SavepointVersion), &savepoint, sizeof(SavepointVersion));
     }
 
     SavepointVersion Version;
@@ -444,7 +438,7 @@ template<SavepointStdPointer T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
     using E = typename T::element_type;
-    if (visitor.IsReader())
+    if (visitor.IsReading())
     {
         if (!item)
         {
@@ -498,15 +492,21 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     size_t size = item.size();
     if constexpr (SavepointDynamicRange<T>)
     {
-        if (visitor.IsReader() && size)
+        if (visitor.IsReading() && size)
         {
             SavepointLog("Tried to read into non-empty range");
             item.clear();
         }
     }
     visitor(size);
-    if (visitor.IsReader())
+    if (visitor.IsReading())
     {
+        if (size > visitor.GetSize())
+        {
+            SavepointLog("Tried to read past visitor");
+            visitor.Skip<uint8_t>(size);
+            return;
+        }
         if constexpr (SavepointDynamicRange<T>)
         {
             auto inserter = std::inserter(item, std::ranges::end(item));
@@ -551,14 +551,17 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     }
 }
 
-using SavepointReadFunction = std::function<void(SavepointVisitor& visitor)>;
-using SavepointReadEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
-using SavepointReadTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
-using SavepointReadTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
+template<typename T> using SavepointReadFunction = std::function<void(T& item)>;
+template<typename T> using SavepointReadEntityFunction = std::function<void(T& item, SavepointID id)>;
+template<typename T> using SavepointReadTile2DFunction = std::function<void(T& item, int x, int y)>;
+template<typename T> using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, int z)>;
 using SavepointReadBaseFunction = std::function<void(SavepointBase* base)>;
 using SavepointReadBaseEntityFunction = std::function<void(SavepointBase* base, SavepointID id)>;
 using SavepointReadBaseTile2DFunction = std::function<void(SavepointBase* base, int x, int y)>;
 using SavepointReadBaseTile3DFunction = std::function<void(SavepointBase* base, int x, int y, int z)>;
+
+template<typename T>
+concept SavepointBasicReadWrite = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, std::decay_t<T>>;
 
 enum class SavepointStatus
 {
@@ -580,18 +583,87 @@ public:
     bool IsOpen() const;
     void Close();
     void Save();
-    void Write(SavepointVisitor& visitor);
-    void Write(SavepointVisitor& visitor, SavepointID& id, int level);
-    void Write(SavepointVisitor& visitor, int x, int y, int level);
-    void Write(SavepointVisitor& visitor, int x, int y, int z, int level);
+
+    template<SavepointBasicReadWrite T>
+    void Write(T& item)
+    {
+        Visitor.Reset(ApplicationVersion, InternalVersion);
+        Visitor(item);
+        Write(Visitor);
+    }
+
+    template<SavepointBasicReadWrite T>
+    void Write(T& item, SavepointID& id, int level)
+    {
+        Visitor.Reset(ApplicationVersion, InternalVersion);
+        Visitor(item);
+        Write(Visitor, id, level);
+    }
+
+    template<SavepointBasicReadWrite T>
+    void Write(T& item, int x, int y, int level)
+    {
+        Visitor.Reset(ApplicationVersion, InternalVersion);
+        Visitor(item);
+        Write(Visitor, x, y, level);
+    }
+
+    template<SavepointBasicReadWrite T>
+    void Write(T& item, int x, int y, int z, int level)
+    {
+        Visitor.Reset(ApplicationVersion, InternalVersion);
+        Visitor(item);
+        Write(Visitor, x, y, z, level);
+    }
+
+    template<SavepointBasicReadWrite T>
+    void Read(const SavepointReadFunction<T>& function)
+    {
+        Read([&function](SavepointVisitor& visitor)
+        {
+            T item;
+            visitor(item);
+            function(item);
+        });
+    }
+
+    template<SavepointBasicReadWrite T>
+    void Read(const SavepointReadEntityFunction<T>& function, int level)
+    {
+        Read([&function](SavepointVisitor& visitor, SavepointID id)
+        {
+            T item;
+            visitor(item);
+            function(item, id);
+        }, level);
+    }
+
+    template<SavepointBasicReadWrite T>
+    void Read(const SavepointReadTile2DFunction<T>& function, int level)
+    {
+        Read([&function](SavepointVisitor& visitor, int x, int y)
+        {
+            T item;
+            visitor(item);
+            function(item, x, y);
+        }, level);
+    }
+
+    template<SavepointBasicReadWrite T>
+    void Read(const SavepointReadTile3DFunction<T>& function, int level)
+    {
+        Read([&function](SavepointVisitor& visitor, int x, int y, int z)
+        {
+            T item;
+            visitor(item);
+            function(item, x, y, z);
+        }, level);
+    }
+
     void Write(SavepointBase* base);
     void Write(SavepointBase* base, SavepointID& id, int level);
     void Write(SavepointBase* base, int x, int y, int level);
     void Write(SavepointBase* base, int x, int y, int z, int level);
-    void Read(const SavepointReadFunction& function);
-    void Read(const SavepointReadEntityFunction& function, int level);
-    void Read(const SavepointReadTile2DFunction& function, int level);
-    void Read(const SavepointReadTile3DFunction& function, int level);
     void Read(const SavepointReadBaseFunction& function);
     void Read(const SavepointReadBaseEntityFunction& function, int level);
     void Read(const SavepointReadBaseTile2DFunction& function, int level);
@@ -600,12 +672,26 @@ public:
     void Clear();
 
 private:
+    using ReadFunction = std::function<void(SavepointVisitor& visitor)>;
+    using ReadEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
+    using ReadTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
+    using ReadTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
+
     bool SetBase(SavepointBase* base);
     SavepointBase* GetBase(SavepointVisitor& visitor);
+    void Write(SavepointVisitor& visitor);
+    void Write(SavepointVisitor& visitor, SavepointID& id, int level);
+    void Write(SavepointVisitor& visitor, int x, int y, int level);
+    void Write(SavepointVisitor& visitor, int x, int y, int z, int level);
+    void Read(const ReadFunction& function);
+    void Read(const ReadEntityFunction& function, int level);
+    void Read(const ReadTile2DFunction& function, int level);
+    void Read(const ReadTile3DFunction& function, int level);
 
     typedef struct sqlite3 sqlite;
     typedef struct sqlite3_stmt sqlite_stmt;
-    SavepointVersion Version;
+    SavepointVersion ApplicationVersion;
+    SavepointVersion InternalVersion;
     SavepointVisitor Visitor;
     sqlite3* Handle;
     sqlite3_stmt* WriteStatusStmt;
