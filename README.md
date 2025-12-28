@@ -7,10 +7,10 @@ A simple, fast, and reliable key-value database for games written in C++
 - Automatic transactions
 - Lazy upgrading
 - UUID and spatial keys
-- Inherited and nested values
+- Inherited and nested fields
 - Polymorphic types
-- Arrays, vectors, sets, maps, etc
+- Arrays, vectors, sets, maps, pointers, etc
 
 ### Examples
 
-You can find examples [here](test/savepoint.cpp)
+See [here](examples)

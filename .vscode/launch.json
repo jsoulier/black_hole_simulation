@@ -2,10 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "win32",
+            "name": "savepoint_coverage_test (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_test.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_coverage_test.exe",
+            "cwd": "${workspaceFolder}/build/bin",
+            "preLaunchTask": "CMake: build"
+        },
+        {
+            "name": "savepoint_polymorphic_types_example (win32)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/savepoint_polymorphic_types_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },

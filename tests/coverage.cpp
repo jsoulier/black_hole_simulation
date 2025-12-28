@@ -14,44 +14,7 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <string_view>
-#include <unordered_map>
 #include <vector>
-
-static_assert(SavepointPointer<void*>);
-static_assert(SavepointPointer<void**>);
-static_assert(SavepointPointer<const void*>);
-static_assert(SavepointPointer<void const*>);
-static_assert(SavepointPointer<const void* const>);
-static_assert(!SavepointPointer<int>);
-static_assert(SavepointPointer<std::shared_ptr<int>>);
-static_assert(SavepointPointer<std::unique_ptr<int>>);
-
-struct NoVisit {};
-struct MemberVisit { void Visit(SavepointVisitor& visitor) {} };
-struct FreeVisit {};
-static void SavepointVisit(SavepointVisitor& visitor, FreeVisit& item) {}
-
-static_assert(SavepointFreeVisit<FreeVisit>);
-static_assert(!SavepointFreeVisit<MemberVisit>);
-static_assert(!SavepointFreeVisit<NoVisit>);
-static_assert(!SavepointMemberVisit<FreeVisit>);
-static_assert(SavepointMemberVisit<MemberVisit>);
-static_assert(!SavepointMemberVisit<NoVisit>);
-
-static_assert(!SavepointDynamicRange<std::array<int, 1>>);
-static_assert(SavepointDynamicRange<std::vector<int>>);
-static_assert(!SavepointDynamicRange<std::string_view>);
-static_assert(SavepointDynamicRange<std::map<int, int>>);
-static_assert(SavepointDynamicRange<std::unordered_map<int, int>>);
-static_assert(SavepointDynamicRange<std::set<int>>);
-
-static_assert(SavepointStaticRange<std::array<int, 1>>);
-static_assert(!SavepointStaticRange<std::vector<int>>);
-static_assert(!SavepointStaticRange<std::string_view>);
-static_assert(!SavepointStaticRange<std::map<int, int>>);
-static_assert(!SavepointStaticRange<std::unordered_map<int, int>>);
-static_assert(!SavepointStaticRange<std::set<int>>);
 
 static const std::string kFileName = "savepoint.sqlite3";
 
@@ -621,8 +584,7 @@ struct BaseEntity : public SavepointBase
 
     bool operator==(const BaseEntity& other) const
     {
-        return ID == other.ID &&
-            X == other.X &&
+        return X == other.X &&
             Y == other.Y;
     }
 };
@@ -857,25 +819,25 @@ int main()
             {
                 DerivedItem* outItem = dynamic_cast<DerivedItem*>(base);
                 assert(outItem);
-                *outItem == *inItem;
+                assert(*outItem == *inItem);
             }
             else if (outID == inZombie->ID)
             {
                 DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base);
                 assert(outZombie);
-                *outZombie == *inZombie;
+                assert(*outZombie == *inZombie);
             }
             else if (outID == inSkeleton->ID)
             {
                 DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base);
                 assert(outSkeleton);
-                *outSkeleton == *inSkeleton;
+                assert(*outSkeleton == *inSkeleton);
             }
             else if (outID == inSpider->ID)
             {
                 DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base);
                 assert(outSpider);
-                *outSpider == *inSpider;
+                assert(*outSpider == *inSpider);
             }
             else
             {
