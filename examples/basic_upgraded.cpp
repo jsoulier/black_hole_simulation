@@ -62,11 +62,9 @@ int main()
     {
         EntityV2 outEntity;
         outVisitor(outEntity);
-        outEntity.ID = id;
-        assert(outEntity == inEntity); // Check preserved old values
-        assert(outEntity.Z == 3); // Check default values
-        assert(outEntity.W == 5); // Check default values
-        assert(id == inEntity.ID);
+        assert(outEntity == inEntity); // Check old values
+        assert(outEntity.Z == 3); // Check default value
+        assert(outEntity.W == 5); // Check default value
     }, 0);
 
     savepoint.Close();

@@ -58,9 +58,7 @@ int main()
     {
         Entity outEntity;
         outVisitor(outEntity);
-        outEntity.ID = id;
         assert(outEntity == inEntity);
-        assert(id == inEntity.ID);
     }, 0);
 
     savepoint.Close();
