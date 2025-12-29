@@ -39,10 +39,17 @@
 #include <functional>
 #include <string_view>
 
+// Read signatures for basic types
 template<typename T> using SavepointReadFunction = std::function<void(T& item)>;
 template<typename T> using SavepointReadEntityFunction = std::function<void(T& item, SavepointID id)>;
 template<typename T> using SavepointReadTile2DFunction = std::function<void(T& item, int x, int y)>;
 template<typename T> using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, int z)>;
+
+// Read signatures for polymorphics
+using SavepointReadBaseFunction = std::function<void(SavepointBase* base)>;
+using SavepointReadBaseEntityFunction = std::function<void(SavepointBase* base, SavepointID id)>;
+using SavepointReadBaseTile2DFunction = std::function<void(SavepointBase* base, int x, int y)>;
+using SavepointReadBaseTile3DFunction = std::function<void(SavepointBase* base, int x, int y, int z)>;
 
 class Savepoint
 {
@@ -169,6 +176,9 @@ public:
     void Clear();
 
 private:
+    bool WriteBase(SavepointBase* base);
+    SavepointBase* ReadBase(SavepointVisitor& visitor);
+
     SavepointVersion Version;
     SavepointVisitor Visitor;
     std::unique_ptr<ISavepointDriver> Driver;

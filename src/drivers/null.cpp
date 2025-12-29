@@ -53,22 +53,6 @@ void SavepointDriverNull::Write(SavepointVisitor& visitor, int x, int y, int z, 
 {
 }
 
-void SavepointDriverNull::Write(SavepointBase* base)
-{
-}
-
-void SavepointDriverNull::Write(SavepointBase* base, SavepointID& id, int level)
-{
-}
-
-void SavepointDriverNull::Write(SavepointBase* base, int x, int y, int level)
-{
-}
-
-void SavepointDriverNull::Write(SavepointBase* base, int x, int y, int z, int level)
-{
-}
-
 void SavepointDriverNull::Read(const SavepointReadVisitorFunction& function)
 {
 }
@@ -82,22 +66,6 @@ void SavepointDriverNull::Read(const SavepointReadVisitorTile2DFunction& functio
 }
 
 void SavepointDriverNull::Read(const SavepointReadVisitorTile3DFunction& function, int level)
-{
-}
-
-void SavepointDriverNull::Read(const SavepointReadBaseFunction& function)
-{
-}
-
-void SavepointDriverNull::Read(const SavepointReadBaseEntityFunction& function, int level)
-{
-}
-
-void SavepointDriverNull::Read(const SavepointReadBaseTile2DFunction& function, int level)
-{
-}
-
-void SavepointDriverNull::Read(const SavepointReadBaseTile3DFunction& function, int level)
 {
 }
 

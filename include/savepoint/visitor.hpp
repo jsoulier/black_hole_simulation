@@ -84,7 +84,6 @@
 class SavepointVisitor
 {
 private:
-    // Header consists of savepoint and application version
     static constexpr size_t kHeader = sizeof(SavepointVersion) * 2;
 
 public:

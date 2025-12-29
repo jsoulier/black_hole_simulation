@@ -668,7 +668,7 @@ static void TestReadWrite(SavepointDriver driver, SavepointVersion inVersion)
     savepoint.Close();
 }
 
-static void TestDriver(SavepointDriver driver)
+static void Test(SavepointDriver driver)
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
@@ -858,6 +858,6 @@ static void TestDriver(SavepointDriver driver)
 
 int main()
 {
-    TestDriver(SavepointDriver::Sqlite3);
+    Test(SavepointDriver::Sqlite3);
     return 0;
 }

@@ -43,7 +43,7 @@ public:
 
 using SavepointDerivedFunction = SavepointBase*(*)();
 
-// Register a derived factory. Should use SAVEPOINT_DERIVED instead
+// Register a derived factory. Use SAVEPOINT_DERIVED instead
 void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
 
 // Create an object from the registered derived factories

@@ -98,7 +98,7 @@ static constexpr const char* kClearTiles3DSQL =
 
 SavepointDriverSqlite3::SavepointDriverSqlite3()
     : ISavepointDriver()
-    , ApplicationVersion{}
+    , Version{}
     , Visitor{}
     , Handle{nullptr}
     , WriteStatusStmt{nullptr}
@@ -222,7 +222,7 @@ SavepointStatus SavepointDriverSqlite3::Open(const std::string_view& path, Savep
         status = SavepointStatus::New;
     }
     sqlite3_reset(ReadStatusStmt);
-    ApplicationVersion = version;
+    Version = version;
     Handle = handle;
     return status;
 }
@@ -331,38 +331,6 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, int x, int y, int 
     sqlite3_reset(WriteTile3DStmt);
 }
 
-void SavepointDriverSqlite3::Write(SavepointBase* base)
-{
-    if (SetBase(base))
-    {
-        Write(Visitor);
-    }
-}
-
-void SavepointDriverSqlite3::Write(SavepointBase* base, SavepointID& id, int level)
-{
-    if (SetBase(base))
-    {
-        Write(Visitor, id, level);
-    }
-}
-
-void SavepointDriverSqlite3::Write(SavepointBase* base, int x, int y, int level)
-{
-    if (SetBase(base))
-    {
-        Write(Visitor, x, y, level);
-    }
-}
-
-void SavepointDriverSqlite3::Write(SavepointBase* base, int x, int y, int z, int level)
-{
-    if (SetBase(base))
-    {
-        Write(Visitor, x, y, z, level);
-    }
-}
-
 void SavepointDriverSqlite3::Read(const SavepointReadVisitorFunction& function)
 {
     if (sqlite3_step(ReadStmt) == SQLITE_ROW)
@@ -423,54 +391,6 @@ void SavepointDriverSqlite3::Read(const SavepointReadVisitorTile3DFunction& func
         function(Visitor, x, y, z);
     }
     sqlite3_reset(ReadTiles3DStmt);
-}
-
-void SavepointDriverSqlite3::Read(const SavepointReadBaseFunction& function)
-{
-    Read([this, &function](SavepointVisitor& visitor)
-    {
-        SavepointBase* base = GetBase(visitor);
-        if (base)
-        {
-            function(base);
-        }
-    });
-}
-
-void SavepointDriverSqlite3::Read(const SavepointReadBaseEntityFunction& function, int level)
-{
-    Read([this, &function](SavepointVisitor& visitor, SavepointID id)
-    {
-        SavepointBase* base = GetBase(visitor);
-        if (base)
-        {
-            function(base, id);
-        }
-    }, level);
-}
-
-void SavepointDriverSqlite3::Read(const SavepointReadBaseTile2DFunction& function, int level)
-{
-    Read([this, &function](SavepointVisitor& visitor, int x, int y)
-    {
-        SavepointBase* base = GetBase(visitor);
-        if (base)
-        {
-            function(base, x, y);
-        }
-    }, level);
-}
-
-void SavepointDriverSqlite3::Read(const SavepointReadBaseTile3DFunction& function, int level)
-{
-    Read([this, &function](SavepointVisitor& visitor, int x, int y, int z)
-    {
-        SavepointBase* base = GetBase(visitor);
-        if (base)
-        {
-            function(base, x, y, z);
-        }
-    }, level);
 }
 
 void SavepointDriverSqlite3::Delete(const SavepointID id)
@@ -541,32 +461,4 @@ void SavepointDriverSqlite3::Clear()
         SavepointLog(std::format("Failed to clear tiles 3d: {}", sqlite3_errmsg(Handle)));
     }
     sqlite3_reset(ClearTiles3DStmt);
-}
-
-bool SavepointDriverSqlite3::SetBase(SavepointBase* base)
-{
-    if (!base)
-    {
-        SavepointLog("Tried to write null base");
-        return false;
-    }
-    std::string_view string = base->SavepointDerivedGetString();
-    Visitor.Reset(ApplicationVersion, kSavepointVersion);
-    Visitor(string);
-    Visitor(*base);
-    return true;
-}
-
-SavepointBase* SavepointDriverSqlite3::GetBase(SavepointVisitor& visitor)
-{
-    std::string string;
-    visitor(string);
-    SavepointBase* base = SavepointCreateDerived(string);
-    if (!base)
-    {
-        SavepointLog(std::format("Failed to allocate base: {}", string));
-        return nullptr;
-    }
-    visitor(*base);
-    return base;
 }

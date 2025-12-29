@@ -58,12 +58,6 @@ using SavepointReadVisitorEntityFunction = std::function<void(SavepointVisitor& 
 using SavepointReadVisitorTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 using SavepointReadVisitorTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
 
-// Read signatures for polymorphics
-using SavepointReadBaseFunction = std::function<void(SavepointBase* base)>;
-using SavepointReadBaseEntityFunction = std::function<void(SavepointBase* base, SavepointID id)>;
-using SavepointReadBaseTile2DFunction = std::function<void(SavepointBase* base, int x, int y)>;
-using SavepointReadBaseTile3DFunction = std::function<void(SavepointBase* base, int x, int y, int z)>;
-
 class ISavepointDriver
 {
 public:
@@ -73,18 +67,10 @@ public:
     virtual void Write(SavepointVisitor& visitor, SavepointID& id, int level) = 0;
     virtual void Write(SavepointVisitor& visitor, int x, int y, int level) = 0;
     virtual void Write(SavepointVisitor& visitor, int x, int y, int z, int level) = 0;
-    virtual void Write(SavepointBase* base) = 0;
-    virtual void Write(SavepointBase* base, SavepointID& id, int level) = 0;
-    virtual void Write(SavepointBase* base, int x, int y, int level) = 0;
-    virtual void Write(SavepointBase* base, int x, int y, int z, int level) = 0;
     virtual void Read(const SavepointReadVisitorFunction& function) = 0;
     virtual void Read(const SavepointReadVisitorEntityFunction& function, int level) = 0;
     virtual void Read(const SavepointReadVisitorTile2DFunction& function, int level) = 0;
     virtual void Read(const SavepointReadVisitorTile3DFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadBaseFunction& function) = 0;
-    virtual void Read(const SavepointReadBaseEntityFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadBaseTile2DFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadBaseTile3DFunction& function, int level) = 0;
     virtual void Delete(const SavepointID id) = 0;
     virtual void Close() = 0;
     virtual void Save() = 0;
