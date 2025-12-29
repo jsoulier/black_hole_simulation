@@ -5,7 +5,7 @@
  * Tried to read into non-empty range (x2)
  */
 
-#include <savepoint.hpp>
+#include <savepoint/savepoint.hpp>
 
 #include <array>
 #include <cassert>
@@ -647,12 +647,12 @@ struct DerivedSpider : BaseMob
 };
 
 template<typename InT, typename OutT>
-static void Test(SavepointVersion inVersion)
+static void TestReadWrite(SavepointDriver driver, SavepointVersion inVersion)
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
     Savepoint savepoint;
-    SavepointStatus status = savepoint.Open(kFileName, inVersion);
+    SavepointStatus status = savepoint.Open(driver, kFileName, inVersion);
     assert(status != SavepointStatus::Failed);
     SavepointID inID;
     InT inEntity;
@@ -666,22 +666,22 @@ static void Test(SavepointVersion inVersion)
     }, 0);
     assert(i == 1);
     savepoint.Close();
-};
+}
 
-int main()
+static void TestDriver(SavepointDriver driver)
 {
     std::filesystem::remove(kFileName);
     std::filesystem::remove(kFileName + "-journal");
     Savepoint savepoint;
     SavepointStatus status;
-    status = savepoint.Open(kFileName, SavepointVersion{});
+    status = savepoint.Open(driver, kFileName, SavepointVersion{});
     assert(status == SavepointStatus::New);
     savepoint.Close();
-    status = savepoint.Open(kFileName, SavepointVersion{});
+    status = savepoint.Open(driver, kFileName, SavepointVersion{});
     assert(status == SavepointStatus::New);
     savepoint.Save();
     savepoint.Close();
-    status = savepoint.Open(kFileName, SavepointVersion{});
+    status = savepoint.Open(driver, kFileName, SavepointVersion{});
     assert(status == SavepointStatus::Existing);
     {
         Header header;
@@ -819,40 +819,45 @@ int main()
         assert(i == 4);
     }
     savepoint.Close();
-    Test<EntityV1, EntityV1>(kVersion1);
-    Test<EntityV1, EntityV2>(kVersion1);
-    Test<EntityV2, EntityV2>(kVersion2);
-    Test<EntityV1, EntityV3>(kVersion1);
-    Test<EntityV2, EntityV3>(kVersion2);
-    Test<EntityV3, EntityV3>(kVersion3);
-    Test<EntityV1, EntityV4>(kVersion1);
-    Test<EntityV2, EntityV4>(kVersion2);
-    Test<EntityV3, EntityV4>(kVersion3);
-    Test<EntityV4, EntityV4>(kVersion4);
-    Test<ZombieV1, ZombieV1>(kVersion1);
-    Test<ZombieV1, ZombieV2>(kVersion1);
-    Test<ZombieV2, ZombieV2>(kVersion2);
-    Test<ZombieV1, ZombieV3>(kVersion1);
-    Test<ZombieV2, ZombieV3>(kVersion2);
-    Test<ZombieV3, ZombieV3>(kVersion3);
-    Test<ZombieV1, ZombieV4>(kVersion1);
-    Test<ZombieV2, ZombieV4>(kVersion2);
-    Test<ZombieV3, ZombieV4>(kVersion3);
-    Test<ZombieV4, ZombieV4>(kVersion4);
-    Test<Vector, Vector>(kVersion1);
-    Test<ArrayV1, ArrayV1>(kVersion1);
-    Test<ArrayV1, ArrayV2>(kVersion1);
-    Test<ArrayV1, ArrayV3>(kVersion1);
-    Test<ArrayV2, ArrayV2>(kVersion1);
-    Test<ArrayV2, ArrayV3>(kVersion1);
-    Test<ArrayV3, ArrayV3>(kVersion1);
-    Test<ArrayV2, ArrayV2>(kVersion2);
-    Test<ArrayV2, ArrayV3>(kVersion2);
-    Test<ArrayV3, ArrayV3>(kVersion2);
-    Test<Map, Map>(kVersion1);
-    Test<Set, Set>(kVersion1);
-    Test<UniquePtr, UniquePtr>(kVersion1);
-    Test<SharedPtr, SharedPtr>(kVersion1);
-    Test<SharedPtrVector, SharedPtrVector>(kVersion1);
+    TestReadWrite<EntityV1, EntityV1>(driver, kVersion1);
+    TestReadWrite<EntityV1, EntityV2>(driver, kVersion1);
+    TestReadWrite<EntityV2, EntityV2>(driver, kVersion2);
+    TestReadWrite<EntityV1, EntityV3>(driver, kVersion1);
+    TestReadWrite<EntityV2, EntityV3>(driver, kVersion2);
+    TestReadWrite<EntityV3, EntityV3>(driver, kVersion3);
+    TestReadWrite<EntityV1, EntityV4>(driver, kVersion1);
+    TestReadWrite<EntityV2, EntityV4>(driver, kVersion2);
+    TestReadWrite<EntityV3, EntityV4>(driver, kVersion3);
+    TestReadWrite<EntityV4, EntityV4>(driver, kVersion4);
+    TestReadWrite<ZombieV1, ZombieV1>(driver, kVersion1);
+    TestReadWrite<ZombieV1, ZombieV2>(driver, kVersion1);
+    TestReadWrite<ZombieV2, ZombieV2>(driver, kVersion2);
+    TestReadWrite<ZombieV1, ZombieV3>(driver, kVersion1);
+    TestReadWrite<ZombieV2, ZombieV3>(driver, kVersion2);
+    TestReadWrite<ZombieV3, ZombieV3>(driver, kVersion3);
+    TestReadWrite<ZombieV1, ZombieV4>(driver, kVersion1);
+    TestReadWrite<ZombieV2, ZombieV4>(driver, kVersion2);
+    TestReadWrite<ZombieV3, ZombieV4>(driver, kVersion3);
+    TestReadWrite<ZombieV4, ZombieV4>(driver, kVersion4);
+    TestReadWrite<Vector, Vector>(driver, kVersion1);
+    TestReadWrite<ArrayV1, ArrayV1>(driver, kVersion1);
+    TestReadWrite<ArrayV1, ArrayV2>(driver, kVersion1);
+    TestReadWrite<ArrayV1, ArrayV3>(driver, kVersion1);
+    TestReadWrite<ArrayV2, ArrayV2>(driver, kVersion1);
+    TestReadWrite<ArrayV2, ArrayV3>(driver, kVersion1);
+    TestReadWrite<ArrayV3, ArrayV3>(driver, kVersion1);
+    TestReadWrite<ArrayV2, ArrayV2>(driver, kVersion2);
+    TestReadWrite<ArrayV2, ArrayV3>(driver, kVersion2);
+    TestReadWrite<ArrayV3, ArrayV3>(driver, kVersion2);
+    TestReadWrite<Map, Map>(driver, kVersion1);
+    TestReadWrite<Set, Set>(driver, kVersion1);
+    TestReadWrite<UniquePtr, UniquePtr>(driver, kVersion1);
+    TestReadWrite<SharedPtr, SharedPtr>(driver, kVersion1);
+    TestReadWrite<SharedPtrVector, SharedPtrVector>(driver, kVersion1);
+}
+
+int main()
+{
+    TestDriver(SavepointDriver::Sqlite3);
     return 0;
 }

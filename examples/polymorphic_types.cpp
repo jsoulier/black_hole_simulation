@@ -1,4 +1,4 @@
-#include <savepoint.hpp>
+#include <savepoint/savepoint.hpp>
 
 #include <cassert>
 #include <filesystem>
@@ -86,7 +86,7 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open("savepoint.sqlite3", kVersion1);
+    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion1);
 
     std::shared_ptr<ZombieEntity> inZombie = std::make_shared<ZombieEntity>();
     std::shared_ptr<SpiderEntity> inSpider = std::make_shared<SpiderEntity>();

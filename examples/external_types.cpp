@@ -1,4 +1,4 @@
-#include <savepoint.hpp>
+#include <savepoint/savepoint.hpp>
 
 #include <cassert>
 #include <filesystem>
@@ -45,7 +45,7 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open("savepoint.sqlite3", kVersion1);
+    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion1);
 
     // Writing the entity
     Entity inEntity{1, 2};

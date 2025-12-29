@@ -1,4 +1,4 @@
-#include <savepoint.hpp>
+#include <savepoint/savepoint.hpp>
 
 #include <cassert>
 #include <filesystem>
@@ -32,7 +32,7 @@ int main()
     Savepoint savepoint;
     
     // Open or create a savepoint connection
-    switch (savepoint.Open("savepoint.sqlite3", kVersion1))
+    switch (savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion1))
     {
     case SavepointStatus::Failed:
         assert(false);
