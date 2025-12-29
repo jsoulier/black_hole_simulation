@@ -71,22 +71,6 @@ bool Savepoint::IsOpen() const
     return Driver->IsOpen();
 }
 
-void Savepoint::Close()
-{
-    if (IsOpen())
-    {
-        Driver->Close();
-    }
-}
-
-void Savepoint::Save()
-{
-    if (IsOpen())
-    {
-        Driver->Save();
-    }
-}
-
 void Savepoint::Write(SavepointBase* base)
 {
     if (!IsOpen())
@@ -158,6 +142,22 @@ void Savepoint::Delete(const SavepointID id)
     if (IsOpen())
     {
         Driver->Delete(id);
+    }
+}
+
+void Savepoint::Close()
+{
+    if (IsOpen())
+    {
+        Driver->Close();
+    }
+}
+
+void Savepoint::Save()
+{
+    if (IsOpen())
+    {
+        Driver->Save();
     }
 }
 

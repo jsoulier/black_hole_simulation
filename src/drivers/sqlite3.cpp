@@ -25,31 +25,12 @@
  * For more information, please refer to <https://unlicense.org>
  */
 
+#include <cstddef>
+#include <format>
+#include <string_view>
+
 #include "sqlite3.h"
 #include "sqlite3.hpp"
-
-SavepointDriverSqlite3::SavepointDriverSqlite3()
-    : ISavepointDriver()
-    , ApplicationVersion{}
-    , Visitor{}
-    , Handle{nullptr}
-    , WriteStatusStmt{nullptr}
-    , WriteStmt{nullptr}
-    , InsertEntityStmt{nullptr}
-    , UpdateEntityStmt{nullptr}
-    , WriteTile2DStmt{nullptr}
-    , WriteTile3DStmt{nullptr}
-    , ReadStatusStmt{nullptr}
-    , ReadStmt{nullptr}
-    , ReadEntitiesStmt{nullptr}
-    , ReadTiles2DStmt{nullptr}
-    , ReadTiles3DStmt{nullptr}
-    , DeleteEntityStmt{nullptr}
-    , ClearEntitiesStmt{nullptr}
-    , ClearTiles2DStmt{nullptr}
-    , ClearTiles3DStmt{nullptr}
-{
-}
 
 static constexpr const char* kSQL =
     "CREATE TABLE IF NOT EXISTS status ("
@@ -114,6 +95,29 @@ static constexpr const char* kClearTiles2DSQL =
     "DELETE FROM tiles_2d;";
 static constexpr const char* kClearTiles3DSQL =
     "DELETE FROM tiles_3d;";
+
+SavepointDriverSqlite3::SavepointDriverSqlite3()
+    : ISavepointDriver()
+    , ApplicationVersion{}
+    , Visitor{}
+    , Handle{nullptr}
+    , WriteStatusStmt{nullptr}
+    , WriteStmt{nullptr}
+    , InsertEntityStmt{nullptr}
+    , UpdateEntityStmt{nullptr}
+    , WriteTile2DStmt{nullptr}
+    , WriteTile3DStmt{nullptr}
+    , ReadStatusStmt{nullptr}
+    , ReadStmt{nullptr}
+    , ReadEntitiesStmt{nullptr}
+    , ReadTiles2DStmt{nullptr}
+    , ReadTiles3DStmt{nullptr}
+    , DeleteEntityStmt{nullptr}
+    , ClearEntitiesStmt{nullptr}
+    , ClearTiles2DStmt{nullptr}
+    , ClearTiles3DStmt{nullptr}
+{
+}
 
 SavepointStatus SavepointDriverSqlite3::Open(const std::string_view& path, SavepointVersion version)
 {
@@ -228,43 +232,6 @@ bool SavepointDriverSqlite3::IsOpen() const
     return Handle != nullptr;
 }
 
-void SavepointDriverSqlite3::Close()
-{
-    sqlite3_finalize(WriteStatusStmt);
-    sqlite3_finalize(WriteStmt);
-    sqlite3_finalize(InsertEntityStmt);
-    sqlite3_finalize(UpdateEntityStmt);
-    sqlite3_finalize(WriteTile2DStmt);
-    sqlite3_finalize(WriteTile3DStmt);
-    sqlite3_finalize(ReadStatusStmt);
-    sqlite3_finalize(ReadStmt);
-    sqlite3_finalize(ReadEntitiesStmt);
-    sqlite3_finalize(ReadTiles2DStmt);
-    sqlite3_finalize(ReadTiles3DStmt);
-    sqlite3_finalize(DeleteEntityStmt);
-    sqlite3_finalize(ClearEntitiesStmt);
-    sqlite3_finalize(ClearTiles2DStmt);
-    sqlite3_finalize(ClearTiles3DStmt);
-    sqlite3_close(Handle);
-    Handle = nullptr;
-}
-
-void SavepointDriverSqlite3::Save()
-{
-    if (sqlite3_step(WriteStatusStmt) != SQLITE_DONE)
-    {
-        SavepointLog(std::format("Failed to write status: {}", sqlite3_errmsg(Handle)));
-    }
-    if (sqlite3_exec(Handle, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
-    {
-        SavepointLog(std::format("Failed to end transaction: {}", sqlite3_errmsg(Handle)));
-    }
-    if (sqlite3_exec(Handle, "BEGIN;", nullptr, nullptr, nullptr) != SQLITE_OK)
-    {
-        SavepointLog(std::format("Failed to begin transaction: {}", sqlite3_errmsg(Handle)));
-    }
-}
-
 void SavepointDriverSqlite3::Write(SavepointVisitor& visitor)
 {
     if (visitor.IsEmpty())
@@ -291,7 +258,8 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, SavepointID& id, i
     }
     const void* data = visitor.GetData();
     size_t size = visitor.GetSize();
-    if (!id)
+    // Insert a new entity
+    if (!id.IsValid())
     {
         sqlite3_bind_int(InsertEntityStmt, 1, level);
         sqlite3_bind_blob(InsertEntityStmt, 2, data, size, SQLITE_TRANSIENT);
@@ -305,6 +273,7 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, SavepointID& id, i
         }
         sqlite3_reset(InsertEntityStmt);
     }
+    // Update an existing entity
     else
     {
         sqlite3_bind_int(UpdateEntityStmt, 1, level);
@@ -314,6 +283,7 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, SavepointID& id, i
         {
             SavepointLog(std::format("Failed to update entity: {}", sqlite3_errmsg(Handle)));
             id = SavepointID{};
+            // Insert a new entity instead
             Write(visitor, id, level);
         }
         sqlite3_reset(UpdateEntityStmt);
@@ -359,20 +329,6 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, int x, int y, int 
         SavepointLog(std::format("Failed to write tile: {}, {}, {}, {}", x, y, z, sqlite3_errmsg(Handle)));
     }
     sqlite3_reset(WriteTile3DStmt);
-}
-
-bool SavepointDriverSqlite3::SetBase(SavepointBase* base)
-{
-    if (!base)
-    {
-        SavepointLog("Tried to write null base");
-        return false;
-    }
-    std::string_view string = base->SavepointDerivedGetString();
-    Visitor.Reset(ApplicationVersion, kSavepointVersion);
-    Visitor(string);
-    Visitor(*base);
-    return true;
 }
 
 void SavepointDriverSqlite3::Write(SavepointBase* base)
@@ -469,20 +425,6 @@ void SavepointDriverSqlite3::Read(const SavepointReadVisitorTile3DFunction& func
     sqlite3_reset(ReadTiles3DStmt);
 }
 
-SavepointBase* SavepointDriverSqlite3::GetBase(SavepointVisitor& visitor)
-{
-    std::string string;
-    visitor(string);
-    SavepointBase* base = SavepointCreateDerived(string);
-    if (!base)
-    {
-        SavepointLog(std::format("Failed to allocate base: {}", string));
-        return nullptr;
-    }
-    visitor(*base);
-    return base;
-}
-
 void SavepointDriverSqlite3::Read(const SavepointReadBaseFunction& function)
 {
     Read([this, &function](SavepointVisitor& visitor)
@@ -533,7 +475,7 @@ void SavepointDriverSqlite3::Read(const SavepointReadBaseTile3DFunction& functio
 
 void SavepointDriverSqlite3::Delete(const SavepointID id)
 {
-    if (!id)
+    if (!id.IsValid())
     {
         return;
     }
@@ -543,6 +485,43 @@ void SavepointDriverSqlite3::Delete(const SavepointID id)
         SavepointLog(std::format("Failed to delete entity: {}", sqlite3_errmsg(Handle)));
     }
     sqlite3_reset(DeleteEntityStmt);
+}
+
+void SavepointDriverSqlite3::Close()
+{
+    sqlite3_finalize(WriteStatusStmt);
+    sqlite3_finalize(WriteStmt);
+    sqlite3_finalize(InsertEntityStmt);
+    sqlite3_finalize(UpdateEntityStmt);
+    sqlite3_finalize(WriteTile2DStmt);
+    sqlite3_finalize(WriteTile3DStmt);
+    sqlite3_finalize(ReadStatusStmt);
+    sqlite3_finalize(ReadStmt);
+    sqlite3_finalize(ReadEntitiesStmt);
+    sqlite3_finalize(ReadTiles2DStmt);
+    sqlite3_finalize(ReadTiles3DStmt);
+    sqlite3_finalize(DeleteEntityStmt);
+    sqlite3_finalize(ClearEntitiesStmt);
+    sqlite3_finalize(ClearTiles2DStmt);
+    sqlite3_finalize(ClearTiles3DStmt);
+    sqlite3_close(Handle);
+    Handle = nullptr;
+}
+
+void SavepointDriverSqlite3::Save()
+{
+    if (sqlite3_step(WriteStatusStmt) != SQLITE_DONE)
+    {
+        SavepointLog(std::format("Failed to write status: {}", sqlite3_errmsg(Handle)));
+    }
+    if (sqlite3_exec(Handle, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        SavepointLog(std::format("Failed to end transaction: {}", sqlite3_errmsg(Handle)));
+    }
+    if (sqlite3_exec(Handle, "BEGIN;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        SavepointLog(std::format("Failed to begin transaction: {}", sqlite3_errmsg(Handle)));
+    }
 }
 
 void SavepointDriverSqlite3::Clear()
@@ -562,4 +541,32 @@ void SavepointDriverSqlite3::Clear()
         SavepointLog(std::format("Failed to clear tiles 3d: {}", sqlite3_errmsg(Handle)));
     }
     sqlite3_reset(ClearTiles3DStmt);
+}
+
+bool SavepointDriverSqlite3::SetBase(SavepointBase* base)
+{
+    if (!base)
+    {
+        SavepointLog("Tried to write null base");
+        return false;
+    }
+    std::string_view string = base->SavepointDerivedGetString();
+    Visitor.Reset(ApplicationVersion, kSavepointVersion);
+    Visitor(string);
+    Visitor(*base);
+    return true;
+}
+
+SavepointBase* SavepointDriverSqlite3::GetBase(SavepointVisitor& visitor)
+{
+    std::string string;
+    visitor(string);
+    SavepointBase* base = SavepointCreateDerived(string);
+    if (!base)
+    {
+        SavepointLog(std::format("Failed to allocate base: {}", string));
+        return nullptr;
+    }
+    visitor(*base);
+    return base;
 }

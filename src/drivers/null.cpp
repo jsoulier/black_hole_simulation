@@ -37,14 +37,6 @@ bool SavepointDriverNull::IsOpen() const
     return false;
 }
 
-void SavepointDriverNull::Close()
-{
-}
-
-void SavepointDriverNull::Save()
-{
-}
-
 void SavepointDriverNull::Write(SavepointVisitor& visitor)
 {
 }
@@ -110,6 +102,14 @@ void SavepointDriverNull::Read(const SavepointReadBaseTile3DFunction& function, 
 }
 
 void SavepointDriverNull::Delete(const SavepointID id)
+{
+}
+
+void SavepointDriverNull::Close()
+{
+}
+
+void SavepointDriverNull::Save()
 {
 }
 

@@ -34,14 +34,15 @@
 
 #include <string_view>
 
+typedef struct sqlite3 sqlite;
+typedef struct sqlite3_stmt sqlite_stmt;
+
 class SavepointDriverSqlite3 : public ISavepointDriver
 {
 public:
     SavepointDriverSqlite3();
     SavepointStatus Open(const std::string_view& path, SavepointVersion version) override;
     bool IsOpen() const override;
-    void Close() override;
-    void Save() override;
     void Write(SavepointVisitor& visitor) override;
     void Write(SavepointVisitor& visitor, SavepointID& id, int level) override;
     void Write(SavepointVisitor& visitor, int x, int y, int level) override;
@@ -59,14 +60,13 @@ public:
     void Read(const SavepointReadBaseTile2DFunction& function, int level) override;
     void Read(const SavepointReadBaseTile3DFunction& function, int level) override;
     void Delete(const SavepointID id) override;
+    void Close() override;
+    void Save() override;
     void Clear() override;
 
 private:
     bool SetBase(SavepointBase* base);
     SavepointBase* GetBase(SavepointVisitor& visitor);
-
-    typedef struct sqlite3 sqlite;
-    typedef struct sqlite3_stmt sqlite_stmt;
 
     SavepointVersion ApplicationVersion;
     SavepointVisitor Visitor;

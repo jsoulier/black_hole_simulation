@@ -31,20 +31,28 @@
 
 #include <string_view>
 
+// Base class for user's base class (optional, only required for polymorphics)
 class SavepointBase
 {
 public:
     virtual void Visit(SavepointVisitor& visitor) = 0;
+
+    // For getting the class name at runtime for derived factory lookups
     virtual std::string_view SavepointDerivedGetString() const = 0;
 };
 
 using SavepointDerivedFunction = SavepointBase*(*)();
 
+// Register a derived factory. Should use SAVEPOINT_DERIVED instead
 void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
+
+// Create an object from the registered derived factories
 SavepointBase* SavepointCreateDerived(const std::string_view& string);
 
+// For user's concrete derived classes
 #define SAVEPOINT_DERIVED(T) \
     private: \
+        /* Automatically register derived factory */ \
         struct SavepointDerivedFunctionRegistrar \
         { \
             static SavepointBase* Function() \
@@ -57,8 +65,9 @@ SavepointBase* SavepointCreateDerived(const std::string_view& string);
             } \
         }; \
         static inline SavepointDerivedFunctionRegistrar SavepointDerivedFunctionRegistrar; \
+    public: \
+        /* Implement class name */ \
         std::string_view SavepointDerivedGetString() const override \
         { \
             return #T;\
         } \
-    public: \

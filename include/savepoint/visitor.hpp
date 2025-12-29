@@ -44,12 +44,51 @@
 #include <utility>
 #include <vector>
 
+/*
+ * Modified implementation of the visitor pattern for serializing/deserializing objects
+ *
+ * Each visitor consists of:
+ * 1. The savepoint version (unused, reserved for future use)
+ * 2. The application version (used for versioning user data)
+ * 3. The data (binary blob of user data)
+ * 
+ * Visitors can be in 2 modes:
+ * 1. Writing (setting the current versions and data)
+ * 2. Reading (carefully checking versions and data)
+ *
+ * For non-trivial objects that use pointers or require versioning, users
+ * should implement 1 of the following functions:
+ * 
+ * struct Entity
+ * {
+ *     int X;
+ *     int Y;
+ *
+ *     // Option 1
+ *     void Visit(SavepointVisitor& visitor)
+ *     {
+ *         visitor(X);
+ *         visitor(Y);
+ *     }
+ * };
+ * 
+ * // Option 2
+ * void SavepointVisit(SavepointVisitor& visitor, Entity& entity)
+ * {
+ *     visitor(entity.X);
+ *     visitor(entity.Y);
+ * }
+ * 
+ * For more information, check the examples
+ */
 class SavepointVisitor
 {
 private:
+    // Header consists of savepoint and application version
     static constexpr size_t kHeader = sizeof(SavepointVersion) * 2;
 
 public:
+    // Simplest method for visiting. Copies the object directly to/from the blob
     template<SavepointMemcpyable T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -91,6 +130,7 @@ public:
         }
     }
 
+    // Visit using the free visit function
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -108,6 +148,7 @@ public:
         SavepointVisit(*this, item);
     }
 
+    // Visit using the member visit function
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -125,45 +166,7 @@ public:
         item.Visit(*this);
     }
 
-    template<SavepointMemcpyable T>
-    void operator()(T* data, size_t maxSize, size_t size)
-    {
-        if (IsReading())
-        {
-            // Required for write-only containers (e.g. views)
-            if constexpr (std::is_const_v<T>)
-            {
-                SavepointLog("Tried to read into a const pointer");
-                return;
-            }
-            else
-            {
-                if (maxSize < size)
-                {
-                    SavepointLog(std::format("Truncating buffer: {}, {} -> {}", Version.GetString(), size, maxSize));
-                    size = maxSize;
-                }
-                if (size > GetSize())
-                {
-                    SavepointLog(std::format("Tried to read past visitor: {}", Version.GetString()));
-                    return;
-                }
-                std::memcpy(data, Reader.data() + Offset, size);
-                Offset += size;
-            }
-        }
-        else
-        {
-            if (maxSize != size)
-            {
-                SavepointLog(std::format("Sizes don't match: {}, {} != {}", Version.GetString(), maxSize, size));
-                size = maxSize;
-            }
-            Writer.resize(Writer.size() + size);
-            std::memcpy(Writer.data() + Writer.size() - size, data, size);
-        }
-    }
-
+    // Skip sizeof(T) * size bytes on the reader
     template<SavepointMemcpyable T>
     void Skip(size_t size = 1)
     {
@@ -174,21 +177,14 @@ public:
         }
         if (sizeof(T) * size > GetSize())
         {
-            // We don't return since we can use it to completely skip bad visitors
             SavepointLog(std::format("Tried to skip past visitor: {}", Version.GetString()));
+            // We don't return since we can use it to completely skip bad visitors
+            // return;
         }
         Offset += sizeof(T) * size;
     }
 
-    void Reset(void* data, size_t size)
-    {
-        Reader = {static_cast<uint8_t*>(data), size};
-        Offset = 0;
-        operator()(Version);
-        // Reserved for future use
-        Skip<SavepointVersion>();
-    }
-
+    // TODO: hide from user
     void Reset(SavepointVersion application, SavepointVersion savepoint)
     {
         Reader = {};
@@ -196,6 +192,16 @@ public:
         std::memcpy(Writer.data(), &application, sizeof(SavepointVersion));
         // Reserved for future use
         std::memcpy(Writer.data() + sizeof(SavepointVersion), &savepoint, sizeof(SavepointVersion));
+    }
+
+    // TODO: hide from user
+    void Reset(void* data, size_t size)
+    {
+        Reader = {static_cast<uint8_t*>(data), size};
+        Offset = 0;
+        operator()(Version);
+        // Reserved for future use
+        Skip<SavepointVersion>();
     }
 
     bool IsReading() const
@@ -208,11 +214,13 @@ public:
         return !IsReading();
     }
 
+    // TODO: hide from user
     bool IsEmpty() const
     {
         return Writer.size() == kHeader;
     }
 
+    // TODO: hide from user
     const void* GetData() const
     {
         return Writer.data();
@@ -237,16 +245,7 @@ private:
     size_t Offset;
 };
 
-template<SavepointPair T>
-void SavepointVisit(SavepointVisitor& visitor, T& item)
-{
-    // Required because maps use const for value_type::first_type
-    using First = std::remove_const_t<typename T::first_type>;
-    First& first = const_cast<First&>(item.first);
-    visitor(first);
-    visitor(item.second);
-}
-
+// Visit implementation for pointers (unique and shared only)
 template<SavepointStdPointer T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
@@ -283,6 +282,18 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     }
 }
 
+// TODO: convert for tuple
+template<SavepointPair T>
+void SavepointVisit(SavepointVisitor& visitor, T& item)
+{
+    // Required because maps use const for value_type::first_type
+    using First = std::remove_const_t<typename T::first_type>;
+    First& first = const_cast<First&>(item.first);
+    visitor(first);
+    visitor(item.second);
+}
+
+// Visit implementation for all iterable containers
 template<SavepointRange T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
@@ -299,6 +310,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     visitor(size);
     if (visitor.IsReading())
     {
+        // Inaccurate but can detect when we read garbage and would iterate forever
         if (size > visitor.GetSize())
         {
             SavepointLog("Tried to read past visitor");
@@ -310,6 +322,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             auto inserter = std::inserter(item, std::ranges::end(item));
             for (size_t i = 0; i < size; i++)
             {
+                // TODO: mutable iterators
                 E element;
                 visitor(element);
                 *inserter++ = element;
@@ -322,13 +335,16 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             {
                 SavepointLog(std::format("Fixed range is too small: %d < %d", maxSize, size));
             }
+            if (size < maxSize)
+            {
+                SavepointLog(std::format("Fixed range will be truncated: %d < %d", maxSize, size));
+            }
             maxSize = std::min(size, maxSize);
             for (size_t i = 0; i < maxSize; i++)
             {
-                E element;
-                visitor(element);
-                item[i] = element;
+                visitor(item[i]);
             }
+            // Skip excess data when truncated
             for (; maxSize < size; maxSize++)
             {
                 visitor.Skip<E>();

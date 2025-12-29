@@ -35,22 +35,30 @@
 
 enum class SavepointDriver
 {
-    Null,
+    // Backed by sqlite3
     Sqlite3,
+    // Does nothing
+    Null,
 };
 
+// TODO: move
 enum class SavepointStatus
 {
+    // Savepoint failed to open for any reason
     Failed,
+    // Opened an existing savepoint
     Existing,
+    // Opened a completely new savepoint
     New,
 };
 
+// Read signatures for visitors
 using SavepointReadVisitorFunction = std::function<void(SavepointVisitor& visitor)>;
 using SavepointReadVisitorEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
 using SavepointReadVisitorTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 using SavepointReadVisitorTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
 
+// Read signatures for polymorphics
 using SavepointReadBaseFunction = std::function<void(SavepointBase* base)>;
 using SavepointReadBaseEntityFunction = std::function<void(SavepointBase* base, SavepointID id)>;
 using SavepointReadBaseTile2DFunction = std::function<void(SavepointBase* base, int x, int y)>;
@@ -61,8 +69,6 @@ class ISavepointDriver
 public:
     virtual SavepointStatus Open(const std::string_view& path, SavepointVersion version) = 0;
     virtual bool IsOpen() const = 0;
-    virtual void Close() = 0;
-    virtual void Save() = 0;
     virtual void Write(SavepointVisitor& visitor) = 0;
     virtual void Write(SavepointVisitor& visitor, SavepointID& id, int level) = 0;
     virtual void Write(SavepointVisitor& visitor, int x, int y, int level) = 0;
@@ -80,5 +86,7 @@ public:
     virtual void Read(const SavepointReadBaseTile2DFunction& function, int level) = 0;
     virtual void Read(const SavepointReadBaseTile3DFunction& function, int level) = 0;
     virtual void Delete(const SavepointID id) = 0;
+    virtual void Close() = 0;
+    virtual void Save() = 0;
     virtual void Clear() = 0;
 };

@@ -34,14 +34,8 @@
 #include <utility>
 #include <type_traits>
 
-////////////////////////////////////////////////////////////////////////////////
-// Pointers
-
 template<typename T>
-struct SavepointRawPointerImpl : std::is_pointer<T> {};
-
-template<typename T>
-concept SavepointRawPointer = SavepointRawPointerImpl<T>::value;
+concept SavepointRawPointer = std::is_pointer_v<T>;
 
 template<typename T>
 struct SavepointUniquePointerImpl : std::false_type {};
@@ -67,9 +61,6 @@ concept SavepointStdPointer = SavepointUniquePointer<T> || SavepointSharedPointe
 template<typename T>
 concept SavepointPointer = SavepointRawPointer<T> || SavepointStdPointer<T>;
 
-////////////////////////////////////////////////////////////////////////////////
-// Pair
-
 template<typename T>
 struct SavepointPairImpl : std::false_type {};
 
@@ -78,9 +69,6 @@ struct SavepointPairImpl<std::pair<First, Second>> : std::true_type {};
 
 template<typename T>
 concept SavepointPair = SavepointPairImpl<T>::value;
-
-////////////////////////////////////////////////////////////////////////////////
-// Ranges
 
 // Is a resizable container with insert
 template<typename T>
@@ -99,8 +87,9 @@ concept SavepointStaticRange = !SavepointDynamicRange<T> && requires(T item)
 template<typename T>
 concept SavepointRange = std::ranges::range<T>;
 
-////////////////////////////////////////////////////////////////////////////////
-// Misc
+// For ensuring we don't accidentally use the wrong Read or Write on a visitor
+template<typename T>
+concept SavepointReadableWritable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
 
 template<typename T>
 concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { SavepointVisit(visitor, item) }; };
@@ -111,7 +100,3 @@ concept SavepointMemberVisit = requires(SavepointVisitor visitor, T item) { { it
 // Not a pointer and no Visit implementation provided
 template<typename T>
 concept SavepointMemcpyable = !SavepointPointer<T> && !SavepointFreeVisit<T> && !SavepointMemberVisit<T>;
-
-// For ensuring we don't accidentally use the wrong Read or Write on a visitor
-template<typename T>
-concept SavepointReadableWritable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;

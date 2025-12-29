@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <limits>
 
+// Key used for entities
 class SavepointID
 {
 public:
@@ -40,11 +41,13 @@ public:
     {
     }
 
+    // TODO: hide from user
     void SetValue(uint32_t value)
     {
         Value = value;
     }
 
+    // TODO: hide from user
     uint32_t GetValue() const
     {
         return Value;
@@ -60,7 +63,7 @@ public:
         return Value != other.Value;
     }
 
-    constexpr operator bool() const
+    constexpr bool IsValid() const
     {
         return Value != SavepointID{}.Value;
     }

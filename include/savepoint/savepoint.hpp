@@ -47,12 +47,20 @@ template<typename T> using SavepointReadTile3DFunction = std::function<void(T& i
 class Savepoint
 {
 public:
+    Savepoint() = default;
     ~Savepoint();
+    Savepoint(const Savepoint& other) = delete;
+    Savepoint& operator=(const Savepoint& other) = delete;
+    Savepoint(Savepoint&& other) = delete;
+    Savepoint& operator=(Savepoint&& other) = delete;
+    
+    // Opens or creates a database at the specified path and connects to it. The version should be your application version
     SavepointStatus Open(SavepointDriver driver, const std::string_view& path, SavepointVersion version);
-    bool IsOpen() const;
-    void Close();
-    void Save();
 
+    // Check if connected
+    bool IsOpen() const;
+
+    // Write singleton
     template<SavepointReadableWritable T>
     void Write(T& item)
     {
@@ -61,6 +69,7 @@ public:
         Driver->Write(Visitor);
     }
 
+    // Write entity to a specific level. Will move across levels if ID exists
     template<SavepointReadableWritable T>
     void Write(T& item, SavepointID& id, int level)
     {
@@ -69,6 +78,7 @@ public:
         Driver->Write(Visitor, id, level);
     }
 
+    // Write object to XY coordinate for a specific level
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int level)
     {
@@ -77,6 +87,7 @@ public:
         Driver->Write(Visitor, x, y, level);
     }
 
+    // Write object to XYZ coordinate for a specific level
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int z, int level)
     {
@@ -85,11 +96,13 @@ public:
         Driver->Write(Visitor, x, y, z, level);
     }
 
+    // Polymorphic write variants
     void Write(SavepointBase* base);
     void Write(SavepointBase* base, SavepointID& id, int level);
     void Write(SavepointBase* base, int x, int y, int level);
     void Write(SavepointBase* base, int x, int y, int z, int level);
 
+    // Read singleton
     template<SavepointReadableWritable T>
     void Read(const SavepointReadFunction<T>& function)
     {
@@ -101,6 +114,7 @@ public:
         });
     }
 
+    // Read entities from a specific level
     template<SavepointReadableWritable T>
     void Read(const SavepointReadEntityFunction<T>& function, int level)
     {
@@ -112,6 +126,7 @@ public:
         }, level);
     }
 
+    // Read XY objects from a specific level
     template<SavepointReadableWritable T>
     void Read(const SavepointReadTile2DFunction<T>& function, int level)
     {
@@ -123,6 +138,7 @@ public:
         }, level);
     }
 
+    // Read XYZ objects from a specific level
     template<SavepointReadableWritable T>
     void Read(const SavepointReadTile3DFunction<T>& function, int level)
     {
@@ -134,11 +150,22 @@ public:
         }, level);
     }
 
+    // Polymorphic read variants
     void Read(const SavepointReadBaseFunction& function);
     void Read(const SavepointReadBaseEntityFunction& function, int level);
     void Read(const SavepointReadBaseTile2DFunction& function, int level);
     void Read(const SavepointReadBaseTile3DFunction& function, int level);
+    
+    // Delete entity
     void Delete(const SavepointID id);
+
+    // Close connection
+    void Close();
+    
+    // End/start transaction
+    void Save();
+
+    // Delete all rows
     void Clear();
 
 private:

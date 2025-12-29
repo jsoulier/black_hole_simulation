@@ -31,6 +31,7 @@
 #include <format>
 #include <string>
 
+// Version consisting of major, minor, patch
 class SavepointVersion
 {
 public:
@@ -98,4 +99,5 @@ private:
     uint32_t Value;
 };
 
-static constexpr SavepointVersion kSavepointVersion{0, 0, 1};
+// The current savepoint version (not the same as application version)
+static constexpr SavepointVersion kSavepointVersion{0, 0, 0};
