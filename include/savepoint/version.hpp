@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include <savepoint/fwd.hpp>
+
 #include <cstdint>
 #include <format>
 #include <string>

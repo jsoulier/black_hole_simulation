@@ -570,6 +570,21 @@ struct SharedPtrVector
     }
 };
 
+struct NullPtr
+{
+    std::shared_ptr<int> Data;
+
+    void Visit(SavepointVisitor& visitor)
+    {
+        visitor(Data);
+    }
+
+    bool operator==(const NullPtr& other) const
+    {
+        return !Data && !other.Data;
+    }
+};
+
 struct BaseEntity : public SavepointBase
 {
     SavepointID ID;
@@ -854,6 +869,7 @@ static void Test(SavepointDriver driver)
     TestReadWrite<UniquePtr, UniquePtr>(driver, kVersion1);
     TestReadWrite<SharedPtr, SharedPtr>(driver, kVersion1);
     TestReadWrite<SharedPtrVector, SharedPtrVector>(driver, kVersion1);
+    TestReadWrite<NullPtr, NullPtr>(driver, kVersion1);
 }
 
 int main()

@@ -28,6 +28,7 @@
 #pragma once
 
 #include <savepoint/fwd.hpp>
+#include <savepoint/id.hpp>
 
 #include <cstring>
 #include <functional>

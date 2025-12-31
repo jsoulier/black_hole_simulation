@@ -251,6 +251,12 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     using E = typename T::element_type;
     if (visitor.IsReading())
     {
+        bool hasPointer = false;
+        visitor(hasPointer);
+        if (!hasPointer)
+        {
+            return;
+        }
         if (!item)
         {
             if constexpr (SavepointUniquePointer<T>)
@@ -270,13 +276,11 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     }
     else
     {
-        if (item)
+        bool hasPointer = item.get() != nullptr;
+        visitor(hasPointer);
+        if (hasPointer)
         {
             visitor(*item);
-        }
-        else
-        {
-            SavepointLog("Tried to write null pointer");
         }
     }
 }

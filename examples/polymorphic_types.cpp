@@ -103,17 +103,18 @@ int main()
         {
             assert(id == inZombie->ID);
             assert(*outZombie == *inZombie);
+            reads++;
         }
         else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(base))
         {
             assert(id == inSpider->ID);
             assert(*outSpider == *inSpider);
+            reads++;
         }
         else
         {
             assert(false);
         }
-        reads++;
     }, 0);
     assert(reads == 2);
 

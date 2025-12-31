@@ -66,7 +66,6 @@ SavepointBase* SavepointCreateDerived(const std::string_view& string);
         }; \
         static inline SavepointDerivedFunctionRegistrar SavepointDerivedFunctionRegistrar; \
     public: \
-        /* Implement class name */ \
         std::string_view SavepointDerivedGetString() const override \
         { \
             return #T;\

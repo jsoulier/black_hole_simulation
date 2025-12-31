@@ -15,7 +15,17 @@ target_include_directories(savepoint PUBLIC include)
 set_target_properties(savepoint PROPERTIES CXX_STANDARD 23)
 set_target_properties(savepoint PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set_target_properties(savepoint_sqlite3 PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-target_precompile_headers(savepoint PUBLIC <savepoint/savepoint.hpp>)
+target_precompile_headers(savepoint PUBLIC
+    <savepoint/base.hpp>
+    <savepoint/driver.hpp>
+    <savepoint/fwd.hpp>
+    <savepoint/id.hpp>
+    <savepoint/log.hpp>
+    <savepoint/savepoint.hpp>
+    <savepoint/traits.hpp>
+    <savepoint/version.hpp>
+    <savepoint/visitor.hpp>
+)
 
 if(PROJECT_IS_TOP_LEVEL)
     set(BINARY_DIR ${CMAKE_BINARY_DIR}/bin)

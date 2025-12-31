@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include <savepoint/fwd.hpp>
+
 #include <functional>
 #include <string_view>
 
