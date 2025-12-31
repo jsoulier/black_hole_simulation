@@ -73,7 +73,7 @@ bool Savepoint::IsOpen() const
 
 void Savepoint::Write(SavepointBase* base)
 {
-    if (IsOpen() && WriteBase(base))
+    if (IsOpen() && WriteDerived(base))
     {
         Driver->Write(Visitor);
     }
@@ -81,7 +81,7 @@ void Savepoint::Write(SavepointBase* base)
 
 void Savepoint::Write(SavepointBase* base, SavepointID& id, int level)
 {
-    if (IsOpen() && WriteBase(base))
+    if (IsOpen() && WriteDerived(base))
     {
         Driver->Write(Visitor, id, level);
     }
@@ -89,7 +89,7 @@ void Savepoint::Write(SavepointBase* base, SavepointID& id, int level)
 
 void Savepoint::Write(SavepointBase* base, int x, int y, int level)
 {
-    if (IsOpen() && WriteBase(base))
+    if (IsOpen() && WriteDerived(base))
     {
         Driver->Write(Visitor, x, y, level);
     }
@@ -97,7 +97,7 @@ void Savepoint::Write(SavepointBase* base, int x, int y, int level)
 
 void Savepoint::Write(SavepointBase* base, int x, int y, int z, int level)
 {
-    if (IsOpen() && WriteBase(base))
+    if (IsOpen() && WriteDerived(base))
     {
         Driver->Write(Visitor, x, y, z, level);
     }
@@ -141,7 +141,7 @@ void Savepoint::Read(const SavepointReadBaseFunction& function)
     {
         Driver->Read([this, &function](SavepointVisitor& visitor)
         {
-            if (SavepointBase* base = ReadBase(visitor))
+            if (SavepointBase* base = SavepointReadDerived(visitor))
             {
                 function(base);
             }
@@ -155,7 +155,7 @@ void Savepoint::Read(const SavepointReadBaseEntityFunction& function, int level)
     {
         Driver->Read([this, &function](SavepointVisitor& visitor, SavepointID id)
         {
-            if (SavepointBase* base = ReadBase(visitor))
+            if (SavepointBase* base = SavepointReadDerived(visitor))
             {
                 function(base, id);
             }
@@ -169,7 +169,7 @@ void Savepoint::Read(const SavepointReadBaseTile2DFunction& function, int level)
     {
         Driver->Read([this, &function](SavepointVisitor& visitor, int x, int y)
         {
-            if (SavepointBase* base = ReadBase(visitor))
+            if (SavepointBase* base = SavepointReadDerived(visitor))
             {
                 function(base, x, y);
             }
@@ -183,7 +183,7 @@ void Savepoint::Read(const SavepointReadBaseTile3DFunction& function, int level)
     {
         Driver->Read([this, &function](SavepointVisitor& visitor, int x, int y, int z)
         {
-            if (SavepointBase* base = ReadBase(visitor))
+            if (SavepointBase* base = SavepointReadDerived(visitor))
             {
                 function(base, x, y, z);
             }
@@ -191,30 +191,8 @@ void Savepoint::Read(const SavepointReadBaseTile3DFunction& function, int level)
     }
 }
 
-bool Savepoint::WriteBase(SavepointBase* base)
+bool Savepoint::WriteDerived(SavepointBase* base)
 {
-    if (!base)
-    {
-        SavepointLog("Tried to write null base");
-        return false;
-    }
-    std::string_view string = base->SavepointDerivedGetString();
     Visitor.Reset(Version, kSavepointVersion);
-    Visitor(string);
-    Visitor(*base);
-    return true;
-}
-
-SavepointBase* Savepoint::ReadBase(SavepointVisitor& visitor)
-{
-    std::string string;
-    visitor(string);
-    SavepointBase* base = SavepointCreateDerived(string);
-    if (!base)
-    {
-        SavepointLog(std::format("Failed to allocate base: {}", string));
-        return nullptr;
-    }
-    visitor(*base);
-    return base;
+    return SavepointWriteDerived(base, Visitor);
 }

@@ -176,8 +176,7 @@ public:
     void Clear();
 
 private:
-    bool WriteBase(SavepointBase* base);
-    SavepointBase* ReadBase(SavepointVisitor& visitor);
+    bool WriteDerived(SavepointBase* base);
 
     SavepointVersion Version;
     SavepointVisitor Visitor;

@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <savepoint/base.hpp>
 #include <savepoint/fwd.hpp>
 #include <savepoint/log.hpp>
 #include <savepoint/traits.hpp>
@@ -91,6 +92,8 @@ public:
     template<SavepointMemcpyable T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
+        // Detecting a bug in MSVC (it can't always handle heavily nested concepts)
+        static_assert(!SavepointRange<T>);
         if (IsReading())
         {
             // Required for write-only containers (e.g. views)
@@ -165,7 +168,7 @@ public:
         item.Visit(*this);
     }
 
-    // Skip sizeof(T) * size bytes on the reader
+    // Skip bytes on the reader
     template<SavepointMemcpyable T>
     void Skip(size_t size = 1)
     {
@@ -174,13 +177,22 @@ public:
             SavepointLog("Tried to skip on a writer");
             return;
         }
+        if (!size)
+        {
+            SavepointLog("Tried to skip nothing");
+            return;
+        }
         if (sizeof(T) * size > GetSize())
         {
             SavepointLog(std::format("Tried to skip past visitor: {}", Version.GetString()));
-            // We don't return since we can use it to completely skip bad visitors
-            // return;
+            return;
         }
         Offset += sizeof(T) * size;
+    }
+
+    void Fail()
+    {
+        Offset = Reader.size();
     }
 
     // TODO: hide from user
@@ -248,6 +260,9 @@ private:
 template<SavepointStdPointer T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
+    // Since we have built-in support for polymorphics, we can't assume that E is the type we want.
+    // If E derives from SavepointBase, we only care about the derived class. If so, we'll
+    // serialize the class name and use the virtual Visit automatically
     using E = typename T::element_type;
     if (visitor.IsReading())
     {
@@ -259,18 +274,27 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         }
         if (!item)
         {
-            if constexpr (SavepointUniquePointer<T>)
+            E* rawPointer = nullptr;
+            // TODO: missing tests
+            if constexpr (std::is_base_of_v<SavepointBase, E>)
             {
-                item = std::make_unique<E>();
+                rawPointer = dynamic_cast<E>(SavepointReadDerived(visitor));
             }
-            else if constexpr (SavepointSharedPointer<T>)
+            else if constexpr (std::is_default_constructible_v<E>)
             {
-                item = std::make_shared<E>();
+                rawPointer = new E();
             }
             else
             {
-                static_assert(false, "Unknown pointer");
+                static_assert(false, "No method to create pointer");
             }
+            if (!rawPointer)
+            {
+                SavepointLog("Failed to allocate pointer");
+                visitor.Fail();
+                return;
+            }
+            item.reset(rawPointer);
         }
         visitor(*item);
     }
@@ -280,7 +304,16 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         visitor(hasPointer);
         if (hasPointer)
         {
-            visitor(*item);
+            if constexpr (std::is_base_of_v<SavepointBase, E>)
+            {
+                // TODO: missing tests
+                SavepointBase* base = item.get();
+                SavepointWriteDerived(base);
+            }
+            else
+            {
+                visitor(*item);
+            }
         }
     }
 }
@@ -317,7 +350,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         if (size > visitor.GetSize())
         {
             SavepointLog("Tried to read past visitor");
-            visitor.Skip<uint8_t>(size);
+            visitor.Fail();
             return;
         }
         if constexpr (SavepointDynamicRange<T>)

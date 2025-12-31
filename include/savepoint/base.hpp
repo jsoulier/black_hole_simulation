@@ -46,8 +46,8 @@ using SavepointDerivedFunction = SavepointBase*(*)();
 // Register a derived factory. Use SAVEPOINT_DERIVED instead
 void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
 
-// Create an object from the registered derived factories
-SavepointBase* SavepointCreateDerived(const std::string_view& string);
+bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor);
+SavepointBase* SavepointReadDerived(SavepointVisitor& visitor);
 
 // For user's concrete derived classes
 #define SAVEPOINT_DERIVED(T) \
@@ -68,5 +68,5 @@ SavepointBase* SavepointCreateDerived(const std::string_view& string);
     public: \
         std::string_view SavepointDerivedGetString() const override \
         { \
-            return #T;\
+            return #T; \
         } \

@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -35,6 +36,7 @@ static_assert(!SavepointDynamicRange<std::string_view>);
 static_assert(SavepointDynamicRange<std::map<int, int>>);
 static_assert(SavepointDynamicRange<std::unordered_map<int, int>>);
 static_assert(SavepointDynamicRange<std::set<int>>);
+static_assert(SavepointDynamicRange<std::string>);
 
 static_assert(SavepointStaticRange<std::array<int, 1>>);
 static_assert(!SavepointStaticRange<std::vector<int>>);
@@ -42,6 +44,11 @@ static_assert(!SavepointStaticRange<std::string_view>);
 static_assert(!SavepointStaticRange<std::map<int, int>>);
 static_assert(!SavepointStaticRange<std::unordered_map<int, int>>);
 static_assert(!SavepointStaticRange<std::set<int>>);
+static_assert(!SavepointStaticRange<std::string>);
+
+static_assert(SavepointRange<std::string>);
+static_assert(!SavepointMemberVisit<std::string>);
+static_assert(SavepointFreeVisit<std::string>);
 
 int main()
 {

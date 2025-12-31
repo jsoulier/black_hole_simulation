@@ -26,8 +26,10 @@
  */
 
 #include <savepoint/base.hpp>
+#include <savepoint/visitor.hpp>
 
 #include <cstddef>
+#include <format>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -62,16 +64,40 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
     GetDerivedFunctions().emplace(string, function);
 }
 
-SavepointBase* SavepointCreateDerived(const std::string_view& string)
+bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
 {
+    if (base)
+    {
+        std::string_view string = base->SavepointDerivedGetString();
+        visitor(string);
+        visitor(*base);
+        return true;
+    }
+    else
+    {
+        SavepointLog("Tried to write null base");
+        return false;
+    }
+}
+
+SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
+{
+    std::string string;
+    visitor(string);
     auto it = GetDerivedFunctions().find(string);
     if (it == GetDerivedFunctions().end())
     {
         SavepointLog(std::format("Failed to find base string: {}", string));
+        visitor.Fail();
         return nullptr;
     }
-    else
+    SavepointBase* base = it->second();
+    if (!base)
     {
-        return it->second();
+        SavepointLog(std::format("Failed to allocate base: {}", string));
+        visitor.Fail();
+        return nullptr;
     }
+    visitor(*base);
+    return base;
 }
