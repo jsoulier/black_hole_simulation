@@ -274,27 +274,26 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         }
         if (!item)
         {
-            E* rawPointer = nullptr;
-            // TODO: missing tests
             if constexpr (std::is_base_of_v<SavepointBase, E>)
             {
-                rawPointer = dynamic_cast<E*>(SavepointReadDerived(visitor));
+                item.reset(dynamic_cast<E*>(SavepointReadDerived(visitor)));
+                return;
             }
             else if constexpr (std::is_default_constructible_v<E>)
             {
-                rawPointer = new E();
+                item.reset(new E());
+                if (!item)
+                {
+                    SavepointLog("Failed to allocate pointer");
+                    visitor.Fail();
+                    return;
+                }
             }
             else
             {
-                static_assert(false, "No method to create pointer");
+                // Don't static_assert because we'll fail on abstract classes
+                SavepointLog("No method to create pointer");
             }
-            if (!rawPointer)
-            {
-                SavepointLog("Failed to allocate pointer");
-                visitor.Fail();
-                return;
-            }
-            item.reset(rawPointer);
         }
         visitor(*item);
     }
@@ -306,9 +305,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         {
             if constexpr (std::is_base_of_v<SavepointBase, E>)
             {
-                // TODO: missing tests
-                SavepointBase* base = item.get();
-                SavepointWriteDerived(base, visitor);
+                SavepointWriteDerived(item.get(), visitor);
             }
             else
             {
@@ -369,11 +366,11 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             size_t maxSize = std::ranges::size(item);
             if (size > maxSize)
             {
-                SavepointLog(std::format("Fixed range is too small: %d < %d", maxSize, size));
+                SavepointLog(std::format("Fixed range is too small: {} < {}", maxSize, size));
             }
             if (size < maxSize)
             {
-                SavepointLog(std::format("Fixed range will be truncated: %d < %d", maxSize, size));
+                SavepointLog(std::format("Fixed range will be truncated: {} < {}", maxSize, size));
             }
             maxSize = std::min(size, maxSize);
             for (size_t i = 0; i < maxSize; i++)

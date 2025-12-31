@@ -1,8 +1,10 @@
 /*
  * Expected:
  * Tried to read into non-empty range
- * Fixed range is too small: %d < %d (x3)
- * Tried to read into non-empty range (x2)
+ * Fixed range will be truncated: 3 < 2
+ * Fixed range is too small: 1 < 2 (x2)
+ * Fixed range is too small: 1 < 3 (x2)
+ * Tried to read into non-empty range
  */
 
 #include <savepoint/savepoint.hpp>
