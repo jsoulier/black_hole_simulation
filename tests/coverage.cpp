@@ -794,34 +794,34 @@ static void Test(SavepointDriver driver)
         std::shared_ptr<DerivedZombie> inZombie = std::make_shared<DerivedZombie>();
         std::shared_ptr<DerivedSkeleton> inSkeleton = std::make_shared<DerivedSkeleton>();
         std::shared_ptr<DerivedSpider> inSpider = std::make_shared<DerivedSpider>();
-        savepoint.Write(inItem.get(), inItem->ID, 0);
-        savepoint.Write(inZombie.get(), inZombie->ID, 0);
-        savepoint.Write(inSkeleton.get(), inSkeleton->ID, 0);
-        savepoint.Write(inSpider.get(), inSpider->ID, 0);
+        savepoint.Write(inItem, inItem->ID, 0);
+        savepoint.Write(inZombie, inZombie->ID, 0);
+        savepoint.Write(inSkeleton, inSkeleton->ID, 0);
+        savepoint.Write(inSpider, inSpider->ID, 0);
         int i = 0;
-        savepoint.Read([&](SavepointBase* base, SavepointID outID)
+        savepoint.Read<std::shared_ptr<BaseEntity>>([&](std::shared_ptr<BaseEntity>& base, SavepointID outID)
         {
             if (outID == inItem->ID)
             {
-                DerivedItem* outItem = dynamic_cast<DerivedItem*>(base);
+                DerivedItem* outItem = dynamic_cast<DerivedItem*>(base.get());
                 assert(outItem);
                 assert(*outItem == *inItem);
             }
             else if (outID == inZombie->ID)
             {
-                DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base);
+                DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base.get());
                 assert(outZombie);
                 assert(*outZombie == *inZombie);
             }
             else if (outID == inSkeleton->ID)
             {
-                DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base);
+                DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base.get());
                 assert(outSkeleton);
                 assert(*outSkeleton == *inSkeleton);
             }
             else if (outID == inSpider->ID)
             {
-                DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base);
+                DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base.get());
                 assert(outSpider);
                 assert(*outSpider == *inSpider);
             }

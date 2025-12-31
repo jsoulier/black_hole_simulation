@@ -71,38 +71,6 @@ bool Savepoint::IsOpen() const
     return Driver->IsOpen();
 }
 
-void Savepoint::Write(SavepointBase* base)
-{
-    if (IsOpen() && WriteDerived(base))
-    {
-        Driver->Write(Visitor);
-    }
-}
-
-void Savepoint::Write(SavepointBase* base, SavepointID& id, int level)
-{
-    if (IsOpen() && WriteDerived(base))
-    {
-        Driver->Write(Visitor, id, level);
-    }
-}
-
-void Savepoint::Write(SavepointBase* base, int x, int y, int level)
-{
-    if (IsOpen() && WriteDerived(base))
-    {
-        Driver->Write(Visitor, x, y, level);
-    }
-}
-
-void Savepoint::Write(SavepointBase* base, int x, int y, int z, int level)
-{
-    if (IsOpen() && WriteDerived(base))
-    {
-        Driver->Write(Visitor, x, y, z, level);
-    }
-}
-
 void Savepoint::Delete(const SavepointID id)
 {
     if (IsOpen())
@@ -133,66 +101,4 @@ void Savepoint::Clear()
     {
         Driver->Clear();
     }
-}
-
-void Savepoint::Read(const SavepointReadBaseFunction& function)
-{
-    if (IsOpen())
-    {
-        Driver->Read([this, &function](SavepointVisitor& visitor)
-        {
-            if (SavepointBase* base = SavepointReadDerived(visitor))
-            {
-                function(base);
-            }
-        });
-    }
-}
-
-void Savepoint::Read(const SavepointReadBaseEntityFunction& function, int level)
-{
-    if (IsOpen())
-    {
-        Driver->Read([this, &function](SavepointVisitor& visitor, SavepointID id)
-        {
-            if (SavepointBase* base = SavepointReadDerived(visitor))
-            {
-                function(base, id);
-            }
-        }, level);
-    }
-}
-
-void Savepoint::Read(const SavepointReadBaseTile2DFunction& function, int level)
-{
-    if (IsOpen())
-    {
-        Driver->Read([this, &function](SavepointVisitor& visitor, int x, int y)
-        {
-            if (SavepointBase* base = SavepointReadDerived(visitor))
-            {
-                function(base, x, y);
-            }
-        }, level);
-    }
-}
-
-void Savepoint::Read(const SavepointReadBaseTile3DFunction& function, int level)
-{
-    if (IsOpen())
-    {
-        Driver->Read([this, &function](SavepointVisitor& visitor, int x, int y, int z)
-        {
-            if (SavepointBase* base = SavepointReadDerived(visitor))
-            {
-                function(base, x, y, z);
-            }
-        }, level);
-    }
-}
-
-bool Savepoint::WriteDerived(SavepointBase* base)
-{
-    Visitor.Reset(Version, kSavepointVersion);
-    return SavepointWriteDerived(base, Visitor);
 }

@@ -103,12 +103,6 @@ public:
         Driver->Write(Visitor, x, y, z, level);
     }
 
-    // Polymorphic write variants
-    void Write(SavepointBase* base);
-    void Write(SavepointBase* base, SavepointID& id, int level);
-    void Write(SavepointBase* base, int x, int y, int level);
-    void Write(SavepointBase* base, int x, int y, int z, int level);
-
     // Read singleton
     template<SavepointReadableWritable T>
     void Read(const SavepointReadFunction<T>& function)
@@ -156,12 +150,6 @@ public:
             function(item, x, y, z);
         }, level);
     }
-
-    // Polymorphic read variants
-    void Read(const SavepointReadBaseFunction& function);
-    void Read(const SavepointReadBaseEntityFunction& function, int level);
-    void Read(const SavepointReadBaseTile2DFunction& function, int level);
-    void Read(const SavepointReadBaseTile3DFunction& function, int level);
     
     // Delete entity
     void Delete(const SavepointID id);
@@ -176,8 +164,6 @@ public:
     void Clear();
 
 private:
-    bool WriteDerived(SavepointBase* base);
-
     SavepointVersion Version;
     SavepointVisitor Visitor;
     std::unique_ptr<ISavepointDriver> Driver;

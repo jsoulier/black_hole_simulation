@@ -278,7 +278,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             // TODO: missing tests
             if constexpr (std::is_base_of_v<SavepointBase, E>)
             {
-                rawPointer = dynamic_cast<E>(SavepointReadDerived(visitor));
+                rawPointer = dynamic_cast<E*>(SavepointReadDerived(visitor));
             }
             else if constexpr (std::is_default_constructible_v<E>)
             {
@@ -308,7 +308,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             {
                 // TODO: missing tests
                 SavepointBase* base = item.get();
-                SavepointWriteDerived(base);
+                SavepointWriteDerived(base, visitor);
             }
             else
             {

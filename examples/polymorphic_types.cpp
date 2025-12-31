@@ -92,20 +92,20 @@ int main()
     std::shared_ptr<SpiderEntity> inSpider = std::make_shared<SpiderEntity>();
 
     // Writing the entities
-    savepoint.Write(inZombie.get(), inZombie->ID, 0);
-    savepoint.Write(inSpider.get(), inSpider->ID, 0);
+    savepoint.Write(inZombie, inZombie->ID, 0);
+    savepoint.Write(inSpider, inSpider->ID, 0);
 
     // Reading the entities
     int reads = 0;
-    savepoint.Read([&](SavepointBase* base, SavepointID id)
+    savepoint.Read<std::shared_ptr<Entity>>([&](std::shared_ptr<Entity>& base, SavepointID id)
     {
-        if (ZombieEntity* outZombie = dynamic_cast<ZombieEntity*>(base))
+        if (ZombieEntity* outZombie = dynamic_cast<ZombieEntity*>(base.get()))
         {
             assert(id == inZombie->ID);
             assert(*outZombie == *inZombie);
             reads++;
         }
-        else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(base))
+        else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(base.get()))
         {
             assert(id == inSpider->ID);
             assert(*outSpider == *inSpider);
