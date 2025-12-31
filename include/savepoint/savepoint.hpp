@@ -125,7 +125,7 @@ public:
      * @tparam T The type to write.
      * @param item The item to write.
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Write(T& item)
     {
         Visitor.BeginWriting(Version);
@@ -147,7 +147,7 @@ public:
      * @param level The level.
      * @see SavepointID
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Write(T& item, SavepointID& id, int level)
     {
         Visitor.BeginWriting(Version);
@@ -167,7 +167,7 @@ public:
      * @param y The y location.
      * @param level The level.
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Write(T& item, int x, int y, int level)
     {
         Visitor.BeginWriting(Version);
@@ -188,7 +188,7 @@ public:
      * @param z The z location.
      * @param level The level.
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Write(T& item, int x, int y, int z, int level)
     {
         Visitor.BeginWriting(Version);
@@ -202,7 +202,7 @@ public:
      * @tparam T The type to read.
      * @param function The function to use.
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Read(const SavepointReadFunction<T>& function)
     {
         Driver->Read([&function](SavepointVisitor& visitor)
@@ -221,7 +221,7 @@ public:
      * @param level The level.
      * @see SavepointID
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Read(const SavepointReadEntityFunction<T>& function, int level)
     {
         Driver->Read([&function](SavepointVisitor& visitor, SavepointID id)
@@ -239,7 +239,7 @@ public:
      * @param function The function to use.
      * @param level The level.
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Read(const SavepointReadTile2DFunction<T>& function, int level)
     {
         Driver->Read([&function](SavepointVisitor& visitor, int x, int y)
@@ -257,7 +257,7 @@ public:
      * @param function The function to use.
      * @param level The level.
      */
-    template<SavepointReadableWritable T>
+    template<SavepointVisitable T>
     void Read(const SavepointReadTile3DFunction<T>& function, int level)
     {
         Driver->Read([&function](SavepointVisitor& visitor, int x, int y, int z)

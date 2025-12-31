@@ -61,8 +61,9 @@ public:
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         // For detecting bugs in MSVC concepts
-        static_assert(!SavepointRange<T>);
         static_assert(!SavepointPointer<T>);
+        static_assert(!std::is_base_of_v<SavepointBase, T>);
+        static_assert(!std::ranges::range<T>);
         if (IsReading())
         {
             // Required for write-only containers (e.g. views)
@@ -390,7 +391,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
  * @param visitor The visitor.
  * @param item The pointer.
  */
-template<SavepointRange T>
+template<std::ranges::range T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
     using E = typename T::value_type;

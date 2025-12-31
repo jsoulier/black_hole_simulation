@@ -45,6 +45,13 @@ bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
         return false;
     }
     std::string_view string = base->SavepointDerivedGetString();
+    // TODO: can this ever happen?
+    auto it = GetDerivedFunctions().find(string);
+    if (it == GetDerivedFunctions().end())
+    {
+        SavepointLog(std::format("Failed to find base string: {}", string));
+        return false;
+    }
     visitor(string);
     visitor(*base);
     return true;
@@ -58,14 +65,12 @@ SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
     if (it == GetDerivedFunctions().end())
     {
         SavepointLog(std::format("Failed to find base string: {}", string));
-        visitor.Fail();
         return nullptr;
     }
     SavepointBase* base = it->second();
     if (!base)
     {
         SavepointLog(std::format("Failed to allocate base: {}", string));
-        visitor.Fail();
         return nullptr;
     }
     visitor(*base);

@@ -31,6 +31,8 @@ You can find all examples [here](examples)
 ```c++
 #include <savepoint/savepoint.hpp>
 
+#include <cassert>
+
 struct Entity
 {
     int X;

@@ -46,7 +46,6 @@ static_assert(!SavepointStaticRange<std::unordered_map<int, int>>);
 static_assert(!SavepointStaticRange<std::set<int>>);
 static_assert(!SavepointStaticRange<std::string>);
 
-static_assert(SavepointRange<std::string>);
 static_assert(!SavepointMemberVisit<std::string>);
 static_assert(SavepointFreeVisit<std::string>);
 
