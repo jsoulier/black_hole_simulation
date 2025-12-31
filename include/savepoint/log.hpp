@@ -33,15 +33,16 @@
 #include <string_view>
 
 /**
- * @brief 
+ * @brief The log function signature
  * 
+ * @param string The log message
  */
 using SavepointLogFunction = std::function<void(const std::string_view& string)>;
 
 /**
- * @brief 
+ * @brief Set the log function used by SavepointLog. Defaults to stderr
  * 
- * @param function 
+ * @param function The log function
  */
 void SavepointSetLogFunction(const SavepointLogFunction& function);
 

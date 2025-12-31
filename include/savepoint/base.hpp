@@ -46,9 +46,9 @@ class SavepointBase
 {
 public:
     /**
-     * @brief The Visit method to be called from SavepointVisitor
+     * @brief The Visit method to be called from SavepointVisitor.
      * 
-     * @param visitor The visitor
+     * @param visitor The visitor.
      * @see SavepointVisitor
      */
     virtual void Visit(SavepointVisitor& visitor) {}
@@ -61,13 +61,13 @@ public:
 };
 
 /**
- * @brief Helper for concrete derived classes to implement SavepointBase methods
+ * @brief Helper for concrete derived classes to implement SavepointBase methods.
  * 
  * Implements SavepointDerivedGetString and automatically registers a factory function
  * for the derived class. It allows a SavepointVisitor to to create an instance of
  * the derived class whilst only knowing its class name.
  * 
- * @param T The class type
+ * @param T The class type.
  * @see SavepointBase
  */
 #define SAVEPOINT_DERIVED(T) \

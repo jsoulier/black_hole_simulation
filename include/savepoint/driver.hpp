@@ -36,8 +36,7 @@
 #include <string_view>
 
 /**
- * @brief 
- * 
+ * @brief The implementation for Savepoint's file operations
  */
 enum class SavepointDriver
 {

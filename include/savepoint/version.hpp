@@ -34,15 +34,21 @@
 #include <string>
 
 /**
- * @brief 
+ * @brief Used to specify a Savepoint version.
  * 
+ * For versioning members and performing quick comparisons, a version wrapper
+ * is provided. The version consists of a major, minor, and patch version (with
+ * decreasing significance). Versions are packed into a u32 so comparisons are
+ * cheap. Versions can also be assigned and compared at compile time.
+ * 
+ * @snippet examples/basic_upgraded.cpp basic_upgraded
+ * @see Savepoint
  */
 class SavepointVersion
 {
 public:
     /**
-     * @brief 
-     * 
+     * @brief Default initializes the version to 0.0.0.
      */
     constexpr SavepointVersion()
         : Value{0}
@@ -50,11 +56,11 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Initialize the version to major.minor.patch.
      * 
-     * @param major
-     * @param minor
-     * @param patch
+     * @param major The major version.
+     * @param minor The minor version.
+     * @param patch The patch version.
      */
     constexpr SavepointVersion(uint32_t major, uint32_t minor, uint32_t patch)
         : Value{major << 24 | minor << 16 | patch}
@@ -62,9 +68,9 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Get the major version.
      * 
-     * @return 
+     * @return The major version.
      */
     constexpr uint32_t GetMajor() const
     {
@@ -72,9 +78,9 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Get the minor version.
      * 
-     * @return 
+     * @return The minor version.
      */
     constexpr uint32_t GetMinor() const
     {
@@ -82,9 +88,9 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Get the patch version.
      * 
-     * @return 
+     * @return The patch version.
      */
     constexpr uint32_t GetPatch() const
     {
@@ -92,9 +98,9 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Get the version as a string in the format major.minor.patch.
      * 
-     * @return 
+     * @return The version as a string.
      */
     std::string GetString() const
     {
@@ -102,10 +108,10 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Compare the version to another version.
      * 
-     * @param other
-     * @return
+     * @param other The other version.
+     * @return True if the comparison evaluated to true.
      */
     constexpr auto operator<=>(const SavepointVersion other) const
     {

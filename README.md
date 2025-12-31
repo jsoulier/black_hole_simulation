@@ -11,9 +11,10 @@ A simple, fast, and reliable key-value database for games written in C++
 - Polymorphic types
 - Arrays, vectors, sets, maps, pointers, etc
 
-### Docs
+### Documentation
 
-See [here](docs)
+The source is documented with Doxygen style comments.
+You can generate HTML docs with `doxygen Doxyfile`
 
 ### Examples
 
