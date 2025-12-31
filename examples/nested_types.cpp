@@ -95,7 +95,7 @@ struct Entity
 
     void Visit(SavepointVisitor& visitor)
     {
-        // Members are complex types but serialization is as usual, trivial
+        // Members are complex types but serialization is trivial
         visitor(Inventory);
         visitor(Effects);
         visitor(Position);

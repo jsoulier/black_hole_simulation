@@ -58,6 +58,8 @@ using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, in
 
 /**
  * @brief The connection handle to a Savepoint file.
+ * 
+ * @snippet examples/basic_usage.cpp basic_usage
  */
 class Savepoint
 {

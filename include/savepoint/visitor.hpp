@@ -19,11 +19,10 @@
 #include <vector>
 
 /**
- * @brief Modified implementation of the Visitor pattern for serialization.
+ * @brief Implementation of the Visitor pattern for serialization.
  * 
- * The visitor is the main component in object serialization. It uses a
- * simplified version of the [visitor pattern](https://refactoring.guru/design-patterns/visitor)
- * with two operating modes:
+ * The visitor is used to serialize objects. It uses a simplified version of the
+ * [pattern](https://refactoring.guru/design-patterns/visitor) with two operating modes:
  * 1. Reading from the Savepoint.
  * 2. Writing to the Savepoint.
  * 
@@ -342,6 +341,8 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
                 // Don't static_assert because it'll fail on already instanciated
                 // derived classes with abstract parents
                 SavepointLog("No method to create pointer");
+                visitor.Fail();
+                return;
             }
         }
         visitor(*item);

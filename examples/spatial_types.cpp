@@ -1,3 +1,5 @@
+// [spatial_types]
+// TODO: comments
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>
@@ -58,3 +60,4 @@ int main()
     savepoint.Close();
     return 0;
 }
+// [spatial_types]

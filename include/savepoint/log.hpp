@@ -19,7 +19,8 @@ using SavepointLogFunction = std::function<void(const std::string_view& string)>
  */
 void SavepointSetLogFunction(const SavepointLogFunction& function);
 
-/**
- * @internal
- */
+/** @cond INTERNAL */
+
 void SavepointLog(const std::string_view& string);
+
+/** @endcond */
