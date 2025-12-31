@@ -6,6 +6,7 @@
 #include <savepoint/traits.hpp>
 #include <savepoint/version.hpp>
 
+#include <algorithm>
 #include <type_traits>
 #include <ranges>
 #include <iterator>

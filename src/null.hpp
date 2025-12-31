@@ -1,6 +1,10 @@
 #pragma once
 
 #include <savepoint/driver.hpp>
+#include <savepoint/fwd.hpp>
+#include <savepoint/id.hpp>
+#include <savepoint/status.hpp>
+#include <savepoint/version.hpp>
 
 #include <string_view>
 

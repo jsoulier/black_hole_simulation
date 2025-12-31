@@ -39,18 +39,15 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
 
 bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
 {
-    if (base)
-    {
-        std::string_view string = base->SavepointDerivedGetString();
-        visitor(string);
-        visitor(*base);
-        return true;
-    }
-    else
+    if (!base)
     {
         SavepointLog("Tried to write null base");
         return false;
     }
+    std::string_view string = base->SavepointDerivedGetString();
+    visitor(string);
+    visitor(*base);
+    return true;
 }
 
 SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <savepoint/base.hpp>
 #include <savepoint/driver.hpp>
+#include <savepoint/id.hpp>
+#include <savepoint/status.hpp>
 #include <savepoint/version.hpp>
 #include <savepoint/visitor.hpp>
 

@@ -1,3 +1,10 @@
+#include <savepoint/driver.hpp>
+#include <savepoint/id.hpp>
+#include <savepoint/log.hpp>
+#include <savepoint/status.hpp>
+#include <savepoint/version.hpp>
+#include <savepoint/visitor.hpp>
+
 #include <cstddef>
 #include <format>
 #include <string_view>

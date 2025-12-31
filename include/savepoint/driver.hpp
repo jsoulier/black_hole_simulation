@@ -3,6 +3,7 @@
 #include <savepoint/fwd.hpp>
 #include <savepoint/id.hpp>
 #include <savepoint/status.hpp>
+#include <savepoint/version.hpp>
 
 #include <functional>
 #include <string_view>

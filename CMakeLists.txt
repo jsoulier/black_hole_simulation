@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.24)
 project(savepoint)
 
-add_library(savepoint_sqlite3 src/drivers/sqlite3.c)
+add_library(savepoint_sqlite3 src/sqlite3.c)
 add_library(savepoint
     src/base.cpp
-    src/drivers/null.cpp
-    src/drivers/sqlite3.cpp
     src/log.cpp
+    src/null.cpp
     src/savepoint.cpp
+    src/sqlite3.cpp
 )
 add_library(savepoint::savepoint ALIAS savepoint)
 target_link_libraries(savepoint PRIVATE savepoint_sqlite3)

@@ -5,8 +5,8 @@
 #include <string_view>
 #include <utility>
 
-#include "drivers/null.hpp"
-#include "drivers/sqlite3.hpp"
+#include "null.hpp"
+#include "sqlite3.hpp"
 
 Savepoint::~Savepoint()
 {

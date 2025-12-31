@@ -1,3 +1,10 @@
+#include <savepoint/driver.hpp>
+#include <savepoint/id.hpp>
+#include <savepoint/status.hpp>
+#include <savepoint/version.hpp>
+
+#include <string_view>
+
 #include "null.hpp"
 
 SavepointStatus SavepointDriverNull::Open(const std::string_view& path, SavepointVersion version)
