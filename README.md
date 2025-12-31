@@ -1,8 +1,9 @@
 # Savepoint
 
-C++ lacks built-in object serialization.
-Libraries like [cereal](https://github.com/USCiLab/cereal) handle serialization, but persistence and versioning are still left to the user.
-Savepoint combines serialization, storage, and versioning into a single system.
+Savepoint is a lightweight, all-in-one solution for serialization, versioning, and persistence in C++ applications.
+Inspired by [cereal](https://github.com/USCiLab/cereal) and built on proven databases like [SQLite](https://sqlite.org/),
+it provides a simple, fast, and reliable interface for persisting C++ objects. Including documentation and excluding
+SQLite, the library is roughly 2K lines of code.
 
 ### Features
 
@@ -12,15 +13,7 @@ Savepoint combines serialization, storage, and versioning into a single system.
 - Inherited and nested fields
 - Polymorphic types
 - Vectors, sets, maps, pointers, and more
-
-### CMake
-
-You can copy the source and add the following to your CMakeLists.txt:
-
-```cmake
-add_subdirectory(<path>)
-target_link_libraries(<name> PRIVATE savepoint::savepoint)
-```
+- Support for multiple backends (only SQLite is supported right now)
 
 ### Documentation
 
@@ -34,8 +27,6 @@ doxygen Doxyfile
 ### Examples
 
 You can find all examples [here](examples)
-
-#### Basic Usage
 
 ```c++
 #include <savepoint/savepoint.hpp>
@@ -74,4 +65,13 @@ int main()
     savepoint.Close();
     return 0;
 }
+```
+
+### CMake
+
+You can clone and add the following to your `CMakeLists.txt`:
+
+```cmake
+add_subdirectory(<path>)
+target_link_libraries(<name> PRIVATE savepoint::savepoint)
 ```
