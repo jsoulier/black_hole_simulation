@@ -31,28 +31,47 @@
 
 #include <string_view>
 
-// Base class for user's base class (optional, only required for polymorphics)
+/**
+ * @brief Serves as the base class for the user's base class.
+ * 
+ * To support polymorphic types, Savepoint offers a base class you can use.
+ * Savepoint checks if visited objects inherit from SavepointBase and if so, 
+ * serializes the object alongside its type information. When Savepoint reads
+ * the type information out, it knows to instantiate the derived class.
+ * 
+ * @snippet examples/polymorphic_types.cpp polymorphic_types
+ * @see SAVEPOINT_DERIVED
+ */
 class SavepointBase
 {
 public:
-    virtual void Visit(SavepointVisitor& visitor) = 0;
+    /**
+     * @brief The Visit method to be called from SavepointVisitor
+     * 
+     * @param visitor The visitor
+     * @see SavepointVisitor
+     */
+    virtual void Visit(SavepointVisitor& visitor) {}
 
-    // For getting the class name at runtime for derived factory lookups
+    /** @cond INTERNAL */
+
     virtual std::string_view SavepointDerivedGetString() const = 0;
+
+    /** @endcond */
 };
 
-using SavepointDerivedFunction = SavepointBase*(*)();
-
-// Register a derived factory. Use SAVEPOINT_DERIVED instead
-void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
-
-bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor);
-SavepointBase* SavepointReadDerived(SavepointVisitor& visitor);
-
-// For user's concrete derived classes
+/**
+ * @brief Helper for concrete derived classes to implement SavepointBase methods
+ * 
+ * Implements SavepointDerivedGetString and automatically registers a factory function
+ * for the derived class. It allows a SavepointVisitor to to create an instance of
+ * the derived class whilst only knowing its class name.
+ * 
+ * @param T The class type
+ * @see SavepointBase
+ */
 #define SAVEPOINT_DERIVED(T) \
     private: \
-        /* Automatically register derived factory */ \
         struct SavepointDerivedFunctionRegistrar \
         { \
             static SavepointBase* Function() \
@@ -70,3 +89,13 @@ SavepointBase* SavepointReadDerived(SavepointVisitor& visitor);
         { \
             return #T; \
         } \
+
+/** @cond INTERNAL */
+
+using SavepointDerivedFunction = SavepointBase*(*)();
+
+void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
+bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor);
+SavepointBase* SavepointReadDerived(SavepointVisitor& visitor);
+
+/** @endcond */

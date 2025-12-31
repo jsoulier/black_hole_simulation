@@ -11,6 +11,10 @@ A simple, fast, and reliable key-value database for games written in C++
 - Polymorphic types
 - Arrays, vectors, sets, maps, pointers, etc
 
+### Docs
+
+See [here](docs)
+
 ### Examples
 
 See [here](examples)

@@ -5,14 +5,13 @@
 #include <unordered_set>
 #include <vector>
 
-static constexpr SavepointVersion kVersion1{0, 0, 0};
+static constexpr SavepointVersion kVersion{0, 0, 0};
 
 struct Vector
 {
     int X;
     int Y;
 
-    // Visit is optional since no pointers and schema won't change
     void Visit(SavepointVisitor& visitor)
     {
         visitor(X);
@@ -65,15 +64,6 @@ struct EntityInventory
     }
 };
 
-// Entity
-// |-> std::shared_ptr<Inventory>
-//   |-> std::vector<Items>
-//     |-> Count
-//     |-> Durability
-// |-> std::unordered_set<Effects>
-// |-> Position
-//   |-> X
-//   |-> Y
 struct Entity
 {
     std::shared_ptr<EntityInventory> Inventory;
@@ -108,16 +98,13 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion1);
+    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion);
 
-    // Writing the entity
     Entity inEntity;
     inEntity.Inventory->Items = {{1, 50}, {2, 50}, {5, 50}};
     inEntity.Effects = {EffectStrength, EffectSlowness};
     inEntity.Position = {100, 200};
     savepoint.Write(inEntity, inEntity.ID, 0);
-
-    // Reading the entity
     savepoint.Read<Entity>([&](Entity& outEntity, SavepointID id)
     {
         assert(outEntity == inEntity);

@@ -1,0 +1,154 @@
+\doxysection{Savepoint\+Visitor Class Reference}
+\hypertarget{class_savepoint_visitor}{}\label{class_savepoint_visitor}\index{SavepointVisitor@{SavepointVisitor}}
+
+
+{\ttfamily \#include $<$visitor.\+hpp$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$Savepoint\+Memcpyable T, typename... Args$>$ }\\void \mbox{\hyperlink{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}{operator()}} (T \&item, \mbox{\hyperlink{class_savepoint_version}{Savepoint\+Version}} version=\{\}, Args \&\&... args)
+\item 
+{\footnotesize template$<$Savepoint\+Free\+Visit T, typename... Args$>$ }\\void \mbox{\hyperlink{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}{operator()}} (T \&item, \mbox{\hyperlink{class_savepoint_version}{Savepoint\+Version}} version=\{\}, Args \&\&... args)
+\item 
+{\footnotesize template$<$Savepoint\+Member\+Visit T, typename... Args$>$ }\\void \mbox{\hyperlink{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}{operator()}} (T \&item, \mbox{\hyperlink{class_savepoint_version}{Savepoint\+Version}} version=\{\}, Args \&\&... args)
+\item 
+{\footnotesize template$<$Savepoint\+Memcpyable T$>$ }\\void \mbox{\hyperlink{class_savepoint_visitor_a3bdcea7d67bcb04c972d2bb612c3632c}{Skip}} (size\+\_\+t size=1)
+\item 
+void \mbox{\hyperlink{class_savepoint_visitor_a1140ff61639f97263a25d337b5c2fbc2}{Fail}} ()
+\item 
+bool \mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{Is\+Reading}} () const
+\item 
+bool \mbox{\hyperlink{class_savepoint_visitor_a6d77a2a07b2e7b6701d3a5bea91d2cb2}{Is\+Writing}} () const
+\item 
+size\+\_\+t \mbox{\hyperlink{class_savepoint_visitor_a49f4e66b30712f92b02614e018f3cd80}{Get\+Size}} () const
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{class_savepoint_visitor_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_savepoint_visitor_a1140ff61639f97263a25d337b5c2fbc2}\index{SavepointVisitor@{SavepointVisitor}!Fail@{Fail}}
+\index{Fail@{Fail}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{Fail()}{Fail()}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_a1140ff61639f97263a25d337b5c2fbc2} 
+void Savepoint\+Visitor\+::\+Fail (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_savepoint_visitor_a49f4e66b30712f92b02614e018f3cd80}\index{SavepointVisitor@{SavepointVisitor}!GetSize@{GetSize}}
+\index{GetSize@{GetSize}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{GetSize()}{GetSize()}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_a49f4e66b30712f92b02614e018f3cd80} 
+size\+\_\+t Savepoint\+Visitor\+::\+Get\+Size (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\begin{DoxyReturn}{Returns}
+
+\end{DoxyReturn}
+\Hypertarget{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}\index{SavepointVisitor@{SavepointVisitor}!IsReading@{IsReading}}
+\index{IsReading@{IsReading}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{IsReading()}{IsReading()}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128} 
+bool Savepoint\+Visitor\+::\+Is\+Reading (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\begin{DoxyReturn}{Returns}
+
+\end{DoxyReturn}
+\Hypertarget{class_savepoint_visitor_a6d77a2a07b2e7b6701d3a5bea91d2cb2}\index{SavepointVisitor@{SavepointVisitor}!IsWriting@{IsWriting}}
+\index{IsWriting@{IsWriting}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{IsWriting()}{IsWriting()}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_a6d77a2a07b2e7b6701d3a5bea91d2cb2} 
+bool Savepoint\+Visitor\+::\+Is\+Writing (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\begin{DoxyReturn}{Returns}
+
+\end{DoxyReturn}
+\Hypertarget{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}\index{SavepointVisitor@{SavepointVisitor}!operator()@{operator()}}
+\index{operator()@{operator()}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09} 
+template$<$Savepoint\+Member\+Visit T, typename... Args$>$ \\
+void Savepoint\+Visitor\+::operator() (\begin{DoxyParamCaption}\item[{T \&}]{item}{, }\item[{\mbox{\hyperlink{class_savepoint_version}{Savepoint\+Version}}}]{version}{ = {\ttfamily \{\}}, }\item[{Args \&\&...}]{args}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & \\
+\hline
+{\em Args} & \\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em item} & \\
+\hline
+{\em version} & \\
+\hline
+{\em args} & \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}\index{SavepointVisitor@{SavepointVisitor}!operator()@{operator()}}
+\index{operator()@{operator()}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09} 
+template$<$Savepoint\+Free\+Visit T, typename... Args$>$ \\
+void Savepoint\+Visitor\+::operator() (\begin{DoxyParamCaption}\item[{T \&}]{item}{, }\item[{\mbox{\hyperlink{class_savepoint_version}{Savepoint\+Version}}}]{version}{ = {\ttfamily \{\}}, }\item[{Args \&\&...}]{args}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & \\
+\hline
+{\em Args} & \\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em item} & \\
+\hline
+{\em version} & \\
+\hline
+{\em args} & \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}\index{SavepointVisitor@{SavepointVisitor}!operator()@{operator()}}
+\index{operator()@{operator()}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09} 
+template$<$Savepoint\+Memcpyable T, typename... Args$>$ \\
+void Savepoint\+Visitor\+::operator() (\begin{DoxyParamCaption}\item[{T \&}]{item}{, }\item[{\mbox{\hyperlink{class_savepoint_version}{Savepoint\+Version}}}]{version}{ = {\ttfamily \{\}}, }\item[{Args \&\&...}]{args}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & \\
+\hline
+{\em Args} & \\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em item} & \\
+\hline
+{\em version} & \\
+\hline
+{\em args} & \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_savepoint_visitor_a3bdcea7d67bcb04c972d2bb612c3632c}\index{SavepointVisitor@{SavepointVisitor}!Skip@{Skip}}
+\index{Skip@{Skip}!SavepointVisitor@{SavepointVisitor}}
+\doxysubsubsection{\texorpdfstring{Skip()}{Skip()}}
+{\footnotesize\ttfamily \label{class_savepoint_visitor_a3bdcea7d67bcb04c972d2bb612c3632c} 
+template$<$Savepoint\+Memcpyable T$>$ \\
+void Savepoint\+Visitor\+::\+Skip (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{size}{ = {\ttfamily 1}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & \\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em size} & \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/savepoint/\mbox{\hyperlink{visitor_8hpp}{visitor.\+hpp}}\end{DoxyCompactItemize}

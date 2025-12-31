@@ -1,0 +1,84 @@
+\doxysection{version.\+hpp}
+\hypertarget{version_8hpp_source}{}\label{version_8hpp_source}\index{include/savepoint/version.hpp@{include/savepoint/version.hpp}}
+\mbox{\hyperlink{version_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ This\ is\ free\ and\ unencumbered\ software\ released\ into\ the\ public\ domain.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ *\ Anyone\ is\ free\ to\ copy,\ modify,\ publish,\ use,\ compile,\ sell,\ or}}
+\DoxyCodeLine{00005\ \textcolor{comment}{\ *\ distribute\ this\ software,\ either\ in\ source\ code\ form\ or\ as\ a\ compiled}}
+\DoxyCodeLine{00006\ \textcolor{comment}{\ *\ binary,\ for\ any\ purpose,\ commercial\ or\ non-\/commercial,\ and\ by\ any}}
+\DoxyCodeLine{00007\ \textcolor{comment}{\ *\ means.}}
+\DoxyCodeLine{00008\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00009\ \textcolor{comment}{\ *\ In\ jurisdictions\ that\ recognize\ copyright\ laws,\ the\ author\ or\ authors}}
+\DoxyCodeLine{00010\ \textcolor{comment}{\ *\ of\ this\ software\ dedicate\ any\ and\ all\ copyright\ interest\ in\ the}}
+\DoxyCodeLine{00011\ \textcolor{comment}{\ *\ software\ to\ the\ public\ domain.\ We\ make\ this\ dedication\ for\ the\ benefit}}
+\DoxyCodeLine{00012\ \textcolor{comment}{\ *\ of\ the\ public\ at\ large\ and\ to\ the\ detriment\ of\ our\ heirs\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{\ *\ successors.\ We\ intend\ this\ dedication\ to\ be\ an\ overt\ act\ of}}
+\DoxyCodeLine{00014\ \textcolor{comment}{\ *\ relinquishment\ in\ perpetuity\ of\ all\ present\ and\ future\ rights\ to\ this}}
+\DoxyCodeLine{00015\ \textcolor{comment}{\ *\ software\ under\ copyright\ law.}}
+\DoxyCodeLine{00016\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00017\ \textcolor{comment}{\ *\ THE\ SOFTWARE\ IS\ PROVIDED\ "{}AS\ IS"{},\ WITHOUT\ WARRANTY\ OF\ ANY\ KIND,}}
+\DoxyCodeLine{00018\ \textcolor{comment}{\ *\ EXPRESS\ OR\ IMPLIED,\ INCLUDING\ BUT\ NOT\ LIMITED\ TO\ THE\ WARRANTIES\ OF}}
+\DoxyCodeLine{00019\ \textcolor{comment}{\ *\ MERCHANTABILITY,\ FITNESS\ FOR\ A\ PARTICULAR\ PURPOSE\ AND\ NONINFRINGEMENT.}}
+\DoxyCodeLine{00020\ \textcolor{comment}{\ *\ IN\ NO\ EVENT\ SHALL\ THE\ AUTHORS\ BE\ LIABLE\ FOR\ ANY\ CLAIM,\ DAMAGES\ OR}}
+\DoxyCodeLine{00021\ \textcolor{comment}{\ *\ OTHER\ LIABILITY,\ WHETHER\ IN\ AN\ ACTION\ OF\ CONTRACT,\ TORT\ OR\ OTHERWISE,}}
+\DoxyCodeLine{00022\ \textcolor{comment}{\ *\ ARISING\ FROM,\ OUT\ OF\ OR\ IN\ CONNECTION\ WITH\ THE\ SOFTWARE\ OR\ THE\ USE\ OR}}
+\DoxyCodeLine{00023\ \textcolor{comment}{\ *\ OTHER\ DEALINGS\ IN\ THE\ SOFTWARE.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00025\ \textcolor{comment}{\ *\ For\ more\ information,\ please\ refer\ to\ <https://unlicense.org>}}
+\DoxyCodeLine{00026\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{fwd_8hpp}{savepoint/fwd.hpp}}>}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <format>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_savepoint_version_a6cd26dff5dd62af48c4e58bf01ee61be}{SavepointVersion}}}
+\DoxyCodeLine{00041\ \{}
+\DoxyCodeLine{00042\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{class_savepoint_version_a6cd26dff5dd62af48c4e58bf01ee61be}{SavepointVersion}}()}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ :\ Value\{0\}}
+\DoxyCodeLine{00049\ \ \ \ \ \{}
+\DoxyCodeLine{00050\ \ \ \ \ \}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{class_savepoint_version_a5956b9ea00cd153cb1fa10ae39bfe285}{SavepointVersion}}(uint32\_t\ major,\ uint32\_t\ minor,\ uint32\_t\ patch)}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ :\ Value\{major\ <<\ 24\ |\ minor\ <<\ 16\ |\ patch\}}
+\DoxyCodeLine{00061\ \ \ \ \ \{}
+\DoxyCodeLine{00062\ \ \ \ \ \}}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint32\_t\ \mbox{\hyperlink{class_savepoint_version_a85360f61f06addb69d281685187e9c36}{GetMajor}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00070\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (Value\ >>\ 24)\ \&\ 0xFF;}
+\DoxyCodeLine{00072\ \ \ \ \ \}}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint32\_t\ \mbox{\hyperlink{class_savepoint_version_affa71ede2b1e89935ee530201a0d0e36}{GetMinor}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00080\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (Value\ >>\ 16)\ \&\ 0xFF;}
+\DoxyCodeLine{00082\ \ \ \ \ \}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint32\_t\ \mbox{\hyperlink{class_savepoint_version_a7cb69211fa744bc5501fbbb6cedeec12}{GetPatch}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00090\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Value\ \&\ 0xFFFF;}
+\DoxyCodeLine{00092\ \ \ \ \ \}}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00099\ \ \ \ \ std::string\ \mbox{\hyperlink{class_savepoint_version_a324507ddd90df8813522c0ca9da96e64}{GetString}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00100\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ std::format(\textcolor{stringliteral}{"{}\{\}.\{\}.\{\}"{}},\ \mbox{\hyperlink{class_savepoint_version_a85360f61f06addb69d281685187e9c36}{GetMajor}}(),\ \mbox{\hyperlink{class_savepoint_version_affa71ede2b1e89935ee530201a0d0e36}{GetMinor}}(),\ \mbox{\hyperlink{class_savepoint_version_a7cb69211fa744bc5501fbbb6cedeec12}{GetPatch}}());}
+\DoxyCodeLine{00102\ \ \ \ \ \}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{class_savepoint_version_a8a20af539b9fb4ecccc2f399b5c1975c}{operator<=>}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{class_savepoint_version_a6cd26dff5dd62af48c4e58bf01ee61be}{SavepointVersion}}\ other)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00111\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Value\ <=>\ other.Value;}
+\DoxyCodeLine{00113\ \ \ \ \ \}}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00116\ \ \ \ \ uint32\_t\ Value;}
+\DoxyCodeLine{00117\ \};}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{class_savepoint_version}{SavepointVersion}}\ kSavepointVersion\{0,\ 0,\ 0\};}
+
+\end{DoxyCode}

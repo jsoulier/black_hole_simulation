@@ -32,37 +32,65 @@
 #include <cstdint>
 #include <limits>
 
-// Key used for entities
+/**
+ * @brief 
+ * 
+ */
 class SavepointID
 {
 public:
+    /**
+     * @brief 
+     * 
+     */
     constexpr SavepointID()
         : Value{std::numeric_limits<uint32_t>::max()}
     {
     }
 
-    // TODO: hide from user
+    /**
+     * @internal
+     */
     void SetValue(uint32_t value)
     {
         Value = value;
     }
 
-    // TODO: hide from user
+    /**
+     * @internal
+     */
     uint32_t GetValue() const
     {
         return Value;
     }
 
+    /**
+     * @brief 
+     * 
+     * @param other 
+     * @return 
+     */
     constexpr bool operator==(const SavepointID other) const
     {
         return Value == other.Value;
     }
 
+    /**
+     * @brief 
+     * 
+     * @param other 
+     * @return 
+     */
     constexpr bool operator!=(const SavepointID other) const
     {
         return Value != other.Value;
     }
 
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     constexpr bool IsValid() const
     {
         return Value != SavepointID{}.Value;

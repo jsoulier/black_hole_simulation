@@ -1,12 +1,13 @@
+// [polymorphic_types]
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>
 #include <filesystem>
 #include <memory>
 
-static constexpr SavepointVersion kVersion1{0, 0, 0};
+static constexpr SavepointVersion kVersion{0, 0, 0};
 
-// Inherit from SavepointBase
+// Your base class inherits from SavepointBase
 struct Entity : public SavepointBase
 {
     int X;
@@ -19,6 +20,7 @@ struct Entity : public SavepointBase
     {
     }
 
+    // Optionally implement Visit
     void Visit(SavepointVisitor& visitor)
     {
         visitor(X);
@@ -31,9 +33,10 @@ struct Entity : public SavepointBase
     }
 };
 
+// Your derived classes inherit from Entity as usual
 struct ZombieEntity : public Entity
 {
-    // Implement the derived methods
+    // Your concrete derived classes use SAVEPOINT_DERIVED to implement required methods
     SAVEPOINT_DERIVED(ZombieEntity);
 
     int Strength;
@@ -46,6 +49,7 @@ struct ZombieEntity : public Entity
 
     void Visit(SavepointVisitor& visitor)
     {
+        // Make sure to use the base class' Visit function
         Entity::Visit(visitor);
         visitor(Strength);
     }
@@ -58,7 +62,6 @@ struct ZombieEntity : public Entity
 
 struct SpiderEntity : public Entity
 {
-    // Implement the derived methods
     SAVEPOINT_DERIVED(SpiderEntity);
 
     int Eyes;
@@ -86,26 +89,26 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion1);
+    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion);
 
+    // Write derived classes as usual
     std::shared_ptr<ZombieEntity> inZombie = std::make_shared<ZombieEntity>();
     std::shared_ptr<SpiderEntity> inSpider = std::make_shared<SpiderEntity>();
-
-    // Writing the entities
     savepoint.Write(inZombie, inZombie->ID, 0);
     savepoint.Write(inSpider, inSpider->ID, 0);
 
-    // Reading the entities
+    // Read using your base class' class name
     int reads = 0;
-    savepoint.Read<std::shared_ptr<Entity>>([&](std::shared_ptr<Entity>& base, SavepointID id)
+    savepoint.Read<std::shared_ptr<Entity>>([&](std::shared_ptr<Entity>& entity, SavepointID id)
     {
-        if (ZombieEntity* outZombie = dynamic_cast<ZombieEntity*>(base.get()))
+        // The read entity is either a ZombieEntity or a SpiderEntity. You can safely take ownership of it
+        if (ZombieEntity* outZombie = dynamic_cast<ZombieEntity*>(entity.get()))
         {
             assert(id == inZombie->ID);
             assert(*outZombie == *inZombie);
             reads++;
         }
-        else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(base.get()))
+        else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(entity.get()))
         {
             assert(id == inSpider->ID);
             assert(*outSpider == *inSpider);
@@ -121,3 +124,4 @@ int main()
     savepoint.Close();
     return 0;
 }
+// [polymorphic_types]

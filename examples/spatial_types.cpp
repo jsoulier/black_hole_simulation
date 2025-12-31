@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <random>
 
-static constexpr SavepointVersion kVersion1{0, 0, 0};
+static constexpr SavepointVersion kVersion{0, 0, 0};
 
 enum TileType
 {
@@ -33,14 +33,12 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion1);
+    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion);
 
-    // Optional
     std::random_device device;
     std::mt19937 generator(device());
     std::uniform_int_distribution<std::mt19937::result_type> distribution(0, 2);
 
-    // Writing tiles
     std::array<std::array<Tile, 32>, 32> inTiles;
     for (int x = 0; x < 32; x++)
     for (int y = 0; y < 32; y++)
@@ -49,7 +47,6 @@ int main()
         savepoint.Write(inTiles[x][y], x, y, 0);
     }
 
-    // Reading tiles
     int reads = 0;
     savepoint.Read<Tile>([&](Tile& outTile, int x, int y)
     {

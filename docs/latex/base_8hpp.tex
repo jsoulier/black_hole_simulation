@@ -1,0 +1,61 @@
+\doxysection{include/savepoint/base.hpp File Reference}
+\hypertarget{base_8hpp}{}\label{base_8hpp}\index{include/savepoint/base.hpp@{include/savepoint/base.hpp}}
+{\ttfamily \#include $<$savepoint/fwd.\+hpp$>$}\newline
+{\ttfamily \#include $<$string\+\_\+view$>$}\newline
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_savepoint_base}{Savepoint\+Base}}
+\begin{DoxyCompactList}\small\item\em Serves as the base class for the user\textquotesingle{}s base class. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{base_8hpp_af47a961212ca814c6f4438e262e6487b}{SAVEPOINT\+\_\+\+DERIVED}}(T)
+\begin{DoxyCompactList}\small\item\em Helper for concrete derived classes to implement \doxylink{class_savepoint_base}{Savepoint\+Base} methods. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{base_8hpp_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{base_8hpp_af47a961212ca814c6f4438e262e6487b}\index{base.hpp@{base.hpp}!SAVEPOINT\_DERIVED@{SAVEPOINT\_DERIVED}}
+\index{SAVEPOINT\_DERIVED@{SAVEPOINT\_DERIVED}!base.hpp@{base.hpp}}
+\doxysubsubsection{\texorpdfstring{SAVEPOINT\_DERIVED}{SAVEPOINT\_DERIVED}}
+{\footnotesize\ttfamily \label{base_8hpp_af47a961212ca814c6f4438e262e6487b} 
+\#define SAVEPOINT\+\_\+\+DERIVED(\begin{DoxyParamCaption}\item[{}]{T}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \textcolor{keyword}{private}:\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \textcolor{keyword}{struct\ }SavepointDerivedFunctionRegistrar\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \{\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{class_savepoint_base}{SavepointBase}}*\ Function()\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \{\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{new}\ T();\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \}\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ SavepointDerivedFunctionRegistrar()\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \{\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ SavepointAddDerivedFunction(\#T,\ Function);\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \}\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \};\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ SavepointDerivedFunctionRegistrar\ SavepointDerivedFunctionRegistrar;\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \textcolor{keyword}{public}:\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ std::string\_view\ SavepointDerivedGetString()\ const\ override\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \{\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \#T;\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \}\ \(\backslash\)}
+
+\end{DoxyCode}
+
+
+Helper for concrete derived classes to implement \doxylink{class_savepoint_base}{Savepoint\+Base} methods. 
+
+Implements Savepoint\+Derived\+Get\+String and automatically registers a factory function for the derived class. It allows a \doxylink{class_savepoint_visitor}{Savepoint\+Visitor} to to create an instance of the derived class whilst only knowing its class name.
+
+
+\begin{DoxyParams}{Parameters}
+{\em T} & The class type \\
+\hline
+\end{DoxyParams}
+\begin{DoxySeeAlso}{See also}
+\doxylink{class_savepoint_base}{Savepoint\+Base} 
+\end{DoxySeeAlso}

@@ -39,35 +39,116 @@
 #include <functional>
 #include <string_view>
 
-// Read signatures for basic types
-template<typename T> using SavepointReadFunction = std::function<void(T& item)>;
-template<typename T> using SavepointReadEntityFunction = std::function<void(T& item, SavepointID id)>;
-template<typename T> using SavepointReadTile2DFunction = std::function<void(T& item, int x, int y)>;
-template<typename T> using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, int z)>;
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param item
+ */
+template<typename T>
+using SavepointReadFunction = std::function<void(T& item)>;
 
-// Read signatures for polymorphics
-using SavepointReadBaseFunction = std::function<void(SavepointBase* base)>;
-using SavepointReadBaseEntityFunction = std::function<void(SavepointBase* base, SavepointID id)>;
-using SavepointReadBaseTile2DFunction = std::function<void(SavepointBase* base, int x, int y)>;
-using SavepointReadBaseTile3DFunction = std::function<void(SavepointBase* base, int x, int y, int z)>;
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param item
+ * @param id
+ */
+template<typename T>
+using SavepointReadEntityFunction = std::function<void(T& item, SavepointID id)>;
+
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param item
+ * @param x
+ * @param y
+ */
+template<typename T>
+using SavepointReadTile2DFunction = std::function<void(T& item, int x, int y)>;
+
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param item
+ * @param x
+ * @param y
+ * @param z
+ */
+template<typename T>
+using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, int z)>;
 
 class Savepoint
 {
 public:
+    /**
+     * @brief 
+     * 
+     */
     Savepoint() = default;
+
+    /**
+     * @brief 
+     * 
+     */
     ~Savepoint();
+
+    /**
+     * @brief 
+     * 
+     * @param other 
+     */
     Savepoint(const Savepoint& other) = delete;
+    
+    /**
+     * @brief 
+     * 
+     * @param other 
+     * @return 
+     */
     Savepoint& operator=(const Savepoint& other) = delete;
+    
+    /**
+     * @brief 
+     * 
+     * @param other 
+     */
     Savepoint(Savepoint&& other) = delete;
+    
+    /**
+     * @brief 
+     * 
+     * @param other 
+     * @return 
+     */
     Savepoint& operator=(Savepoint&& other) = delete;
     
-    // Opens or creates a database at the specified path and connects to it. The version should be your application version
+    /**
+     * @brief 
+     * 
+     * @param driver 
+     * @param path 
+     * @param version 
+     * @return 
+     */
     SavepointStatus Open(SavepointDriver driver, const std::string_view& path, SavepointVersion version);
 
-    // Check if connected
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     bool IsOpen() const;
 
-    // Write singleton
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param item 
+     */
     template<SavepointReadableWritable T>
     void Write(T& item)
     {
@@ -76,7 +157,14 @@ public:
         Driver->Write(Visitor);
     }
 
-    // Write entity to a specific level. Will move across levels if ID exists
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param item 
+     * @param id 
+     * @param level 
+     */
     template<SavepointReadableWritable T>
     void Write(T& item, SavepointID& id, int level)
     {
@@ -85,7 +173,15 @@ public:
         Driver->Write(Visitor, id, level);
     }
 
-    // Write object to XY coordinate for a specific level
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param item 
+     * @param x 
+     * @param y 
+     * @param level 
+     */
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int level)
     {
@@ -94,7 +190,16 @@ public:
         Driver->Write(Visitor, x, y, level);
     }
 
-    // Write object to XYZ coordinate for a specific level
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param item 
+     * @param x 
+     * @param y 
+     * @param z 
+     * @param level 
+     */
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int z, int level)
     {
@@ -103,7 +208,12 @@ public:
         Driver->Write(Visitor, x, y, z, level);
     }
 
-    // Read singleton
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param function 
+     */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadFunction<T>& function)
     {
@@ -115,7 +225,13 @@ public:
         });
     }
 
-    // Read entities from a specific level
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param function 
+     * @param level 
+     */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadEntityFunction<T>& function, int level)
     {
@@ -127,7 +243,13 @@ public:
         }, level);
     }
 
-    // Read XY objects from a specific level
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param function 
+     * @param level 
+     */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadTile2DFunction<T>& function, int level)
     {
@@ -139,7 +261,13 @@ public:
         }, level);
     }
 
-    // Read XYZ objects from a specific level
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param function 
+     * @param level 
+     */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadTile3DFunction<T>& function, int level)
     {
@@ -151,16 +279,29 @@ public:
         }, level);
     }
     
-    // Delete entity
+    /**
+     * @brief 
+     * 
+     * @param id 
+     */
     void Delete(const SavepointID id);
-
-    // Close connection
+    
+    /**
+     * @brief 
+     * 
+     */
     void Close();
     
-    // End/start transaction
+    /**
+     * @brief 
+     * 
+     */
     void Save();
 
-    // Delete all rows
+    /**
+     * @brief 
+     * 
+     */
     void Clear();
 
 private:

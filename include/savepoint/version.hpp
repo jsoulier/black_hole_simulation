@@ -33,73 +33,87 @@
 #include <format>
 #include <string>
 
-// Version consisting of major, minor, patch
+/**
+ * @brief 
+ * 
+ */
 class SavepointVersion
 {
 public:
+    /**
+     * @brief 
+     * 
+     */
     constexpr SavepointVersion()
         : Value{0}
     {
     }
 
+    /**
+     * @brief 
+     * 
+     * @param major
+     * @param minor
+     * @param patch
+     */
     constexpr SavepointVersion(uint32_t major, uint32_t minor, uint32_t patch)
         : Value{major << 24 | minor << 16 | patch}
     {
     }
 
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     constexpr uint32_t GetMajor() const
     {
         return (Value >> 24) & 0xFF;
     }
 
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     constexpr uint32_t GetMinor() const
     {
         return (Value >> 16) & 0xFF;
     }
 
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     constexpr uint32_t GetPatch() const
     {
         return Value & 0xFFFF;
     }
 
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     std::string GetString() const
     {
         return std::format("{}.{}.{}", GetMajor(), GetMinor(), GetPatch());
     }
 
-    constexpr bool operator==(const SavepointVersion other) const
+    /**
+     * @brief 
+     * 
+     * @param other
+     * @return
+     */
+    constexpr auto operator<=>(const SavepointVersion other) const
     {
-        return Value == other.Value;
-    }
-
-    constexpr bool operator!=(const SavepointVersion other) const
-    {
-        return Value != other.Value;
-    }
-
-    constexpr bool operator<(const SavepointVersion other) const
-    {
-        return Value < other.Value;
-    }
-
-    constexpr bool operator>(const SavepointVersion other) const
-    {
-        return Value > other.Value;
-    }
-
-    constexpr bool operator<=(const SavepointVersion other) const
-    {
-        return Value <= other.Value;
-    }
-
-    constexpr bool operator>=(const SavepointVersion other) const
-    {
-        return Value >= other.Value;
+        return Value <=> other.Value;
     }
 
 private:
     uint32_t Value;
 };
 
-// The current savepoint version (not the same as application version)
 static constexpr SavepointVersion kSavepointVersion{0, 0, 0};

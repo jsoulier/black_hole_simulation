@@ -1,0 +1,94 @@
+\doxysection{include/savepoint/visitor.hpp File Reference}
+\hypertarget{visitor_8hpp}{}\label{visitor_8hpp}\index{include/savepoint/visitor.hpp@{include/savepoint/visitor.hpp}}
+{\ttfamily \#include $<$savepoint/base.\+hpp$>$}\newline
+{\ttfamily \#include $<$savepoint/fwd.\+hpp$>$}\newline
+{\ttfamily \#include $<$savepoint/log.\+hpp$>$}\newline
+{\ttfamily \#include $<$savepoint/traits.\+hpp$>$}\newline
+{\ttfamily \#include $<$savepoint/version.\+hpp$>$}\newline
+{\ttfamily \#include $<$type\+\_\+traits$>$}\newline
+{\ttfamily \#include $<$ranges$>$}\newline
+{\ttfamily \#include $<$iterator$>$}\newline
+{\ttfamily \#include $<$cstddef$>$}\newline
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include $<$cstring$>$}\newline
+{\ttfamily \#include $<$format$>$}\newline
+{\ttfamily \#include $<$memory$>$}\newline
+{\ttfamily \#include $<$span$>$}\newline
+{\ttfamily \#include $<$utility$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_savepoint_visitor}{Savepoint\+Visitor}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$Savepoint\+Std\+Pointer T$>$ }\\void \mbox{\hyperlink{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}{Savepoint\+Visit}} (\mbox{\hyperlink{class_savepoint_visitor}{Savepoint\+Visitor}} \&visitor, T \&item)
+\item 
+{\footnotesize template$<$Savepoint\+Pair T$>$ }\\void \mbox{\hyperlink{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}{Savepoint\+Visit}} (\mbox{\hyperlink{class_savepoint_visitor}{Savepoint\+Visitor}} \&visitor, T \&item)
+\item 
+{\footnotesize template$<$Savepoint\+Range T$>$ }\\void \mbox{\hyperlink{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}{Savepoint\+Visit}} (\mbox{\hyperlink{class_savepoint_visitor}{Savepoint\+Visitor}} \&visitor, T \&item)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{visitor_8hpp_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}\index{visitor.hpp@{visitor.hpp}!SavepointVisit@{SavepointVisit}}
+\index{SavepointVisit@{SavepointVisit}!visitor.hpp@{visitor.hpp}}
+\doxysubsubsection{\texorpdfstring{SavepointVisit()}{SavepointVisit()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily \label{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0} 
+template$<$Savepoint\+Range T$>$ \\
+void Savepoint\+Visit (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{class_savepoint_visitor}{Savepoint\+Visitor}} \&}]{visitor}{, }\item[{T \&}]{item}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & \\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em visitor} & \\
+\hline
+{\em item} & \\
+\hline
+\end{DoxyParams}
+\Hypertarget{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}\index{visitor.hpp@{visitor.hpp}!SavepointVisit@{SavepointVisit}}
+\index{SavepointVisit@{SavepointVisit}!visitor.hpp@{visitor.hpp}}
+\doxysubsubsection{\texorpdfstring{SavepointVisit()}{SavepointVisit()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily \label{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0} 
+template$<$Savepoint\+Pair T$>$ \\
+void Savepoint\+Visit (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{class_savepoint_visitor}{Savepoint\+Visitor}} \&}]{visitor}{, }\item[{T \&}]{item}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & \\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em visitor} & \\
+\hline
+{\em item} & \\
+\hline
+\end{DoxyParams}
+\Hypertarget{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}\index{visitor.hpp@{visitor.hpp}!SavepointVisit@{SavepointVisit}}
+\index{SavepointVisit@{SavepointVisit}!visitor.hpp@{visitor.hpp}}
+\doxysubsubsection{\texorpdfstring{SavepointVisit()}{SavepointVisit()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily \label{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0} 
+template$<$Savepoint\+Std\+Pointer T$>$ \\
+void Savepoint\+Visit (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{class_savepoint_visitor}{Savepoint\+Visitor}} \&}]{visitor}{, }\item[{T \&}]{item}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & \\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em visitor} & \\
+\hline
+{\em item} & \\
+\hline
+\end{DoxyParams}

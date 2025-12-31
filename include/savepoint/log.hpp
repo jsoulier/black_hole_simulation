@@ -32,10 +32,20 @@
 #include <functional>
 #include <string_view>
 
+/**
+ * @brief 
+ * 
+ */
 using SavepointLogFunction = std::function<void(const std::string_view& string)>;
 
-// Set the log callback used by SavepointLog
+/**
+ * @brief 
+ * 
+ * @param function 
+ */
 void SavepointSetLogFunction(const SavepointLogFunction& function);
 
-// Forward to the currrent log callback. Defaults to stderr
+/**
+ * @internal
+ */
 void SavepointLog(const std::string_view& string);

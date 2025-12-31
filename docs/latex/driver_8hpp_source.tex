@@ -1,0 +1,88 @@
+\doxysection{driver.\+hpp}
+\hypertarget{driver_8hpp_source}{}\label{driver_8hpp_source}\index{include/savepoint/driver.hpp@{include/savepoint/driver.hpp}}
+\mbox{\hyperlink{driver_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ This\ is\ free\ and\ unencumbered\ software\ released\ into\ the\ public\ domain.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ *\ Anyone\ is\ free\ to\ copy,\ modify,\ publish,\ use,\ compile,\ sell,\ or}}
+\DoxyCodeLine{00005\ \textcolor{comment}{\ *\ distribute\ this\ software,\ either\ in\ source\ code\ form\ or\ as\ a\ compiled}}
+\DoxyCodeLine{00006\ \textcolor{comment}{\ *\ binary,\ for\ any\ purpose,\ commercial\ or\ non-\/commercial,\ and\ by\ any}}
+\DoxyCodeLine{00007\ \textcolor{comment}{\ *\ means.}}
+\DoxyCodeLine{00008\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00009\ \textcolor{comment}{\ *\ In\ jurisdictions\ that\ recognize\ copyright\ laws,\ the\ author\ or\ authors}}
+\DoxyCodeLine{00010\ \textcolor{comment}{\ *\ of\ this\ software\ dedicate\ any\ and\ all\ copyright\ interest\ in\ the}}
+\DoxyCodeLine{00011\ \textcolor{comment}{\ *\ software\ to\ the\ public\ domain.\ We\ make\ this\ dedication\ for\ the\ benefit}}
+\DoxyCodeLine{00012\ \textcolor{comment}{\ *\ of\ the\ public\ at\ large\ and\ to\ the\ detriment\ of\ our\ heirs\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{\ *\ successors.\ We\ intend\ this\ dedication\ to\ be\ an\ overt\ act\ of}}
+\DoxyCodeLine{00014\ \textcolor{comment}{\ *\ relinquishment\ in\ perpetuity\ of\ all\ present\ and\ future\ rights\ to\ this}}
+\DoxyCodeLine{00015\ \textcolor{comment}{\ *\ software\ under\ copyright\ law.}}
+\DoxyCodeLine{00016\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00017\ \textcolor{comment}{\ *\ THE\ SOFTWARE\ IS\ PROVIDED\ "{}AS\ IS"{},\ WITHOUT\ WARRANTY\ OF\ ANY\ KIND,}}
+\DoxyCodeLine{00018\ \textcolor{comment}{\ *\ EXPRESS\ OR\ IMPLIED,\ INCLUDING\ BUT\ NOT\ LIMITED\ TO\ THE\ WARRANTIES\ OF}}
+\DoxyCodeLine{00019\ \textcolor{comment}{\ *\ MERCHANTABILITY,\ FITNESS\ FOR\ A\ PARTICULAR\ PURPOSE\ AND\ NONINFRINGEMENT.}}
+\DoxyCodeLine{00020\ \textcolor{comment}{\ *\ IN\ NO\ EVENT\ SHALL\ THE\ AUTHORS\ BE\ LIABLE\ FOR\ ANY\ CLAIM,\ DAMAGES\ OR}}
+\DoxyCodeLine{00021\ \textcolor{comment}{\ *\ OTHER\ LIABILITY,\ WHETHER\ IN\ AN\ ACTION\ OF\ CONTRACT,\ TORT\ OR\ OTHERWISE,}}
+\DoxyCodeLine{00022\ \textcolor{comment}{\ *\ ARISING\ FROM,\ OUT\ OF\ OR\ IN\ CONNECTION\ WITH\ THE\ SOFTWARE\ OR\ THE\ USE\ OR}}
+\DoxyCodeLine{00023\ \textcolor{comment}{\ *\ OTHER\ DEALINGS\ IN\ THE\ SOFTWARE.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00025\ \textcolor{comment}{\ *\ For\ more\ information,\ please\ refer\ to\ <https://unlicense.org>}}
+\DoxyCodeLine{00026\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{fwd_8hpp}{savepoint/fwd.hpp}}>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{id_8hpp}{savepoint/id.hpp}}>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{status_8hpp}{savepoint/status.hpp}}>}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <string\_view>}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00042\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{driver_8hpp_ab4e6a446163e3675644899bd8e998a6a}{SavepointDriver}}}
+\DoxyCodeLine{00043\ \{}
+\DoxyCodeLine{00044\ \ \ \ \ \mbox{\hyperlink{driver_8hpp_ab4e6a446163e3675644899bd8e998a6aac2117dbb22b44d2701e6e7ccdcd8b97b}{Sqlite3}},\ }
+\DoxyCodeLine{00045\ \ \ \ \ \mbox{\hyperlink{driver_8hpp_ab4e6a446163e3675644899bd8e998a6aabbb93ef26e3c101ff11cdd21cab08a94}{Null}},\ \ \ \ }
+\DoxyCodeLine{00046\ \};}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00053\ \textcolor{keyword}{using\ }\mbox{\hyperlink{driver_8hpp_a24f392f6bba2577daeb209c09ef8c10a}{SavepointReadVisitorFunction}}\ =\ std::function<void(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor)>;}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00061\ \textcolor{keyword}{using\ }\mbox{\hyperlink{driver_8hpp_a0638fb3945ca0c3f213747a7f0037751}{SavepointReadVisitorEntityFunction}}\ =\ std::function<void(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ \mbox{\hyperlink{class_savepoint_i_d}{SavepointID}}\ \textcolor{keywordtype}{id})>;}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00070\ \textcolor{keyword}{using\ }\mbox{\hyperlink{driver_8hpp_a355b11d9601d60de9c277b65ef52a665}{SavepointReadVisitorTile2DFunction}}\ =\ std::function<void(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ \textcolor{keywordtype}{int}\ x,\ \textcolor{keywordtype}{int}\ y)>;}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00080\ \textcolor{keyword}{using\ }\mbox{\hyperlink{driver_8hpp_a7b50307464a795778bc27c9d1b094bcd}{SavepointReadVisitorTile3DFunction}}\ =\ std::function<void(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ \textcolor{keywordtype}{int}\ x,\ \textcolor{keywordtype}{int}\ y,\ \textcolor{keywordtype}{int}\ z)>;}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00086\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_i_savepoint_driver}{ISavepointDriver}}}
+\DoxyCodeLine{00087\ \{}
+\DoxyCodeLine{00088\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{status_8hpp_a0c7935b5fd4e39a8074e47483a91ae7e}{SavepointStatus}}\ \mbox{\hyperlink{class_i_savepoint_driver_a2fbc58a5dafd34b40c40c2b891d8676e}{Open}}(\textcolor{keyword}{const}\ std::string\_view\&\ path,\ \mbox{\hyperlink{class_savepoint_version}{SavepointVersion}}\ version)\ =\ 0;}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_i_savepoint_driver_a5373d64727b483174b2a430a47c9e0bc}{IsOpen}}()\ \textcolor{keyword}{const}\ =\ 0;}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_a87a50b24c4e83a5879bf01f78d104240}{Write}}(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor)\ =\ 0;}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_afa5b6d1b1c3ebf132174e73a02ffed90}{Write}}(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ \mbox{\hyperlink{class_savepoint_i_d}{SavepointID}}\&\ \textcolor{keywordtype}{id},\ \textcolor{keywordtype}{int}\ level)\ =\ 0;}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_ad842d05d05c8090639699c5fe472a191}{Write}}(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ \textcolor{keywordtype}{int}\ x,\ \textcolor{keywordtype}{int}\ y,\ \textcolor{keywordtype}{int}\ level)\ =\ 0;}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_a4fdf6039804fe0f6cbd30ece512f9295}{Write}}(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ \textcolor{keywordtype}{int}\ x,\ \textcolor{keywordtype}{int}\ y,\ \textcolor{keywordtype}{int}\ z,\ \textcolor{keywordtype}{int}\ level)\ =\ 0;}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_aee57219eea405044163ddf63b3f54585}{Read}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{driver_8hpp_a24f392f6bba2577daeb209c09ef8c10a}{SavepointReadVisitorFunction}}\&\ function)\ =\ 0;}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_aed6e8d9930820e5d7c8556a71444944f}{Read}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{driver_8hpp_a0638fb3945ca0c3f213747a7f0037751}{SavepointReadVisitorEntityFunction}}\&\ function,\ \textcolor{keywordtype}{int}\ level)\ =\ 0;}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_a78fa817821ea11616da5b9c3974e4725}{Read}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{driver_8hpp_a355b11d9601d60de9c277b65ef52a665}{SavepointReadVisitorTile2DFunction}}\&\ function,\ \textcolor{keywordtype}{int}\ level)\ =\ 0;}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00171\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_ad06149b22c31ceebbc03dffcad37cfee}{Read}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{driver_8hpp_a7b50307464a795778bc27c9d1b094bcd}{SavepointReadVisitorTile3DFunction}}\&\ function,\ \textcolor{keywordtype}{int}\ level)\ =\ 0;}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_a5ac2f22564bd9350531350bacdcc2929}{Delete}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{class_savepoint_i_d}{SavepointID}}\ \textcolor{keywordtype}{id})\ =\ 0;}
+\DoxyCodeLine{00179\ }
+\DoxyCodeLine{00184\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_ac3e5a2e1006a1f4b7a70870f438ec4d1}{Close}}()\ =\ 0;}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00190\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_a0cff5f3ade59e44450efc79e049cd0d8}{Save}}()\ =\ 0;}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00196\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_i_savepoint_driver_a9aa4ba0ec8f3be105b260dd5e64fca0b}{Clear}}()\ =\ 0;}
+\DoxyCodeLine{00197\ \};}
+
+\end{DoxyCode}

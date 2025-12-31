@@ -45,42 +45,9 @@
 #include <utility>
 #include <vector>
 
-/*
- * Modified implementation of the visitor pattern for serializing/deserializing objects
- *
- * Each visitor consists of:
- * 1. The savepoint version (unused, reserved for future use)
- * 2. The application version (used for versioning user data)
- * 3. The data (binary blob of user data)
+/**
+ * @brief 
  * 
- * Visitors can be in 2 modes:
- * 1. Writing (setting the current versions and data)
- * 2. Reading (carefully checking versions and data)
- *
- * For non-trivial objects that use pointers or require versioning, users
- * should implement 1 of the following functions:
- * 
- * struct Entity
- * {
- *     int X;
- *     int Y;
- *
- *     // Option 1
- *     void Visit(SavepointVisitor& visitor)
- *     {
- *         visitor(X);
- *         visitor(Y);
- *     }
- * };
- * 
- * // Option 2
- * void SavepointVisit(SavepointVisitor& visitor, Entity& entity)
- * {
- *     visitor(entity.X);
- *     visitor(entity.Y);
- * }
- * 
- * For more information, check the examples
  */
 class SavepointVisitor
 {
@@ -88,12 +55,21 @@ private:
     static constexpr size_t kHeader = sizeof(SavepointVersion) * 2;
 
 public:
-    // Simplest method for visiting. Copies the object directly to/from the blob
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @tparam Args 
+     * @param item 
+     * @param version 
+     * @param args 
+     */
     template<SavepointMemcpyable T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        // Detecting a bug in MSVC (it can't always handle heavily nested concepts)
+        // For detecting bugs in MSVC concepts
         static_assert(!SavepointRange<T>);
+        static_assert(!SavepointPointer<T>);
         if (IsReading())
         {
             // Required for write-only containers (e.g. views)
@@ -132,7 +108,15 @@ public:
         }
     }
 
-    // Visit using the free visit function
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @tparam Args 
+     * @param item 
+     * @param version 
+     * @param args 
+     */
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -150,7 +134,15 @@ public:
         SavepointVisit(*this, item);
     }
 
-    // Visit using the member visit function
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @tparam Args 
+     * @param item 
+     * @param version 
+     * @param args 
+     */
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
@@ -168,7 +160,12 @@ public:
         item.Visit(*this);
     }
 
-    // Skip bytes on the reader
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param size 
+     */
     template<SavepointMemcpyable T>
     void Skip(size_t size = 1)
     {
@@ -190,53 +187,40 @@ public:
         Offset += sizeof(T) * size;
     }
 
+    /**
+     * @brief 
+     * 
+     */
     void Fail()
     {
         Offset = Reader.size();
     }
 
-    // TODO: hide from user
-    void Reset(SavepointVersion application, SavepointVersion savepoint)
-    {
-        Reader = {};
-        Writer.resize(kHeader);
-        std::memcpy(Writer.data(), &application, sizeof(SavepointVersion));
-        // Reserved for future use
-        std::memcpy(Writer.data() + sizeof(SavepointVersion), &savepoint, sizeof(SavepointVersion));
-    }
-
-    // TODO: hide from user
-    void Reset(void* data, size_t size)
-    {
-        Reader = {static_cast<uint8_t*>(data), size};
-        Offset = 0;
-        operator()(Version);
-        // Reserved for future use
-        Skip<SavepointVersion>();
-    }
-
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     bool IsReading() const
     {
         return !Reader.empty();
     }
 
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     bool IsWriting() const
     {
         return !IsReading();
     }
 
-    // TODO: hide from user
-    bool IsEmpty() const
-    {
-        return Writer.size() == kHeader;
-    }
-
-    // TODO: hide from user
-    const void* GetData() const
-    {
-        return Writer.data();
-    }
-
+    /**
+     * @brief 
+     * 
+     * @return 
+     */
     size_t GetSize() const
     {
         if (IsReading())
@@ -249,6 +233,38 @@ public:
         }
     }
 
+    /** @cond INTERNAL */
+
+    void Reset(SavepointVersion application, SavepointVersion savepoint)
+    {
+        Reader = {};
+        Writer.resize(kHeader);
+        std::memcpy(Writer.data(), &application, sizeof(SavepointVersion));
+        // Reserved for future use
+        std::memcpy(Writer.data() + sizeof(SavepointVersion), &savepoint, sizeof(SavepointVersion));
+    }
+
+    void Reset(void* data, size_t size)
+    {
+        Reader = {static_cast<uint8_t*>(data), size};
+        Offset = 0;
+        operator()(Version);
+        // Reserved for future use
+        Skip<SavepointVersion>();
+    }
+
+    bool IsEmpty() const
+    {
+        return Writer.size() == kHeader;
+    }
+
+    const void* GetData() const
+    {
+        return Writer.data();
+    }
+
+    /** @endcond */
+
 private:
     SavepointVersion Version;
     std::vector<uint8_t> Writer;
@@ -256,13 +272,16 @@ private:
     size_t Offset;
 };
 
-// Visit implementation for pointers (unique and shared only)
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param visitor 
+ * @param item 
+ */
 template<SavepointStdPointer T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
-    // Since we have built-in support for polymorphics, we can't assume that E is the type we want.
-    // If E derives from SavepointBase, we only care about the derived class. If so, we'll
-    // serialize the class name and use the virtual Visit automatically
     using E = typename T::element_type;
     if (visitor.IsReading())
     {
@@ -291,7 +310,8 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             }
             else
             {
-                // Don't static_assert because we'll fail on abstract classes
+                // Don't static_assert because it'll fail on already instanciated
+                // derived classes with abstract parents
                 SavepointLog("No method to create pointer");
             }
         }
@@ -315,7 +335,13 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     }
 }
 
-// TODO: convert for tuple
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param visitor 
+ * @param item 
+ */
 template<SavepointPair T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
@@ -326,7 +352,13 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     visitor(item.second);
 }
 
-// Visit implementation for all iterable containers
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param visitor 
+ * @param item 
+ */
 template<SavepointRange T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
@@ -343,7 +375,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
     visitor(size);
     if (visitor.IsReading())
     {
-        // Inaccurate but can detect when we read garbage and would iterate forever
+        // Can detect when we read garbage and would iterate forever
         if (size > visitor.GetSize())
         {
             SavepointLog("Tried to read past visitor");
@@ -377,7 +409,6 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             {
                 visitor(item[i]);
             }
-            // Skip excess data when truncated
             for (; maxSize < size; maxSize++)
             {
                 visitor.Skip<E>();

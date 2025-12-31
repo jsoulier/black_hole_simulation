@@ -1,0 +1,357 @@
+\doxysection{visitor.\+hpp}
+\hypertarget{visitor_8hpp_source}{}\label{visitor_8hpp_source}\index{include/savepoint/visitor.hpp@{include/savepoint/visitor.hpp}}
+\mbox{\hyperlink{visitor_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ This\ is\ free\ and\ unencumbered\ software\ released\ into\ the\ public\ domain.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ *\ Anyone\ is\ free\ to\ copy,\ modify,\ publish,\ use,\ compile,\ sell,\ or}}
+\DoxyCodeLine{00005\ \textcolor{comment}{\ *\ distribute\ this\ software,\ either\ in\ source\ code\ form\ or\ as\ a\ compiled}}
+\DoxyCodeLine{00006\ \textcolor{comment}{\ *\ binary,\ for\ any\ purpose,\ commercial\ or\ non-\/commercial,\ and\ by\ any}}
+\DoxyCodeLine{00007\ \textcolor{comment}{\ *\ means.}}
+\DoxyCodeLine{00008\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00009\ \textcolor{comment}{\ *\ In\ jurisdictions\ that\ recognize\ copyright\ laws,\ the\ author\ or\ authors}}
+\DoxyCodeLine{00010\ \textcolor{comment}{\ *\ of\ this\ software\ dedicate\ any\ and\ all\ copyright\ interest\ in\ the}}
+\DoxyCodeLine{00011\ \textcolor{comment}{\ *\ software\ to\ the\ public\ domain.\ We\ make\ this\ dedication\ for\ the\ benefit}}
+\DoxyCodeLine{00012\ \textcolor{comment}{\ *\ of\ the\ public\ at\ large\ and\ to\ the\ detriment\ of\ our\ heirs\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{\ *\ successors.\ We\ intend\ this\ dedication\ to\ be\ an\ overt\ act\ of}}
+\DoxyCodeLine{00014\ \textcolor{comment}{\ *\ relinquishment\ in\ perpetuity\ of\ all\ present\ and\ future\ rights\ to\ this}}
+\DoxyCodeLine{00015\ \textcolor{comment}{\ *\ software\ under\ copyright\ law.}}
+\DoxyCodeLine{00016\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00017\ \textcolor{comment}{\ *\ THE\ SOFTWARE\ IS\ PROVIDED\ "{}AS\ IS"{},\ WITHOUT\ WARRANTY\ OF\ ANY\ KIND,}}
+\DoxyCodeLine{00018\ \textcolor{comment}{\ *\ EXPRESS\ OR\ IMPLIED,\ INCLUDING\ BUT\ NOT\ LIMITED\ TO\ THE\ WARRANTIES\ OF}}
+\DoxyCodeLine{00019\ \textcolor{comment}{\ *\ MERCHANTABILITY,\ FITNESS\ FOR\ A\ PARTICULAR\ PURPOSE\ AND\ NONINFRINGEMENT.}}
+\DoxyCodeLine{00020\ \textcolor{comment}{\ *\ IN\ NO\ EVENT\ SHALL\ THE\ AUTHORS\ BE\ LIABLE\ FOR\ ANY\ CLAIM,\ DAMAGES\ OR}}
+\DoxyCodeLine{00021\ \textcolor{comment}{\ *\ OTHER\ LIABILITY,\ WHETHER\ IN\ AN\ ACTION\ OF\ CONTRACT,\ TORT\ OR\ OTHERWISE,}}
+\DoxyCodeLine{00022\ \textcolor{comment}{\ *\ ARISING\ FROM,\ OUT\ OF\ OR\ IN\ CONNECTION\ WITH\ THE\ SOFTWARE\ OR\ THE\ USE\ OR}}
+\DoxyCodeLine{00023\ \textcolor{comment}{\ *\ OTHER\ DEALINGS\ IN\ THE\ SOFTWARE.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{\ *\ }}
+\DoxyCodeLine{00025\ \textcolor{comment}{\ *\ For\ more\ information,\ please\ refer\ to\ <https://unlicense.org>}}
+\DoxyCodeLine{00026\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{base_8hpp}{savepoint/base.hpp}}>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{fwd_8hpp}{savepoint/fwd.hpp}}>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{log_8hpp}{savepoint/log.hpp}}>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{traits_8hpp}{savepoint/traits.hpp}}>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{version_8hpp}{savepoint/version.hpp}}>}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ <ranges>}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ <iterator>}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ <format>}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ <span>}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00052\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}}
+\DoxyCodeLine{00053\ \{}
+\DoxyCodeLine{00054\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ kHeader\ =\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{class_savepoint_version}{SavepointVersion}})\ *\ 2;}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{template}<SavepointMemcpyable\ T,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}{operator()}}(T\&\ item,\ \mbox{\hyperlink{class_savepoint_version}{SavepointVersion}}\ version\ =\ \{\},\ Args\&\&...\ args)}
+\DoxyCodeLine{00069\ \ \ \ \ \{}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ For\ detecting\ bugs\ in\ MSVC\ concepts}}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_assert}(!SavepointRange<T>);}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_assert}(!SavepointPointer<T>);}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}())}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00075\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Required\ for\ write-\/only\ containers\ (e.g.\ views)}}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (std::is\_const\_v<T>)}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}Tried\ to\ read\ into\ a\ const"{}});}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (Version\ <\ version)}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (\textcolor{keyword}{sizeof}...(Args)\ >\ 0)}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ item\ =\ T\{std::forward<Args>(args)...\};}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{sizeof}(T)\ >\ \mbox{\hyperlink{class_savepoint_visitor_a49f4e66b30712f92b02614e018f3cd80}{GetSize}}())}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(std::format(\textcolor{stringliteral}{"{}Tried\ to\ read\ past\ visitor:\ \{\}\ -\/>\ \{\}"{}},\ Version.GetString(),\ version.GetString()));}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (\textcolor{keyword}{sizeof}...(Args)\ >\ 0)}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ item\ =\ T\{std::forward<Args>(args)...\};}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memcpy(std::addressof(item),\ Reader.data()\ +\ Offset,\ \textcolor{keyword}{sizeof}(T));}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Offset\ +=\ \textcolor{keyword}{sizeof}(T);}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \ \ \ \ Writer.resize(Writer.size()\ +\ \textcolor{keyword}{sizeof}(T));}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \ \ std::memcpy(Writer.data()\ +\ Writer.size()\ -\/\ \textcolor{keyword}{sizeof}(T),\ std::addressof(item),\ \textcolor{keyword}{sizeof}(T));}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00109\ \ \ \ \ \}}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keyword}{template}<SavepointFreeVisit\ T,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}{operator()}}(T\&\ item,\ \mbox{\hyperlink{class_savepoint_version}{SavepointVersion}}\ version\ =\ \{\},\ Args\&\&...\ args)}
+\DoxyCodeLine{00122\ \ \ \ \ \{}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}())}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (Version\ <\ version)}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (\textcolor{keyword}{sizeof}...(Args)\ >\ 0)}
+\DoxyCodeLine{00128\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ item\ =\ T\{std::forward<Args>(args)...\};}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}{SavepointVisit}}(*\textcolor{keyword}{this},\ item);}
+\DoxyCodeLine{00135\ \ \ \ \ \}}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keyword}{template}<SavepointMemberVisit\ T,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}{operator()}}(T\&\ item,\ \mbox{\hyperlink{class_savepoint_version}{SavepointVersion}}\ version\ =\ \{\},\ Args\&\&...\ args)}
+\DoxyCodeLine{00148\ \ \ \ \ \{}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}())}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (Version\ <\ version)}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (\textcolor{keyword}{sizeof}...(Args)\ >\ 0)}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ item\ =\ T\{std::forward<Args>(args)...\};}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ item.Visit(*\textcolor{keyword}{this});}
+\DoxyCodeLine{00161\ \ \ \ \ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{keyword}{template}<Savepo\textcolor{keywordtype}{int}Memcpyable\ T>}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_savepoint_visitor_a3bdcea7d67bcb04c972d2bb612c3632c}{Skip}}(\textcolor{keywordtype}{size\_t}\ size\ =\ 1)}
+\DoxyCodeLine{00171\ \ \ \ \ \{}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{class_savepoint_visitor_a6d77a2a07b2e7b6701d3a5bea91d2cb2}{IsWriting}}())}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}Tried\ to\ skip\ on\ a\ writer"{}});}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!size)}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}Tried\ to\ skip\ nothing"{}});}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{sizeof}(T)\ *\ size\ >\ \mbox{\hyperlink{class_savepoint_visitor_a49f4e66b30712f92b02614e018f3cd80}{GetSize}}())}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(std::format(\textcolor{stringliteral}{"{}Tried\ to\ skip\ past\ visitor:\ \{\}"{}},\ Version.GetString()));}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ Offset\ +=\ \textcolor{keyword}{sizeof}(T)\ *\ size;}
+\DoxyCodeLine{00188\ \ \ \ \ \}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00194\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_savepoint_visitor_a1140ff61639f97263a25d337b5c2fbc2}{Fail}}()}
+\DoxyCodeLine{00195\ \ \ \ \ \{}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ Offset\ =\ Reader.size();}
+\DoxyCodeLine{00197\ \ \ \ \ \}}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00204\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00205\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ !Reader.empty();}
+\DoxyCodeLine{00207\ \ \ \ \ \}}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00214\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_savepoint_visitor_a6d77a2a07b2e7b6701d3a5bea91d2cb2}{IsWriting}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00215\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ !\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}();}
+\DoxyCodeLine{00217\ \ \ \ \ \}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{class_savepoint_visitor_a49f4e66b30712f92b02614e018f3cd80}{GetSize}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00225\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}())}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00228\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Reader.size()\ -\/\ std::min(Offset,\ Reader.size());}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Writer.size();}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00234\ \ \ \ \ \}}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00237\ }
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keywordtype}{void}\ Reset(\mbox{\hyperlink{class_savepoint_version}{SavepointVersion}}\ application,\ \mbox{\hyperlink{class_savepoint_version}{SavepointVersion}}\ savepoint)}
+\DoxyCodeLine{00239\ \ \ \ \ \{}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ \ \ Reader\ =\ \{\};}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ Writer.resize(kHeader);}
+\DoxyCodeLine{00242\ \ \ \ \ \ \ \ \ std::memcpy(Writer.data(),\ \&application,\ \textcolor{keyword}{sizeof}(SavepointVersion));}
+\DoxyCodeLine{00243\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Reserved\ for\ future\ use}}
+\DoxyCodeLine{00244\ \ \ \ \ \ \ \ \ std::memcpy(Writer.data()\ +\ \textcolor{keyword}{sizeof}(SavepointVersion),\ \&savepoint,\ \textcolor{keyword}{sizeof}(SavepointVersion));}
+\DoxyCodeLine{00245\ \ \ \ \ \}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \ \ \ \ \textcolor{keywordtype}{void}\ Reset(\textcolor{keywordtype}{void}*\ data,\ \textcolor{keywordtype}{size\_t}\ size)}
+\DoxyCodeLine{00248\ \ \ \ \ \{}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ \ \ Reader\ =\ \{\textcolor{keyword}{static\_cast<}uint8\_t*\textcolor{keyword}{>}(data),\ size\};}
+\DoxyCodeLine{00250\ \ \ \ \ \ \ \ \ Offset\ =\ 0;}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{class_savepoint_visitor_a910c9f4fa06d33875fa20ef3fa73fe09}{operator()}}(Version);}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Reserved\ for\ future\ use}}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{class_savepoint_visitor_a3bdcea7d67bcb04c972d2bb612c3632c}{Skip<SavepointVersion>}}();}
+\DoxyCodeLine{00254\ \ \ \ \ \}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordtype}{bool}\ IsEmpty()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00257\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Writer.size()\ ==\ kHeader;}
+\DoxyCodeLine{00259\ \ \ \ \ \}}
+\DoxyCodeLine{00260\ }
+\DoxyCodeLine{00261\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ GetData()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00262\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Writer.data();}
+\DoxyCodeLine{00264\ \ \ \ \ \}}
+\DoxyCodeLine{00265\ }
+\DoxyCodeLine{00267\ }
+\DoxyCodeLine{00268\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00269\ \ \ \ \ SavepointVersion\ Version;}
+\DoxyCodeLine{00270\ \ \ \ \ std::vector<uint8\_t>\ Writer;}
+\DoxyCodeLine{00271\ \ \ \ \ std::span<uint8\_t>\ Reader;}
+\DoxyCodeLine{00272\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ Offset;}
+\DoxyCodeLine{00273\ \};}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00282\ \textcolor{keyword}{template}<Savepo\textcolor{keywordtype}{int}StdPo\textcolor{keywordtype}{int}er\ T>}
+\DoxyCodeLine{00283\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}{SavepointVisit}}(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ T\&\ item)}
+\DoxyCodeLine{00284\ \{}
+\DoxyCodeLine{00285\ \ \ \ \ \textcolor{keyword}{using\ }E\ =\ \textcolor{keyword}{typename}\ T::element\_type;}
+\DoxyCodeLine{00286\ \ \ \ \ \textcolor{keywordflow}{if}\ (visitor.\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}())}
+\DoxyCodeLine{00287\ \ \ \ \ \{}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ hasPointer\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00289\ \ \ \ \ \ \ \ \ visitor(hasPointer);}
+\DoxyCodeLine{00290\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!hasPointer)}
+\DoxyCodeLine{00291\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00292\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00293\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00294\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!item)}
+\DoxyCodeLine{00295\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00296\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (std::is\_base\_of\_v<SavepointBase,\ E>)}
+\DoxyCodeLine{00297\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00298\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ item.reset(\textcolor{keyword}{dynamic\_cast<}E*\textcolor{keyword}{>}(SavepointReadDerived(visitor)));}
+\DoxyCodeLine{00299\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00300\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (std::is\_default\_constructible\_v<E>)}
+\DoxyCodeLine{00302\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00303\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ item.reset(\textcolor{keyword}{new}\ E());}
+\DoxyCodeLine{00304\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!item)}
+\DoxyCodeLine{00305\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00306\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}Failed\ to\ allocate\ pointer"{}});}
+\DoxyCodeLine{00307\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ visitor.\mbox{\hyperlink{class_savepoint_visitor_a1140ff61639f97263a25d337b5c2fbc2}{Fail}}();}
+\DoxyCodeLine{00308\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00309\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00311\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00313\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Don't\ static\_assert\ because\ it'll\ fail\ on\ already\ instanciated}}
+\DoxyCodeLine{00314\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ derived\ classes\ with\ abstract\ parents}}
+\DoxyCodeLine{00315\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}No\ method\ to\ create\ pointer"{}});}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00318\ \ \ \ \ \ \ \ \ visitor(*item);}
+\DoxyCodeLine{00319\ \ \ \ \ \}}
+\DoxyCodeLine{00320\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00321\ \ \ \ \ \{}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ hasPointer\ =\ item.get()\ !=\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ visitor(hasPointer);}
+\DoxyCodeLine{00324\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (hasPointer)}
+\DoxyCodeLine{00325\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (std::is\_base\_of\_v<SavepointBase,\ E>)}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ SavepointWriteDerived(item.get(),\ visitor);}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ visitor(*item);}
+\DoxyCodeLine{00333\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00334\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00335\ \ \ \ \ \}}
+\DoxyCodeLine{00336\ \}}
+\DoxyCodeLine{00337\ }
+\DoxyCodeLine{00345\ \textcolor{keyword}{template}<Savepo\textcolor{keywordtype}{int}Pair\ T>}
+\DoxyCodeLine{00346\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}{SavepointVisit}}(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ T\&\ item)}
+\DoxyCodeLine{00347\ \{}
+\DoxyCodeLine{00348\ \ \ \ \ \textcolor{comment}{//\ Required\ because\ maps\ use\ const\ for\ value\_type::first\_type}}
+\DoxyCodeLine{00349\ \ \ \ \ \textcolor{keyword}{using\ }First\ =\ std::remove\_const\_t<typename\ T::first\_type>;}
+\DoxyCodeLine{00350\ \ \ \ \ First\&\ first\ =\ \textcolor{keyword}{const\_cast<}First\&\textcolor{keyword}{>}(item.first);}
+\DoxyCodeLine{00351\ \ \ \ \ visitor(first);}
+\DoxyCodeLine{00352\ \ \ \ \ visitor(item.second);}
+\DoxyCodeLine{00353\ \}}
+\DoxyCodeLine{00354\ }
+\DoxyCodeLine{00362\ \textcolor{keyword}{template}<Savepo\textcolor{keywordtype}{int}Range\ T>}
+\DoxyCodeLine{00363\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{visitor_8hpp_a89e7bc99b99929307bff77dbcc90b1e0}{SavepointVisit}}(\mbox{\hyperlink{class_savepoint_visitor}{SavepointVisitor}}\&\ visitor,\ T\&\ item)}
+\DoxyCodeLine{00364\ \{}
+\DoxyCodeLine{00365\ \ \ \ \ \textcolor{keyword}{using\ }E\ =\ \textcolor{keyword}{typename}\ T::value\_type;}
+\DoxyCodeLine{00366\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size\ =\ item.size();}
+\DoxyCodeLine{00367\ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (SavepointDynamicRange<T>)}
+\DoxyCodeLine{00368\ \ \ \ \ \{}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (visitor.\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}()\ \&\&\ size)}
+\DoxyCodeLine{00370\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}Tried\ to\ read\ into\ non-\/empty\ range"{}});}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \ \ \ \ \ \ item.clear();}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00374\ \ \ \ \ \}}
+\DoxyCodeLine{00375\ \ \ \ \ visitor(size);}
+\DoxyCodeLine{00376\ \ \ \ \ \textcolor{keywordflow}{if}\ (visitor.\mbox{\hyperlink{class_savepoint_visitor_aea63ac16081097d2d961e26ad35d9128}{IsReading}}())}
+\DoxyCodeLine{00377\ \ \ \ \ \{}
+\DoxyCodeLine{00378\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Can\ detect\ when\ we\ read\ garbage\ and\ would\ iterate\ forever}}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (size\ >\ visitor.\mbox{\hyperlink{class_savepoint_visitor_a49f4e66b30712f92b02614e018f3cd80}{GetSize}}())}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00381\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}Tried\ to\ read\ past\ visitor"{}});}
+\DoxyCodeLine{00382\ \ \ \ \ \ \ \ \ \ \ \ \ visitor.\mbox{\hyperlink{class_savepoint_visitor_a1140ff61639f97263a25d337b5c2fbc2}{Fail}}();}
+\DoxyCodeLine{00383\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00384\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00385\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (SavepointDynamicRange<T>)}
+\DoxyCodeLine{00386\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{auto}\ inserter\ =\ std::inserter(item,\ std::ranges::end(item));}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ size;\ i++)}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO:\ mutable\ iterators}}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ E\ element;}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ visitor(element);}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *inserter++\ =\ element;}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (SavepointStaticRange<T>)}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ maxSize\ =\ std::ranges::size(item);}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (size\ >\ maxSize)}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(std::format(\textcolor{stringliteral}{"{}Fixed\ range\ is\ too\ small:\ \{\}\ <\ \{\}"{}},\ maxSize,\ size));}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (size\ <\ maxSize)}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(std::format(\textcolor{stringliteral}{"{}Fixed\ range\ will\ be\ truncated:\ \{\}\ <\ \{\}"{}},\ maxSize,\ size));}
+\DoxyCodeLine{00406\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \ \ \ \ \ \ maxSize\ =\ std::min(size,\ maxSize);}
+\DoxyCodeLine{00408\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ maxSize;\ i++)}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ visitor(item[i]);}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ maxSize\ <\ size;\ maxSize++)}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ visitor.\mbox{\hyperlink{class_savepoint_visitor_a3bdcea7d67bcb04c972d2bb612c3632c}{Skip}}<E>();}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00416\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00417\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00418\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00419\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Required\ for\ write-\/only\ containers\ (e.g.\ views)}}
+\DoxyCodeLine{00420\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{log_8hpp_ac54010b89413115886395d4d05d1aebb}{SavepointLog}}(\textcolor{stringliteral}{"{}Unknown\ range"{}});}
+\DoxyCodeLine{00421\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00422\ \ \ \ \ \}}
+\DoxyCodeLine{00423\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00424\ \ \ \ \ \{}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{auto}\&\ element\ :\ item)}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ \ \ \ \ \ \ visitor(element);}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00429\ \ \ \ \ \}}
+\DoxyCodeLine{00430\ \}}
+
+\end{DoxyCode}

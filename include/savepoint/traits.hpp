@@ -34,6 +34,8 @@
 #include <utility>
 #include <type_traits>
 
+/** @cond INTERNAL */
+
 template<typename T>
 concept SavepointRawPointer = std::is_pointer_v<T>;
 
@@ -70,24 +72,15 @@ struct SavepointPairImpl<std::pair<First, Second>> : std::true_type {};
 template<typename T>
 concept SavepointPair = SavepointPairImpl<T>::value;
 
-// Is a resizable container with insert
 template<typename T>
-concept SavepointDynamicRange = requires(T item)
-{
-    item.insert(std::ranges::end(item), std::declval<typename T::value_type>());
-};
+concept SavepointDynamicRange = requires(T item) { item.insert(std::ranges::end(item), std::declval<typename T::value_type>()); };
 
-// Is not the former with subscript
 template<typename T>
-concept SavepointStaticRange = !SavepointDynamicRange<T> && requires(T item)
-{
-    item[0] = std::declval<typename T::value_type>();
-};
+concept SavepointStaticRange = !SavepointDynamicRange<T> && requires(T item) { item[0] = std::declval<typename T::value_type>(); };
 
 template<typename T>
 concept SavepointRange = std::ranges::range<T>;
 
-// For ensuring we don't accidentally use the wrong Read or Write on a visitor
 template<typename T>
 concept SavepointReadableWritable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
 
@@ -97,6 +90,7 @@ concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { Save
 template<typename T>
 concept SavepointMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
 
-// Not a pointer and no Visit implementation provided
 template<typename T>
 concept SavepointMemcpyable = !SavepointPointer<T> && !SavepointFreeVisit<T> && !SavepointMemberVisit<T>;
+
+/** @endcond */

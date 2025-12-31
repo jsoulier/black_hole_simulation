@@ -4,8 +4,6 @@
 #include <filesystem>
 
 static constexpr SavepointVersion kVersion1{0, 0, 0};
-
-// Added new versions
 static constexpr SavepointVersion kVersionAddedZ{0, 0, 1};
 static constexpr SavepointVersion kVersionAddedW{0, 0, 2};
 
@@ -25,17 +23,17 @@ struct EntityV1
 struct EntityV2
 {
     int X;
-    int Z; // Added in 0.0.1
+    int Z;
     int Y;
-    int W; // Added in 0.0.2
+    int W;
     SavepointID ID;
 
     void Visit(SavepointVisitor& visitor)
     {
         visitor(X);
-        visitor(Z, kVersionAddedZ, 3); // Set the version and default value (optional)
+        visitor(Z, kVersionAddedZ, 3);
         visitor(Y);
-        visitor(W, kVersionAddedW, 5); // Set the version and default value (optional)
+        visitor(W, kVersionAddedW, 5);
     }
 
     bool operator==(const EntityV1& other) const
@@ -51,16 +49,13 @@ int main()
     Savepoint savepoint;
     savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion1);
 
-    // Writing the V1 entity
     EntityV1 inEntity{1, 2};
     savepoint.Write(inEntity, inEntity.ID, 0);
-
-    // Reading the V1 entity as a V2 entity
     savepoint.Read<EntityV2>([&](EntityV2& outEntity, SavepointID id)
     {
-        assert(outEntity == inEntity); // Check old values
-        assert(outEntity.Z == 3); // Check default value
-        assert(outEntity.W == 5); // Check default value
+        assert(outEntity == inEntity);
+        assert(outEntity.Z == 3);
+        assert(outEntity.W == 5);
     }, 0);
 
     savepoint.Close();
