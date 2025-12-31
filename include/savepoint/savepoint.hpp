@@ -1,30 +1,3 @@
-/*
- * This is free and unencumbered software released into the public domain.
- * 
- * Anyone is free to copy, modify, publish, use, compile, sell, or
- * distribute this software, either in source code form or as a compiled
- * binary, for any purpose, commercial or non-commercial, and by any
- * means.
- * 
- * In jurisdictions that recognize copyright laws, the author or authors
- * of this software dedicate any and all copyright interest in the
- * software to the public domain. We make this dedication for the benefit
- * of the public at large and to the detriment of our heirs and
- * successors. We intend this dedication to be an overt act of
- * relinquishment in perpetuity of all present and future rights to this
- * software under copyright law.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- * 
- * For more information, please refer to <https://unlicense.org>
- */
-
 #pragma once
 
 #include <savepoint/base.hpp>
@@ -32,6 +5,7 @@
 #include <savepoint/fwd.hpp>
 #include <savepoint/id.hpp>
 #include <savepoint/log.hpp>
+#include <savepoint/status.hpp>
 #include <savepoint/traits.hpp>
 #include <savepoint/version.hpp>
 #include <savepoint/visitor.hpp>
@@ -40,114 +14,114 @@
 #include <string_view>
 
 /**
- * @brief 
+ * @brief The read function signature.
  * 
- * @tparam T 
- * @param item
+ * @tparam T The type to read.
+ * @param item The read item.
  */
 template<typename T>
 using SavepointReadFunction = std::function<void(T& item)>;
 
 /**
- * @brief 
+ * @brief The entity read function signature.
  * 
- * @tparam T 
- * @param item
- * @param id
+ * @tparam T The type to read.
+ * @param item The read item.
+ * @param id The read ID.
+ * @see SavepointID
  */
 template<typename T>
 using SavepointReadEntityFunction = std::function<void(T& item, SavepointID id)>;
 
 /**
- * @brief 
+ * @brief The 2D tile read function signature.
  * 
- * @tparam T 
- * @param item
- * @param x
- * @param y
+ * @tparam T The type to read.
+ * @param item The read item.
+ * @param x The x location.
+ * @param y The y location.
  */
 template<typename T>
 using SavepointReadTile2DFunction = std::function<void(T& item, int x, int y)>;
 
 /**
- * @brief 
+ * @brief The 3D tile read function signature.
  * 
- * @tparam T 
- * @param item
- * @param x
- * @param y
- * @param z
+ * @tparam T The type to read.
+ * @param item The read item.
+ * @param x The x location.
+ * @param y The y location.
+ * @param z The z location.
  */
 template<typename T>
 using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, int z)>;
 
+/**
+ * @brief The connection handle to a Savepoint file.
+ */
 class Savepoint
 {
 public:
     /**
-     * @brief 
-     * 
+     * @brief Default initializes the connection.
      */
     Savepoint() = default;
 
     /**
-     * @brief 
-     * 
+     * @brief If connected, closes the connection.
      */
     ~Savepoint();
 
     /**
-     * @brief 
-     * 
-     * @param other 
+     * @brief Deleted copy constructor.
      */
     Savepoint(const Savepoint& other) = delete;
     
     /**
-     * @brief 
-     * 
-     * @param other 
-     * @return 
+     * @brief Deleted copy assignment operator.
      */
     Savepoint& operator=(const Savepoint& other) = delete;
     
     /**
-     * @brief 
-     * 
-     * @param other 
+     * @brief Deleted move constructor.
      */
     Savepoint(Savepoint&& other) = delete;
     
     /**
-     * @brief 
-     * 
-     * @param other 
-     * @return 
+     * @brief Deleted move assignment operator.
      */
     Savepoint& operator=(Savepoint&& other) = delete;
     
     /**
-     * @brief 
+     * @brief Opens a new connection.
      * 
-     * @param driver 
-     * @param path 
-     * @param version 
-     * @return 
+     * @param driver The driver to use for file operations.
+     * @param path The path to the Savepoint file.
+     * @param version The user's application version.
+     * @return The result of the attempt to open a connection.
+     * @see IsOpen
+     * @see Save
+     * @see Close
      */
     SavepointStatus Open(SavepointDriver driver, const std::string_view& path, SavepointVersion version);
 
     /**
-     * @brief 
+     * @brief Check if connected to a Savepoint file.
      * 
-     * @return 
+     * @return True if connected.
+     * @see Open
+     * @see Close
      */
     bool IsOpen() const;
 
     /**
-     * @brief 
+     * @brief Write a singleton to the Savepoint.
      * 
-     * @tparam T 
-     * @param item 
+     * For storing information such as date and time, the user can write a
+     * singleton with the assumption that only one entry exists.
+     * 
+     * @tparam T The type to write.
+     * @param item The item to write.
      */
     template<SavepointReadableWritable T>
     void Write(T& item)
@@ -158,12 +132,18 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Write an entity to the Savepoint.
      * 
-     * @tparam T 
-     * @param item 
-     * @param id 
-     * @param level 
+     * For items without a unique location, an ID can be used to ensure the item
+     * gets a unique entry. If the ID is invalid, the ID will be written to and
+     * a new entry will be inserted. If the ID is valid, an existing entry will
+     * be updated (including the level).
+     * 
+     * @tparam T The type to write.
+     * @param item The item to write.
+     * @param id The ID.
+     * @param level The level.
+     * @see SavepointID
      */
     template<SavepointReadableWritable T>
     void Write(T& item, SavepointID& id, int level)
@@ -174,13 +154,16 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Write a 2D tile to the Savepoint.
      * 
-     * @tparam T 
-     * @param item 
-     * @param x 
-     * @param y 
-     * @param level 
+     * Writes a tile to a entry using a key of x, y, and level. If an entry
+     * already exists, the entry will be overridden.
+     * 
+     * @tparam T The type to write.
+     * @param item The item to write.
+     * @param x The x location.
+     * @param y The y location.
+     * @param level The level.
      */
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int level)
@@ -191,14 +174,17 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Write a 3D tile to the Savepoint.
      * 
-     * @tparam T 
-     * @param item 
-     * @param x 
-     * @param y 
-     * @param z 
-     * @param level 
+     * Writes a tile to a entry using a key of x, y, z, and level. If an entry
+     * already exists, the entry will be overridden.
+     * 
+     * @tparam T The type to write.
+     * @param item The item to write.
+     * @param x The x location.
+     * @param y The y location.
+     * @param z The z location.
+     * @param level The level.
      */
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int z, int level)
@@ -209,10 +195,10 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Read a singleton from the Savepoint.
      * 
-     * @tparam T 
-     * @param function 
+     * @tparam T The type to read.
+     * @param function The function to use.
      */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadFunction<T>& function)
@@ -226,11 +212,12 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Read all entities in the specified level from the Savepoint.
      * 
-     * @tparam T 
-     * @param function 
-     * @param level 
+     * @tparam T The type to read.
+     * @param function The function to use.
+     * @param level The level.
+     * @see SavepointID
      */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadEntityFunction<T>& function, int level)
@@ -244,11 +231,11 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Read all 2D tiles in the specified level from the Savepoint.
      * 
-     * @tparam T 
-     * @param function 
-     * @param level 
+     * @tparam T The type to read.
+     * @param function The function to use.
+     * @param level The level.
      */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadTile2DFunction<T>& function, int level)
@@ -262,11 +249,11 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Read all 3D tiles in the specified level from the Savepoint.
      * 
-     * @tparam T 
-     * @param function 
-     * @param level 
+     * @tparam T The type to read.
+     * @param function The function to use.
+     * @param level The level.
      */
     template<SavepointReadableWritable T>
     void Read(const SavepointReadTile3DFunction<T>& function, int level)
@@ -280,27 +267,34 @@ public:
     }
     
     /**
-     * @brief 
+     * @brief Deletes an entity from the Savepoint.
      * 
-     * @param id 
+     * @param id The ID.
      */
     void Delete(const SavepointID id);
     
     /**
-     * @brief 
+     * @brief Closes the connection. Does NOT call Savepoint::Save.
      * 
+     * @see IsOpen
+     * @see Save
+     * @see Close
      */
     void Close();
     
     /**
-     * @brief 
+     * @brief Save all pending changes.
      * 
+     * Commits the current transaction and starts a new one. The next time
+     * Savepoint::Open is called, it will return SavepointStatus::Existing
+     * instead of SavepointStatus::New.
+     * 
+     * @see Open
      */
     void Save();
 
     /**
-     * @brief 
-     * 
+     * @brief Remove all entities and tiles from the Savepoint.
      */
     void Clear();
 
