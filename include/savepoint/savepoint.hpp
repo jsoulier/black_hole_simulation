@@ -152,7 +152,7 @@ public:
     template<SavepointReadableWritable T>
     void Write(T& item)
     {
-        Visitor.Reset(Version, kSavepointVersion);
+        Visitor.BeginWriting(Version);
         Visitor(item);
         Driver->Write(Visitor);
     }
@@ -168,7 +168,7 @@ public:
     template<SavepointReadableWritable T>
     void Write(T& item, SavepointID& id, int level)
     {
-        Visitor.Reset(Version, kSavepointVersion);
+        Visitor.BeginWriting(Version);
         Visitor(item);
         Driver->Write(Visitor, id, level);
     }
@@ -185,7 +185,7 @@ public:
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int level)
     {
-        Visitor.Reset(Version, kSavepointVersion);
+        Visitor.BeginWriting(Version);
         Visitor(item);
         Driver->Write(Visitor, x, y, level);
     }
@@ -203,7 +203,7 @@ public:
     template<SavepointReadableWritable T>
     void Write(T& item, int x, int y, int z, int level)
     {
-        Visitor.Reset(Version, kSavepointVersion);
+        Visitor.BeginWriting(Version);
         Visitor(item);
         Driver->Write(Visitor, x, y, z, level);
     }

@@ -2,9 +2,9 @@
  * Expected:
  * Tried to read into non-empty range
  * Fixed range will be truncated: 3 < 2
- * Fixed range is too small: 1 < 2 (x2)
+ * Fixed range is too small: 1 < 2
  * Fixed range is too small: 1 < 3 (x2)
- * Tried to read into non-empty range
+ * Tried to read into non-empty range (x2)
  */
 
 #include <savepoint/savepoint.hpp>
@@ -452,8 +452,7 @@ struct ArrayV2
 
     bool operator==(const ArrayV2& other) const
     {
-        return
-            Data == other.Data &&
+        return Data == other.Data &&
             Sentinel == other.Sentinel;
     }
 };
@@ -471,8 +470,7 @@ struct ArrayV3
 
     bool operator==(const ArrayV1& other) const
     {
-        return
-            Data[0] == other.Data[0] &&
+        return Data[0] == other.Data[0] &&
             Sentinel == 4;
     }
 

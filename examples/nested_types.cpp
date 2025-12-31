@@ -1,3 +1,4 @@
+// [nested_types]
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>
@@ -7,18 +8,19 @@
 
 static constexpr SavepointVersion kVersion{0, 0, 0};
 
-struct Vector
+struct Vector2
 {
     int X;
     int Y;
 
+    // Visit implementation is optional since Vector2 will not change
     void Visit(SavepointVisitor& visitor)
     {
         visitor(X);
         visitor(Y);
     }
 
-    bool operator==(const Vector& other) const
+    bool operator==(const Vector2& other) const
     {
         return X == other.X && Y == other.Y;
     }
@@ -26,10 +28,12 @@ struct Vector
 
 enum Effect
 {
+    // Never change the order
     EffectStrength,
     EffectWeakness,
     EffectSwiftness,
     EffectSlowness,
+    // Be sure to add enums to the end
 };
 
 struct Item
@@ -51,10 +55,12 @@ struct Item
 
 struct EntityInventory
 {
+    // A container of elements with a Visit implementation
     std::vector<Item> Items;
 
     void Visit(SavepointVisitor& visitor)
     {
+        // Visit will be called for each element in the container
         visitor(Items);
     }
 
@@ -64,11 +70,20 @@ struct EntityInventory
     }
 };
 
+// Entity consists of several complex types:
+// |-> std::shared_ptr<Inventory>
+//   |-> std::vector<Items>
+//     |-> Count
+//     |-> Durability
+// |-> std::unordered_set<Effects>
+// |-> Position
+//   |-> X
+//   |-> Y
 struct Entity
 {
     std::shared_ptr<EntityInventory> Inventory;
     std::unordered_set<Effect> Effects;
-    Vector Position;
+    Vector2 Position;
     SavepointID ID;
 
     Entity()
@@ -80,6 +95,7 @@ struct Entity
 
     void Visit(SavepointVisitor& visitor)
     {
+        // Members are complex types but serialization is as usual, trivial
         visitor(Inventory);
         visitor(Effects);
         visitor(Position);
@@ -113,3 +129,4 @@ int main()
     savepoint.Close();
     return 0;
 }
+// [nested_types]

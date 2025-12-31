@@ -22,6 +22,7 @@ target_precompile_headers(savepoint PUBLIC
     <savepoint/id.hpp>
     <savepoint/log.hpp>
     <savepoint/savepoint.hpp>
+    <savepoint/status.hpp>
     <savepoint/traits.hpp>
     <savepoint/version.hpp>
     <savepoint/visitor.hpp>

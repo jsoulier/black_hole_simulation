@@ -46,8 +46,24 @@
 #include <vector>
 
 /**
- * @brief 
+ * @brief Modified implementation of the Visitor pattern for serialization.
  * 
+ * The visitor is the main component in object serialization. It uses a
+ * simplified version of the [visitor pattern](https://refactoring.guru/design-patterns/visitor)
+ * with two operating modes:
+ * 1. Reading from the Savepoint.
+ * 2. Writing to the Savepoint.
+ * 
+ * Visitors are a structured blob of binary data. They consist of:
+ * 1. A SavepointVersion representing the user's application build version.
+ * 2. A SavepointVersion representing the Savepoint build version (reserved for future use).
+ * 3. The object data.
+ * 
+ * When writing, we store the current build versions. When reading, we load the
+ * versions used in the previous write. By comparing these versions to the build
+ * versions, we can determine what members are safe to deserialize.
+ * 
+ * @snippet examples/nested_types.cpp nested_types
  */
 class SavepointVisitor
 {
@@ -56,13 +72,17 @@ private:
 
 public:
     /**
-     * @brief 
+     * @brief Serialize to/from an items's raw bytes.
      * 
-     * @tparam T 
-     * @tparam Args 
-     * @param item 
-     * @param version 
-     * @param args 
+     * Perform a simple memcpy from the visitor to the item's raw bytes (and
+     * vice versa) using the size of the item. If the item cannot be deserialized,
+     * it will be default initialized using args, assuming args are provided.
+     * 
+     * @tparam T The type to serialize.
+     * @tparam Args The types of the args.
+     * @param item The item to serialize.
+     * @param version The version required to deserialize.
+     * @param args The args for default initialization.
      */
     template<SavepointMemcpyable T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
@@ -109,20 +129,23 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Visit using the implementation from SavepointVisit.
+     *
+     * If the item cannot be deserialized, it will be default initialized using
+     * args, assuming args are provided.
      * 
-     * @tparam T 
-     * @tparam Args 
-     * @param item 
-     * @param version 
-     * @param args 
+     * @tparam T The type to serialize.
+     * @tparam Args The types of the args.
+     * @param item The item to serialize.
+     * @param version The version required to deserialize.
+     * @param args The args for default initialization.
      */
     template<SavepointFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         if (IsReading())
         {
-            if (Version < version)
+            if (Version < version || GetSize() == 0)
             {
                 if constexpr (sizeof...(Args) > 0)
                 {
@@ -135,20 +158,23 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Visit using the implementation from T::Visit.
      * 
-     * @tparam T 
-     * @tparam Args 
-     * @param item 
-     * @param version 
-     * @param args 
+     * If the item cannot be deserialized, it will be default initialized using
+     * args, assuming args are provided.
+     * 
+     * @tparam T The type to serialize.
+     * @tparam Args The types of the args.
+     * @param item The item to serialize.
+     * @param version The version required to deserialize.
+     * @param args The args for default initialization.
      */
     template<SavepointMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         if (IsReading())
         {
-            if (Version < version)
+            if (Version < version || GetSize() == 0)
             {
                 if constexpr (sizeof...(Args) > 0)
                 {
@@ -161,45 +187,45 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Skip bytes.
      * 
-     * @tparam T 
-     * @param size 
+     * @tparam T The type to skip.
      */
     template<SavepointMemcpyable T>
-    void Skip(size_t size = 1)
+    void Skip()
     {
-        if (IsWriting())
+        if (IsReading())
         {
-            SavepointLog("Tried to skip on a writer");
-            return;
+            if (sizeof(T) > GetSize())
+            {
+                SavepointLog(std::format("Tried to skip past visitor: {}", Version.GetString()));
+                return;
+            }
+            Offset += sizeof(T);
         }
-        if (!size)
+        else
         {
-            SavepointLog("Tried to skip nothing");
-            return;
+            Writer.resize(Writer.size() + sizeof(T));
         }
-        if (sizeof(T) * size > GetSize())
-        {
-            SavepointLog(std::format("Tried to skip past visitor: {}", Version.GetString()));
-            return;
-        }
-        Offset += sizeof(T) * size;
     }
 
     /**
-     * @brief 
-     * 
+     * @brief Disable deserialization.
      */
     void Fail()
     {
+        if (!IsReading())
+        {
+            SavepointLog("Tried to fail while writing");
+            return;
+        }
         Offset = Reader.size();
     }
 
     /**
-     * @brief 
+     * @brief Check if a visitor is reading.
      * 
-     * @return 
+     * @return True if the visitor is reading.
      */
     bool IsReading() const
     {
@@ -207,9 +233,9 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Check if a visitor is writing.
      * 
-     * @return 
+     * @return True if the visitor is writing.
      */
     bool IsWriting() const
     {
@@ -217,9 +243,29 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Get the application version.
      * 
-     * @return 
+     * @return The application version.
+     */
+    SavepointVersion GetVersion() const
+    {
+        if (IsReading())
+        {
+            return Version;
+        }
+        else
+        {
+            // TODO: why would you want this?
+            SavepointVersion version;
+            std::memcpy(std::addressof(version), Writer.data(), sizeof(SavepointVersion));
+            return version;
+        }
+    }
+
+    /**
+     * @brief Get the number of bytes to write or the remaining to read.
+     * 
+     * @return The number of bytes.
      */
     size_t GetSize() const
     {
@@ -235,27 +281,24 @@ public:
 
     /** @cond INTERNAL */
 
-    void Reset(SavepointVersion application, SavepointVersion savepoint)
-    {
-        Reader = {};
-        Writer.resize(kHeader);
-        std::memcpy(Writer.data(), &application, sizeof(SavepointVersion));
-        // Reserved for future use
-        std::memcpy(Writer.data() + sizeof(SavepointVersion), &savepoint, sizeof(SavepointVersion));
-    }
-
-    void Reset(void* data, size_t size)
+    void BeginReading(void* data, size_t size)
     {
         Reader = {static_cast<uint8_t*>(data), size};
         Offset = 0;
+        // Read application version
         operator()(Version);
-        // Reserved for future use
+        // Read Savepoint version (reserved for future use)
         Skip<SavepointVersion>();
     }
 
-    bool IsEmpty() const
+    void BeginWriting(SavepointVersion version)
     {
-        return Writer.size() == kHeader;
+        Reader = {};
+        Writer.resize(kHeader);
+        // Write application version
+        std::memcpy(Writer.data(), &version, sizeof(SavepointVersion));
+        // Write Savepoint version (reserved for future use)
+        std::memcpy(Writer.data() + sizeof(SavepointVersion), &kSavepointVersion, sizeof(SavepointVersion));
     }
 
     const void* GetData() const
@@ -266,18 +309,31 @@ public:
     /** @endcond */
 
 private:
-    SavepointVersion Version;
+    // For writing
     std::vector<uint8_t> Writer;
+    
+    // For reading
+    SavepointVersion Version;
     std::span<uint8_t> Reader;
     size_t Offset;
 };
 
 /**
- * @brief 
+ * @brief Visit implementation for serializing std::unique_ptr and std::shared_ptr.
  * 
- * @tparam T 
- * @param visitor 
- * @param item 
+ * Pointers data and whether they are null are serialized. As such, pointers are
+ * allowed to be nullptr and will be handled accordingly. Polymorphics are also
+ * supported by storing type information alongside the aforementioned data. When
+ * reading, the correct derived type will be instanciated and deserialized.
+ * 
+ * Raw pointers are unsupported, not because they couldn't be, but because it's
+ * not needed and avoids potential pitfalls.
+ * 
+ * @tparam T The type of the pointer.
+ * @param visitor The visitor.
+ * @param item The pointer.
+ * @see SavepointBase
+ * @see SAVEPOINT_DERIVED
  */
 template<SavepointStdPointer T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
@@ -336,11 +392,11 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
 }
 
 /**
- * @brief 
+ * @brief Visit implementation for serializing an std::pair.
  * 
- * @tparam T 
- * @param visitor 
- * @param item 
+ * @tparam T The type of the pair.
+ * @param visitor The visitor.
+ * @param item The pair.
  */
 template<SavepointPair T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
@@ -353,11 +409,11 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
 }
 
 /**
- * @brief 
+ * @brief Visit implementation for serializing containers.
  * 
- * @tparam T 
- * @param visitor 
- * @param item 
+ * @tparam T The type of the container.
+ * @param visitor The visitor.
+ * @param item The pointer.
  */
 template<SavepointRange T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
