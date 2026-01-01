@@ -1,3 +1,5 @@
+#include <sqlite3.h>
+
 #include <savepoint/driver.hpp>
 #include <savepoint/id.hpp>
 #include <savepoint/log.hpp>
@@ -9,7 +11,6 @@
 #include <format>
 #include <string_view>
 
-#include "sqlite3.h"
 #include "sqlite3.hpp"
 
 static constexpr const char* kSQL =
@@ -224,40 +225,39 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor)
     sqlite3_reset(WriteStmt);
 }
 
-void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, SavepointID& id, int level)
+SavepointID SavepointDriverSqlite3::Insert(SavepointVisitor& visitor, int level)
+{
+    SavepointID id;
+    const void* data = visitor.GetData();
+    size_t size = visitor.GetSize();
+    sqlite3_bind_int(InsertEntityStmt, 1, level);
+    sqlite3_bind_blob(InsertEntityStmt, 2, data, size, SQLITE_TRANSIENT);
+    if (sqlite3_step(InsertEntityStmt) != SQLITE_DONE)
+    {
+        SavepointLog(std::format("Failed to insert entity: {}", sqlite3_errmsg(Handle)));
+    }
+    else
+    {
+        id.SetValue(sqlite3_last_insert_rowid(Handle));
+    }
+    sqlite3_reset(InsertEntityStmt);
+    return id;
+}
+
+SavepointID SavepointDriverSqlite3::Update(SavepointVisitor& visitor, SavepointID id, int level)
 {
     const void* data = visitor.GetData();
     size_t size = visitor.GetSize();
-    // Insert a new entity
-    if (!id.IsValid())
+    sqlite3_bind_int(UpdateEntityStmt, 1, level);
+    sqlite3_bind_blob(UpdateEntityStmt, 2, data, size, SQLITE_TRANSIENT);
+    sqlite3_bind_int(UpdateEntityStmt, 3, id.GetValue());
+    if (sqlite3_step(UpdateEntityStmt) != SQLITE_DONE)
     {
-        sqlite3_bind_int(InsertEntityStmt, 1, level);
-        sqlite3_bind_blob(InsertEntityStmt, 2, data, size, SQLITE_TRANSIENT);
-        if (sqlite3_step(InsertEntityStmt) != SQLITE_DONE)
-        {
-            SavepointLog(std::format("Failed to insert entity: {}", sqlite3_errmsg(Handle)));
-        }
-        else
-        {
-            id.SetValue(sqlite3_last_insert_rowid(Handle));
-        }
-        sqlite3_reset(InsertEntityStmt);
+        SavepointLog(std::format("Failed to update entity: {}", sqlite3_errmsg(Handle)));
+        id = SavepointID{};
     }
-    // Update an existing entity
-    else
-    {
-        sqlite3_bind_int(UpdateEntityStmt, 1, level);
-        sqlite3_bind_blob(UpdateEntityStmt, 2, data, size, SQLITE_TRANSIENT);
-        sqlite3_bind_int(UpdateEntityStmt, 3, id.GetValue());
-        if (sqlite3_step(UpdateEntityStmt) != SQLITE_DONE)
-        {
-            SavepointLog(std::format("Failed to update entity: {}", sqlite3_errmsg(Handle)));
-            id = SavepointID{};
-            // Insert a new entity instead
-            Write(visitor, id, level);
-        }
-        sqlite3_reset(UpdateEntityStmt);
-    }
+    sqlite3_reset(UpdateEntityStmt);
+    return id;
 }
 
 void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, int x, int y, int level)
@@ -355,10 +355,6 @@ void SavepointDriverSqlite3::Read(const SavepointReadVisitorTile3DFunction& func
 
 void SavepointDriverSqlite3::Delete(const SavepointID id)
 {
-    if (!id.IsValid())
-    {
-        return;
-    }
     sqlite3_bind_int(DeleteEntityStmt, 1, id.GetValue());
     if (sqlite3_step(DeleteEntityStmt) != SQLITE_DONE)
     {

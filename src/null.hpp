@@ -14,7 +14,8 @@ public:
     SavepointStatus Open(const std::string_view& path, SavepointVersion version) override;
     bool IsOpen() const override;
     void Write(SavepointVisitor& visitor) override;
-    void Write(SavepointVisitor& visitor, SavepointID& id, int level) override;
+    SavepointID Insert(SavepointVisitor& visitor, int level) override;
+    SavepointID Update(SavepointVisitor& visitor, SavepointID id, int level) override;
     void Write(SavepointVisitor& visitor, int x, int y, int level) override;
     void Write(SavepointVisitor& visitor, int x, int y, int z, int level) override;
     void Read(const SavepointReadVisitorFunction& function) override;

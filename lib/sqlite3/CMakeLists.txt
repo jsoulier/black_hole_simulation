@@ -1,0 +1,4 @@
+project(sqlite3)
+add_library(savepoint_sqlite3 sqlite3.c)
+target_include_directories(savepoint_sqlite3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(savepoint_sqlite3 PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)

@@ -21,8 +21,14 @@ void SavepointDriverNull::Write(SavepointVisitor& visitor)
 {
 }
 
-void SavepointDriverNull::Write(SavepointVisitor& visitor, SavepointID& id, int level)
+SavepointID SavepointDriverNull::Insert(SavepointVisitor& visitor, int level)
 {
+    return SavepointID{};
+}
+
+SavepointID SavepointDriverNull::Update(SavepointVisitor& visitor, SavepointID id, int level)
+{
+    return SavepointID{};
 }
 
 void SavepointDriverNull::Write(SavepointVisitor& visitor, int x, int y, int level)

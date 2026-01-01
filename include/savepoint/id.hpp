@@ -27,6 +27,20 @@ public:
     {
     }
 
+    /** @cond INTERNAL */
+
+    void SetValue(uint32_t value)
+    {
+        Value = value;
+    }
+
+    uint32_t GetValue() const
+    {
+        return Value;
+    }
+
+    /** @endcond */
+
     /**
      * @brief Check if an ID is the same as another ID.
      * 
@@ -58,20 +72,6 @@ public:
     {
         return Value != SavepointID{}.Value;
     }
-
-    /** @cond INTERNAL */
-
-    void SetValue(uint32_t value)
-    {
-        Value = value;
-    }
-
-    uint32_t GetValue() const
-    {
-        return Value;
-    }
-
-    /** @endcond */
 
 private:
     uint32_t Value;

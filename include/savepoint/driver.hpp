@@ -30,7 +30,8 @@ public:
     virtual SavepointStatus Open(const std::string_view& path, SavepointVersion version) = 0;
     virtual bool IsOpen() const = 0;
     virtual void Write(SavepointVisitor& visitor) = 0;
-    virtual void Write(SavepointVisitor& visitor, SavepointID& id, int level) = 0;
+    virtual SavepointID Insert(SavepointVisitor& visitor, int level) = 0;
+    virtual SavepointID Update(SavepointVisitor& visitor, SavepointID id, int level) = 0;
     virtual void Write(SavepointVisitor& visitor, int x, int y, int level) = 0;
     virtual void Write(SavepointVisitor& visitor, int x, int y, int z, int level) = 0;
     virtual void Read(const SavepointReadVisitorFunction& function) = 0;

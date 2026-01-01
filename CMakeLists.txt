@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(savepoint)
 
-add_library(savepoint_sqlite3 src/sqlite3.c)
+add_subdirectory(lib/sqlite3)
 add_library(savepoint
     src/base.cpp
     src/log.cpp
@@ -14,7 +14,6 @@ target_link_libraries(savepoint PRIVATE savepoint_sqlite3)
 target_include_directories(savepoint PUBLIC include)
 set_target_properties(savepoint PROPERTIES CXX_STANDARD 23)
 set_target_properties(savepoint PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-set_target_properties(savepoint_sqlite3 PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 target_precompile_headers(savepoint PUBLIC
     <savepoint/base.hpp>
     <savepoint/driver.hpp>

@@ -46,7 +46,7 @@ bool Savepoint::IsOpen() const
 
 void Savepoint::Delete(const SavepointID id)
 {
-    if (IsOpen())
+    if (IsOpen() && id.IsValid())
     {
         Driver->Delete(id);
     }

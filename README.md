@@ -2,8 +2,8 @@
 
 Savepoint is a lightweight, all-in-one solution for serialization, versioning, and persistence in C++ applications.
 Inspired by [cereal](https://github.com/USCiLab/cereal) and built on proven databases like [SQLite](https://sqlite.org/),
-it provides a simple, fast, and reliable interface for persisting C++ objects. Including documentation and excluding
-SQLite, the library is roughly 2K lines of code.
+it provides a simple, fast, and reliable interface for persisting C++ objects. Including documentation, the library is
+roughly 2K lines of code.
 
 ### Features
 

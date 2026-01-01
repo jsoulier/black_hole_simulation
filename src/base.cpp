@@ -23,12 +23,10 @@ struct Hash
     }
 };
 
-using DerivedFunctions = std::unordered_map<std::string, SavepointDerivedFunction, Hash, std::equal_to<>>;
-
-static DerivedFunctions& GetDerivedFunctions()
+static auto& GetDerivedFunctions()
 {
     // Required because of SIOF
-    static DerivedFunctions functions;
+    static std::unordered_map<std::string, SavepointDerivedFunction, Hash, std::equal_to<>> functions;
     return functions;
 }
 

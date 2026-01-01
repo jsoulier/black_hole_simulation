@@ -152,7 +152,18 @@ public:
     {
         Visitor.BeginWriting(Version);
         Visitor(item);
-        Driver->Write(Visitor, id, level);
+        if (!id.IsValid())
+        {
+            id = Driver->Insert(Visitor, level);
+        }
+        else
+        {
+            id = Driver->Update(Visitor, id, level);
+            if (!id.IsValid())
+            {
+                id = Driver->Insert(Visitor, level);
+            }
+        }
     }
 
     /**
