@@ -298,7 +298,7 @@ private:
  * Pointers data and whether they are null are serialized. As such, pointers are
  * allowed to be nullptr and will be handled accordingly. Polymorphics are also
  * supported by storing type information alongside the aforementioned data. When
- * reading, the correct derived type will be instanciated and deserialized.
+ * reading, the correct derived type will be instantiated and deserialized.
  * 
  * Raw pointers are unsupported, not because they couldn't be, but because it's
  * not needed and avoids potential pitfalls.
@@ -319,6 +319,11 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         visitor(hasPointer);
         if (!hasPointer)
         {
+            if (item)
+            {
+                SavepointLog("Nulled an allocated pointer since visitor contained a nullptr");
+                item.reset();
+            }
             return;
         }
         if (!item)
@@ -340,7 +345,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             }
             else
             {
-                // Don't static_assert because it'll fail on already instanciated
+                // Don't static_assert because it'll fail on already instantiated
                 // derived classes with abstract parents
                 SavepointLog("No method to create pointer");
                 visitor.Fail();
