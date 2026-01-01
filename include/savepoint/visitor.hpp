@@ -223,17 +223,7 @@ public:
      */
     SavepointVersion GetVersion() const
     {
-        if (IsReading())
-        {
-            return Version;
-        }
-        else
-        {
-            // TODO: why would you want this?
-            SavepointVersion version;
-            std::memcpy(std::addressof(version), Writer.data(), sizeof(SavepointVersion));
-            return version;
-        }
+        return Version;
     }
 
     /**
@@ -255,13 +245,12 @@ public:
 
     /** @cond INTERNAL */
 
-    void BeginReading(void* data, size_t size)
+    void BeginReading(const void* data, size_t size)
     {
-        Reader = {static_cast<uint8_t*>(data), size};
+        void* pointer = const_cast<void*>(data);
+        Reader = {static_cast<uint8_t*>(pointer), size};
         Offset = 0;
-        // Read application version
         operator()(Version);
-        // Read Savepoint version (reserved for future use)
         Skip<SavepointVersion>();
     }
 
@@ -269,10 +258,9 @@ public:
     {
         Reader = {};
         Writer.resize(kHeader);
-        // Write application version
         std::memcpy(Writer.data(), &version, sizeof(SavepointVersion));
-        // Write Savepoint version (reserved for future use)
         std::memcpy(Writer.data() + sizeof(SavepointVersion), &kSavepointVersion, sizeof(SavepointVersion));
+        Version = version;
     }
 
     const void* GetData() const
@@ -283,11 +271,8 @@ public:
     /** @endcond */
 
 private:
-    // For writing
-    std::vector<uint8_t> Writer;
-    
-    // For reading
     SavepointVersion Version;
+    std::vector<uint8_t> Writer;
     std::span<uint8_t> Reader;
     size_t Offset;
 };

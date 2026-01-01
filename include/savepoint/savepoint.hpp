@@ -152,6 +152,7 @@ public:
     {
         Visitor.BeginWriting(Version);
         Visitor(item);
+        // Not an error. Inserting a new entry
         if (!id.IsValid())
         {
             id = Driver->Insert(Visitor, level);
@@ -159,6 +160,7 @@ public:
         else
         {
             id = Driver->Update(Visitor, id, level);
+            // Update failed to try inserting
             if (!id.IsValid())
             {
                 id = Driver->Insert(Visitor, level);
