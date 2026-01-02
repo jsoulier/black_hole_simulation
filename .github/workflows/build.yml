@@ -6,7 +6,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-2025
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -19,4 +24,4 @@ jobs:
         run: cmake --build build
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest -C Debug --test-dir build --output-on-failure
