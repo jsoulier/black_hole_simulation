@@ -21,7 +21,7 @@ struct Entity : public SavepointBase
     }
 
     // Optionally implement Visit
-    void Visit(SavepointVisitor& visitor)
+    void Visit(SavepointVisitor& visitor) override
     {
         visitor(X);
         visitor(Y);
@@ -47,7 +47,7 @@ struct ZombieEntity : public Entity
     {
     }
 
-    void Visit(SavepointVisitor& visitor)
+    void Visit(SavepointVisitor& visitor) override
     {
         // Make sure to use the base class' Visit function
         Entity::Visit(visitor);
@@ -72,7 +72,7 @@ struct SpiderEntity : public Entity
     {
     }
 
-    void Visit(SavepointVisitor& visitor)
+    void Visit(SavepointVisitor& visitor) override
     {
         Entity::Visit(visitor);
         visitor(Eyes);

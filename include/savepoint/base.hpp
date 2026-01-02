@@ -19,6 +19,11 @@ class SavepointBase
 {
 public:
     /**
+     * @brief Default destructor.
+     */
+    virtual ~SavepointBase() = default;
+
+    /**
      * @brief The Visit method to be called from SavepointVisitor.
      * 
      * @param visitor The visitor.
