@@ -2,7 +2,7 @@
 
 ![](image.png)
 
-Black Hole Simulation using SDL3 GPU with compute shaders
+Black Hole Simulation using SDL3 GPU with a compute shader
 
 ### Building
 
