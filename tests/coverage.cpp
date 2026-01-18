@@ -704,22 +704,18 @@ static void Test(SavepointDriver driver)
         header.Minor = 2;
         header.Patch = 3;
         savepoint.Write(header);
-        savepoint.Read<Header>([&](Header& header)
-        {
-            assert(header.Major = 1);
-            assert(header.Minor = 2);
-            assert(header.Patch = 3);
-        });
+        savepoint.Read(header);
+        assert(header.Major = 1);
+        assert(header.Minor = 2);
+        assert(header.Patch = 3);
         header.Major = 4;
         header.Minor = 5;
         header.Patch = 6;
         savepoint.Write(header);
-        savepoint.Read<Header>([&](Header& header)
-        {
-            assert(header.Major = 4);
-            assert(header.Minor = 5);
-            assert(header.Patch = 6);
-        });
+        savepoint.Read(header);
+        assert(header.Major = 4);
+        assert(header.Minor = 5);
+        assert(header.Patch = 6);
     }
     {
         for (int inX = 0; inX < 256; inX++)

@@ -13,10 +13,10 @@
 typedef struct sqlite3 sqlite;
 typedef struct sqlite3_stmt sqlite_stmt;
 
-class SavepointDriverSqlite3 : public ISavepointDriver
+class SavepointDriverSQLite3 : public ISavepointDriver
 {
 public:
-    SavepointDriverSqlite3();
+    SavepointDriverSQLite3();
     SavepointStatus Open(const std::string_view& path, SavepointVersion version) override;
     bool IsOpen() const override;
     void Write(SavepointVisitor& visitor) override;

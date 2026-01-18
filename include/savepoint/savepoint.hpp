@@ -213,16 +213,14 @@ public:
      * @brief Read a singleton from the Savepoint.
      * 
      * @tparam T The type to read.
-     * @param function The function to use.
+     * @param item The item to read.
      */
     template<SavepointVisitable T>
-    void Read(const SavepointReadFunction<T>& function)
+    void Read(const T& item)
     {
-        Driver->Read([&function](SavepointVisitor& visitor)
+        Driver->Read([&item](SavepointVisitor& visitor)
         {
-            T item;
             visitor(item);
-            function(item);
         });
     }
 

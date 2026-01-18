@@ -27,7 +27,7 @@ SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& 
 #endif
 #ifdef SAVEPOINT_SQLITE3
     case SavepointDriver::SQLite3:
-        Driver = std::make_unique<SavepointDriverSqlite3>();
+        Driver = std::make_unique<SavepointDriverSQLite3>();
         break;
 #endif
     default:

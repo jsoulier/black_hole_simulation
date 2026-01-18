@@ -79,7 +79,7 @@ static constexpr const char* kClearTiles2DSQL =
 static constexpr const char* kClearTiles3DSQL =
     "DELETE FROM tiles_3d;";
 
-SavepointDriverSqlite3::SavepointDriverSqlite3()
+SavepointDriverSQLite3::SavepointDriverSQLite3()
     : ISavepointDriver()
     , Version{}
     , Visitor{}
@@ -102,7 +102,7 @@ SavepointDriverSqlite3::SavepointDriverSqlite3()
 {
 }
 
-SavepointStatus SavepointDriverSqlite3::Open(const std::string_view& path, SavepointVersion version)
+SavepointStatus SavepointDriverSQLite3::Open(const std::string_view& path, SavepointVersion version)
 {
     sqlite3* handle = nullptr;
     if (sqlite3_open(path.data(), &handle) != SQLITE_OK)
@@ -210,12 +210,12 @@ SavepointStatus SavepointDriverSqlite3::Open(const std::string_view& path, Savep
     return status;
 }
 
-bool SavepointDriverSqlite3::IsOpen() const
+bool SavepointDriverSQLite3::IsOpen() const
 {
     return Handle != nullptr;
 }
 
-void SavepointDriverSqlite3::Write(SavepointVisitor& visitor)
+void SavepointDriverSQLite3::Write(SavepointVisitor& visitor)
 {
     const void* data = visitor.GetData();
     size_t size = visitor.GetSize();
@@ -227,7 +227,7 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor)
     sqlite3_reset(WriteStmt);
 }
 
-SavepointID SavepointDriverSqlite3::Insert(SavepointVisitor& visitor, int level)
+SavepointID SavepointDriverSQLite3::Insert(SavepointVisitor& visitor, int level)
 {
     SavepointID id;
     const void* data = visitor.GetData();
@@ -246,7 +246,7 @@ SavepointID SavepointDriverSqlite3::Insert(SavepointVisitor& visitor, int level)
     return id;
 }
 
-SavepointID SavepointDriverSqlite3::Update(SavepointVisitor& visitor, SavepointID id, int level)
+SavepointID SavepointDriverSQLite3::Update(SavepointVisitor& visitor, SavepointID id, int level)
 {
     const void* data = visitor.GetData();
     size_t size = visitor.GetSize();
@@ -262,7 +262,7 @@ SavepointID SavepointDriverSqlite3::Update(SavepointVisitor& visitor, SavepointI
     return id;
 }
 
-void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, int x, int y, int level)
+void SavepointDriverSQLite3::Write(SavepointVisitor& visitor, int x, int y, int level)
 {
     const void* data = visitor.GetData();
     size_t size = visitor.GetSize();
@@ -277,7 +277,7 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, int x, int y, int 
     sqlite3_reset(WriteTile2DStmt);
 }
 
-void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
+void SavepointDriverSQLite3::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
 {
     const void* data = visitor.GetData();
     size_t size = visitor.GetSize();
@@ -293,7 +293,7 @@ void SavepointDriverSqlite3::Write(SavepointVisitor& visitor, int x, int y, int 
     sqlite3_reset(WriteTile3DStmt);
 }
 
-void SavepointDriverSqlite3::Read(const SavepointReadVisitorFunction& function)
+void SavepointDriverSQLite3::Read(const SavepointReadVisitorFunction& function)
 {
     if (sqlite3_step(ReadStmt) == SQLITE_ROW)
     {
@@ -309,7 +309,7 @@ void SavepointDriverSqlite3::Read(const SavepointReadVisitorFunction& function)
     sqlite3_reset(ReadStmt);
 }
 
-void SavepointDriverSqlite3::Read(const SavepointReadVisitorEntityFunction& function, int level)
+void SavepointDriverSQLite3::Read(const SavepointReadVisitorEntityFunction& function, int level)
 {
     SavepointID id;
     sqlite3_bind_int(ReadEntitiesStmt, 1, level);
@@ -324,7 +324,7 @@ void SavepointDriverSqlite3::Read(const SavepointReadVisitorEntityFunction& func
     sqlite3_reset(ReadEntitiesStmt);
 }
 
-void SavepointDriverSqlite3::Read(const SavepointReadVisitorTile2DFunction& function, int level)
+void SavepointDriverSQLite3::Read(const SavepointReadVisitorTile2DFunction& function, int level)
 {
     sqlite3_bind_int(ReadTiles2DStmt, 1, level);
     while (sqlite3_step(ReadTiles2DStmt) == SQLITE_ROW)
@@ -339,7 +339,7 @@ void SavepointDriverSqlite3::Read(const SavepointReadVisitorTile2DFunction& func
     sqlite3_reset(ReadTiles2DStmt);
 }
 
-void SavepointDriverSqlite3::Read(const SavepointReadVisitorTile3DFunction& function, int level)
+void SavepointDriverSQLite3::Read(const SavepointReadVisitorTile3DFunction& function, int level)
 {
     sqlite3_bind_int(ReadTiles3DStmt, 1, level);
     while (sqlite3_step(ReadTiles3DStmt) == SQLITE_ROW)
@@ -355,7 +355,7 @@ void SavepointDriverSqlite3::Read(const SavepointReadVisitorTile3DFunction& func
     sqlite3_reset(ReadTiles3DStmt);
 }
 
-void SavepointDriverSqlite3::Delete(const SavepointID id)
+void SavepointDriverSQLite3::Delete(const SavepointID id)
 {
     sqlite3_bind_int(DeleteEntityStmt, 1, id.GetValue());
     if (sqlite3_step(DeleteEntityStmt) != SQLITE_DONE)
@@ -365,7 +365,7 @@ void SavepointDriverSqlite3::Delete(const SavepointID id)
     sqlite3_reset(DeleteEntityStmt);
 }
 
-void SavepointDriverSqlite3::Close()
+void SavepointDriverSQLite3::Close()
 {
     sqlite3_finalize(WriteStatusStmt);
     sqlite3_finalize(WriteStmt);
@@ -386,7 +386,7 @@ void SavepointDriverSqlite3::Close()
     Handle = nullptr;
 }
 
-void SavepointDriverSqlite3::Save()
+void SavepointDriverSQLite3::Save()
 {
     if (sqlite3_step(WriteStatusStmt) != SQLITE_DONE)
     {
@@ -402,7 +402,7 @@ void SavepointDriverSqlite3::Save()
     }
 }
 
-void SavepointDriverSqlite3::Clear()
+void SavepointDriverSQLite3::Clear()
 {
     if (sqlite3_step(ClearEntitiesStmt) != SQLITE_DONE)
     {
