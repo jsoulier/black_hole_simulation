@@ -866,6 +866,9 @@ static void Test(SavepointDriver driver)
     TestReadWrite<SharedPtr, SharedPtr>(driver, kVersion1);
     TestReadWrite<SharedPtrVector, SharedPtrVector>(driver, kVersion1);
     TestReadWrite<NullPtr, NullPtr>(driver, kVersion1);
+    TestReadWrite<SavepointTime, SavepointTime>(driver, kVersion1);
+    TestReadWrite<SavepointID, SavepointID>(driver, kVersion1);
+    TestReadWrite<SavepointVersion, SavepointVersion>(driver, kVersion1);
 }
 
 int main()

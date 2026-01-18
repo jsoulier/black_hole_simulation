@@ -86,10 +86,7 @@ public:
      * @param other The other version.
      * @return True if the comparison evaluated to true.
      */
-    constexpr auto operator<=>(const SavepointVersion other) const
-    {
-        return Value <=> other.Value;
-    }
+    constexpr auto operator<=>(const SavepointVersion& other) const = default;
 
 private:
     uint32_t Value;
