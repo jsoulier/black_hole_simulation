@@ -6,6 +6,7 @@
 #include <savepoint/id.hpp>
 #include <savepoint/log.hpp>
 #include <savepoint/status.hpp>
+#include <savepoint/time.hpp>
 #include <savepoint/traits.hpp>
 #include <savepoint/version.hpp>
 #include <savepoint/visitor.hpp>
@@ -216,7 +217,7 @@ public:
      * @param item The item to read.
      */
     template<SavepointVisitable T>
-    void Read(const T& item)
+    void Read(T& item)
     {
         Driver->Read([&item](SavepointVisitor& visitor)
         {

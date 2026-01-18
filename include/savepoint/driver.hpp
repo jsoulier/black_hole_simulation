@@ -5,16 +5,17 @@
 #include <savepoint/status.hpp>
 #include <savepoint/version.hpp>
 
+#include <cstdint>
 #include <functional>
 #include <string_view>
 
 /**
- * @brief The implementation for Savepoint's file operations
+ * @brief The implementation for Savepoint's file operations.
  */
-enum class SavepointDriver
+enum class SavepointDriver : uint8_t
 {
-    SQLite3, /**< Backed by sqlite3 */
-    Null,    /**< Noop */
+    SQLite3, /**< Backed by sqlite3. */
+    Null,    /**< Noop. */
 };
 
 /** @cond INTERNAL */

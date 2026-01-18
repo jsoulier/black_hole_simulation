@@ -297,7 +297,7 @@ private:
 template<SavepointStdPointer T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
-    using E = typename T::element_type;
+    using ValueT = typename T::element_type;
     if (visitor.IsReading())
     {
         bool hasPointer = false;
@@ -313,14 +313,14 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         }
         if (!item)
         {
-            if constexpr (std::is_base_of_v<SavepointBase, E>)
+            if constexpr (std::is_base_of_v<SavepointBase, ValueT>)
             {
-                item.reset(dynamic_cast<E*>(SavepointReadDerived(visitor)));
+                item.reset(dynamic_cast<ValueT*>(SavepointReadDerived(visitor)));
                 return;
             }
-            else if constexpr (std::is_default_constructible_v<E>)
+            else if constexpr (std::is_default_constructible_v<ValueT>)
             {
-                item.reset(new E());
+                item.reset(new ValueT());
                 if (!item)
                 {
                     SavepointLog("Failed to allocate pointer");
@@ -345,7 +345,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
         visitor(hasPointer);
         if (hasPointer)
         {
-            if constexpr (std::is_base_of_v<SavepointBase, E>)
+            if constexpr (std::is_base_of_v<SavepointBase, ValueT>)
             {
                 SavepointWriteDerived(item.get(), visitor);
             }
@@ -384,7 +384,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
 template<std::ranges::range T>
 void SavepointVisit(SavepointVisitor& visitor, T& item)
 {
-    using E = typename T::value_type;
+    using ValueT = typename T::value_type;
     size_t size = item.size();
     if constexpr (SavepointDynamicRange<T>)
     {
@@ -410,7 +410,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             for (size_t i = 0; i < size; i++)
             {
                 // TODO: mutable iterators
-                E element;
+                ValueT element;
                 visitor(element);
                 *inserter++ = element;
             }
@@ -433,7 +433,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             }
             for (; maxSize < size; maxSize++)
             {
-                visitor.Skip<E>();
+                visitor.Skip<ValueT>();
             }
         }
         else
