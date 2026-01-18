@@ -1,3 +1,5 @@
+#ifdef SAVEPOINT_SQLITE3
+
 #include <sqlite3.h>
 
 #include <savepoint/driver.hpp>
@@ -418,3 +420,5 @@ void SavepointDriverSqlite3::Clear()
     }
     sqlite3_reset(ClearTiles3DStmt);
 }
+
+#endif

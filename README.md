@@ -13,7 +13,7 @@ roughly 2K lines of code.
 - Inherited and nested fields
 - Polymorphic types
 - Vectors, sets, maps, pointers, and more
-- Support for multiple backends (only SQLite is supported right now)
+- Support for multiple backends (only SQLite3 is supported right now)
 
 ### Documentation
 
@@ -54,7 +54,7 @@ struct Entity
 int main()
 {
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", SavepointVersion{});
+    savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", SavepointVersion{});
 
     Entity inEntity{1, 2};
     savepoint.Write(inEntity, inEntity.ID, 0);

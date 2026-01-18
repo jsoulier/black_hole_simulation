@@ -20,12 +20,16 @@ SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& 
 {
     switch (driver)
     {
+#ifdef SAVEPOINT_NULL
     case SavepointDriver::Null:
         Driver = std::make_unique<SavepointDriverNull>();
         break;
-    case SavepointDriver::Sqlite3:
+#endif
+#ifdef SAVEPOINT_SQLITE3
+    case SavepointDriver::SQLite3:
         Driver = std::make_unique<SavepointDriverSqlite3>();
         break;
+#endif
     default:
         SavepointLog(std::format("Unknown driver: {}", std::to_underlying(driver)));
         return SavepointStatus::Failed;

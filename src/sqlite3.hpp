@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef SAVEPOINT_SQLITE3
+
 #include <savepoint/driver.hpp>
 #include <savepoint/id.hpp>
 #include <savepoint/status.hpp>
@@ -51,3 +53,5 @@ private:
     sqlite3_stmt* ClearTiles2DStmt;
     sqlite3_stmt* ClearTiles3DStmt;
 };
+
+#endif

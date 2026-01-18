@@ -40,9 +40,9 @@ int main()
     // Clear old saves
     std::filesystem::remove("savepoint.sqlite3");
 
-    // Open a Savepoint (only SQLite is supported right now)
+    // Open a Savepoint (only SQLite3 is supported right now)
     Savepoint savepoint;
-    switch (savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion))
+    switch (savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion))
     {
     case SavepointStatus::Failed:
         // Failed to open for any reason

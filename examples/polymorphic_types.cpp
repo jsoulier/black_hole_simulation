@@ -89,7 +89,7 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion);
+    savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
 
     // Write derived classes as usual
     std::shared_ptr<ZombieEntity> inZombie = std::make_shared<ZombieEntity>();

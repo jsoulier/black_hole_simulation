@@ -30,11 +30,6 @@ static auto& GetDerivedFunctions()
     return functions;
 }
 
-void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function)
-{
-    GetDerivedFunctions().emplace(string, function);
-}
-
 bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
 {
     if (!base)
@@ -73,4 +68,9 @@ SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
     }
     visitor(*base);
     return base;
+}
+
+void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function)
+{
+    GetDerivedFunctions().emplace(string, function);
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef SAVEPOINT_NULL
+
 #include <savepoint/driver.hpp>
 #include <savepoint/fwd.hpp>
 #include <savepoint/id.hpp>
@@ -27,3 +29,5 @@ public:
     void Save() override;
     void Clear() override;
 };
+
+#endif

@@ -1,3 +1,5 @@
+#ifdef SAVEPOINT_NULL
+
 #include <savepoint/driver.hpp>
 #include <savepoint/id.hpp>
 #include <savepoint/status.hpp>
@@ -70,3 +72,5 @@ void SavepointDriverNull::Save()
 void SavepointDriverNull::Clear()
 {
 }
+
+#endif

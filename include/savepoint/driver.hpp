@@ -13,7 +13,7 @@
  */
 enum class SavepointDriver
 {
-    Sqlite3, /**< Backed by sqlite3 */
+    SQLite3, /**< Backed by sqlite3 */
     Null,    /**< Noop */
 };
 

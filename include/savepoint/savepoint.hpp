@@ -160,7 +160,7 @@ public:
         else
         {
             id = Driver->Update(Visitor, id, level);
-            // Update failed to try inserting
+            // Update failed so try inserting
             if (!id.IsValid())
             {
                 id = Driver->Insert(Visitor, level);

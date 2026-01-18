@@ -23,7 +23,7 @@ struct Entity
 int main()
 {
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", SavepointVersion{});
+    savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", SavepointVersion{});
 
     Entity inEntity{1, 2};
     savepoint.Write(inEntity, inEntity.ID, 0);

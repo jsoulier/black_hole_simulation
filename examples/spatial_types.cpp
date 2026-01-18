@@ -35,7 +35,7 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::Sqlite3, "savepoint.sqlite3", kVersion);
+    savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
 
     std::random_device device;
     std::mt19937 generator(device());

@@ -874,6 +874,6 @@ static void Test(SavepointDriver driver)
 
 int main()
 {
-    Test(SavepointDriver::Sqlite3);
+    Test(SavepointDriver::SQLite3);
     return 0;
 }
