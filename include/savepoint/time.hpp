@@ -36,7 +36,9 @@ public:
      * @tparam T The type of the clock.
      * @param value The time value.
      */
-    template<typename T = ClockT> requires std::chrono::is_clock_v<T>
+    template<typename T = ClockT>
+    // Waiting on MacOS's clang to support is_clock_v
+    // requires std::chrono::is_clock_v<T>
     SavepointTimeImpl(T::time_point value = T::now())
         : Value{std::chrono::duration_cast<DurationT>(value.time_since_epoch()).count()}
     {
