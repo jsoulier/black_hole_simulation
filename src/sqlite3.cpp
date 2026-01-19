@@ -70,6 +70,8 @@ static constexpr const char* kReadTiles2DSQL =
     "SELECT x, y, data FROM tiles_2d WHERE level = ?;";
 static constexpr const char* kReadTiles3DSQL =
     "SELECT x, y, z, data FROM tiles_3d WHERE level = ?;";
+static constexpr const char* kReadLevelsSQL =
+    "SELECT level FROM entities UNION SELECT level FROM tiles_2d UNION SELECT level FROM tiles_3d;";
 static constexpr const char* kDeleteEntitySQL =
     "DELETE FROM entities WHERE id = ?;";
 static constexpr const char* kClearEntitiesSQL =
@@ -95,6 +97,7 @@ SavepointDriverSQLite3::SavepointDriverSQLite3()
     , ReadEntitiesStmt{nullptr}
     , ReadTiles2DStmt{nullptr}
     , ReadTiles3DStmt{nullptr}
+    , ReadLevelsStmt{nullptr}
     , DeleteEntityStmt{nullptr}
     , ClearEntitiesStmt{nullptr}
     , ClearTiles2DStmt{nullptr}
@@ -168,6 +171,11 @@ SavepointStatus SavepointDriverSQLite3::Open(const std::string_view& path, Savep
     if (sqlite3_prepare_v2(handle, kReadTiles3DSQL, -1, &ReadTiles3DStmt, nullptr) != SQLITE_OK)
     {
         SavepointLog(std::format("Failed to prepare kReadTiles3DSQL: {}", sqlite3_errmsg(handle)));
+        return SavepointStatus::Failed;
+    }
+    if (sqlite3_prepare_v2(handle, kReadLevelsSQL, -1, &ReadLevelsStmt, nullptr) != SQLITE_OK)
+    {
+        SavepointLog(std::format("Failed to prepare kReadLevelsSQL: {}", sqlite3_errmsg(handle)));
         return SavepointStatus::Failed;
     }
     if (sqlite3_prepare_v2(handle, kDeleteEntitySQL, -1, &DeleteEntityStmt, nullptr) != SQLITE_OK)
@@ -355,6 +363,16 @@ void SavepointDriverSQLite3::Read(const SavepointReadVisitorTile3DFunction& func
     sqlite3_reset(ReadTiles3DStmt);
 }
 
+void SavepointDriverSQLite3::Read(const SavepointReadLevelFunction& function)
+{
+    while (sqlite3_step(ReadLevelsStmt) == SQLITE_ROW)
+    {
+        int level = sqlite3_column_int(ReadLevelsStmt, 0);
+        function(level);
+    }
+    sqlite3_reset(ReadLevelsStmt);
+}
+
 void SavepointDriverSQLite3::Delete(const SavepointID id)
 {
     sqlite3_bind_int(DeleteEntityStmt, 1, id.GetValue());
@@ -378,6 +396,7 @@ void SavepointDriverSQLite3::Close()
     sqlite3_finalize(ReadEntitiesStmt);
     sqlite3_finalize(ReadTiles2DStmt);
     sqlite3_finalize(ReadTiles3DStmt);
+    sqlite3_finalize(ReadLevelsStmt);
     sqlite3_finalize(DeleteEntityStmt);
     sqlite3_finalize(ClearEntitiesStmt);
     sqlite3_finalize(ClearTiles2DStmt);

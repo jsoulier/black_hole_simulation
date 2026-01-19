@@ -1,0 +1,64 @@
+// [levels]
+// TODO: comments
+#include <savepoint/savepoint.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <filesystem>
+#include <vector>
+
+static constexpr SavepointVersion kVersion{0, 0, 0};
+
+struct Entity
+{
+    SavepointID ID;
+
+    void Visit(SavepointVisitor& visitor) {}
+};
+
+struct Tile
+{
+    void Visit(SavepointVisitor& visitor) {}
+};
+
+int main()
+{
+    std::filesystem::remove("savepoint.sqlite3");
+
+    Savepoint savepoint;
+    savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
+
+    Entity entity1;
+    savepoint.Write(entity1, entity1.ID, 0);
+    savepoint.Write(entity1, entity1.ID, 1);
+    savepoint.Write(entity1, entity1.ID, 2);
+    std::vector<int> inLevels = {2};
+    std::vector<int> outLevels = savepoint.GetLevels();
+    assert(outLevels == inLevels);
+
+    Entity entity2;
+    Entity entity3;
+    savepoint.Write(entity2, entity2.ID, 3);
+    savepoint.Write(entity3, entity3.ID, 4);
+    inLevels = {2, 3, 4};
+    outLevels = savepoint.GetLevels();
+    std::sort(outLevels.begin(), outLevels.end());
+    assert(outLevels == inLevels);
+
+    Tile tile;
+    savepoint.Write(tile, 0, 0, 0);
+    savepoint.Write(tile, 1, 0, 0);
+    savepoint.Write(tile, 0, 1, 0);
+    savepoint.Write(tile, 0, 0, 4);
+    savepoint.Write(tile, 0, 0, 5);
+    savepoint.Write(tile, 0, 0, 5);
+    savepoint.Write(tile, 0, 0, 6);
+    inLevels = {0, 2, 3, 4, 5, 6};
+    outLevels = savepoint.GetLevels();
+    std::sort(outLevels.begin(), outLevels.end());
+    assert(outLevels == inLevels);
+
+    savepoint.Close();
+    return 0;
+}
+// [levels]

@@ -24,6 +24,7 @@ public:
     void Read(const SavepointReadVisitorEntityFunction& function, int level) override;
     void Read(const SavepointReadVisitorTile2DFunction& function, int level) override;
     void Read(const SavepointReadVisitorTile3DFunction& function, int level) override;
+    void Read(const SavepointReadLevelFunction& function) override;
     void Delete(const SavepointID id) override;
     void Close() override;
     void Save() override;

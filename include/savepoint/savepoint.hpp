@@ -13,6 +13,7 @@
 
 #include <functional>
 #include <string_view>
+#include <vector>
 
 /**
  * @brief The read function signature.
@@ -279,7 +280,22 @@ public:
             function(item, x, y, z);
         }, level);
     }
-    
+
+    /**
+     * @brief Get all the levels from the Savepoint. Duplicates are removed.
+     * 
+     * @return The levels.
+     */
+    std::vector<int> GetLevels()
+    {
+        std::vector<int> levels;
+        Driver->Read([&levels](int level)
+        {
+            levels.push_back(level);
+        });
+        return levels;
+    }
+
     /**
      * @brief Deletes an entity from the Savepoint.
      * 

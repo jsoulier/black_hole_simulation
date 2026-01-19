@@ -24,6 +24,7 @@ using SavepointReadVisitorFunction = std::function<void(SavepointVisitor& visito
 using SavepointReadVisitorEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
 using SavepointReadVisitorTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
 using SavepointReadVisitorTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
+using SavepointReadLevelFunction = std::function<void(int level)>;
 
 class ISavepointDriver
 {
@@ -39,6 +40,7 @@ public:
     virtual void Read(const SavepointReadVisitorEntityFunction& function, int level) = 0;
     virtual void Read(const SavepointReadVisitorTile2DFunction& function, int level) = 0;
     virtual void Read(const SavepointReadVisitorTile3DFunction& function, int level) = 0;
+    virtual void Read(const SavepointReadLevelFunction& function) = 0;
     virtual void Delete(const SavepointID id) = 0;
     virtual void Close() = 0;
     virtual void Save() = 0;

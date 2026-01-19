@@ -28,6 +28,7 @@ public:
     void Read(const SavepointReadVisitorEntityFunction& function, int level) override;
     void Read(const SavepointReadVisitorTile2DFunction& function, int level) override;
     void Read(const SavepointReadVisitorTile3DFunction& function, int level) override;
+    void Read(const SavepointReadLevelFunction& function) override;
     void Delete(const SavepointID id) override;
     void Close() override;
     void Save() override;
@@ -48,6 +49,7 @@ private:
     sqlite3_stmt* ReadEntitiesStmt;
     sqlite3_stmt* ReadTiles2DStmt;
     sqlite3_stmt* ReadTiles3DStmt;
+    sqlite3_stmt* ReadLevelsStmt;
     sqlite3_stmt* DeleteEntityStmt;
     sqlite3_stmt* ClearEntitiesStmt;
     sqlite3_stmt* ClearTiles2DStmt;

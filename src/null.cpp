@@ -57,6 +57,10 @@ void SavepointDriverNull::Read(const SavepointReadVisitorTile3DFunction& functio
 {
 }
 
+void SavepointDriverNull::Read(const SavepointReadLevelFunction& function)
+{
+}
+
 void SavepointDriverNull::Delete(const SavepointID id)
 {
 }
