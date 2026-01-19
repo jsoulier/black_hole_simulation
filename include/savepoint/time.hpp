@@ -27,6 +27,9 @@ template<typename ClockT, typename DurationT>
 class SavepointTimeImpl
 {
 public:
+    /** @brief The time point type used by the clock type. */
+    using TimePointT = typename ClockT::time_point;
+
     /** @brief The underlying representation of the duration. */
     using RepT = typename DurationT::rep;
 
@@ -52,7 +55,7 @@ public:
     std::string GetString() const
     {
         // https://en.cppreference.com/w/cpp/chrono/duration/formatter.html
-        typename ClockT::time_point value = ClockT::time_point(DurationT(Value));
+        TimePointT value{DurationT(Value)};
         value = std::chrono::floor<DurationT>(value);
         std::string string = std::format("{:%F %T}", value);
         // For some reason there are trailing zeroes (at least on MSVC)
