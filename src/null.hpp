@@ -4,10 +4,10 @@
 
 #include <savepoint/driver.hpp>
 #include <savepoint/fwd.hpp>
-#include <savepoint/id.hpp>
 #include <savepoint/status.hpp>
 #include <savepoint/version.hpp>
 
+#include <cstdint>
 #include <string_view>
 
 class SavepointDriverNull : public ISavepointDriver
@@ -25,7 +25,7 @@ public:
     void Read(const SavepointReadVisitorTile2DFunction& function, int level) override;
     void Read(const SavepointReadVisitorTile3DFunction& function, int level) override;
     void Read(const SavepointReadLevelFunction& function) override;
-    void Delete(const SavepointID id) override;
+    void Delete(SavepointID id) override;
     void Close() override;
     void Save() override;
     void Clear() override;

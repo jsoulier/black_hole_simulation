@@ -48,14 +48,6 @@ bool Savepoint::IsOpen() const
     return Driver->IsOpen();
 }
 
-void Savepoint::Delete(const SavepointID id)
-{
-    if (IsOpen() && id.IsValid())
-    {
-        Driver->Delete(id);
-    }
-}
-
 void Savepoint::Close()
 {
     if (IsOpen())

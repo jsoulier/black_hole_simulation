@@ -57,11 +57,11 @@ public:
      * @param version The version required to deserialize.
      * @param args The args for default initialization.
      */
-    template<SavepointMemcpyable T, typename... Args>
+    template<SavepointCanMemcpy T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         // For detecting bugs in MSVC concepts
-        static_assert(!SavepointPointer<T>);
+        static_assert(!SavepointIsPointer<T>);
         static_assert(!std::is_base_of_v<SavepointBase, T>);
         static_assert(!std::ranges::range<T>);
         if (IsReading())
@@ -103,7 +103,7 @@ public:
     }
 
     /**
-     * @brief Visit using the implementation from SavepointVisit.
+     * @brief Visit using the implementation from Visit.
      *
      * If the item cannot be deserialized, it will be default initialized using
      * args, assuming args are provided.
@@ -114,7 +114,7 @@ public:
      * @param version The version required to deserialize.
      * @param args The args for default initialization.
      */
-    template<SavepointFreeVisit T, typename... Args>
+    template<SavepointHasFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         if (IsReading())
@@ -128,7 +128,7 @@ public:
                 return;
             }
         }
-        SavepointVisit(*this, item);
+        Visit(*this, item);
     }
 
     /**
@@ -143,7 +143,7 @@ public:
      * @param version The version required to deserialize.
      * @param args The args for default initialization.
      */
-    template<SavepointMemberVisit T, typename... Args>
+    template<SavepointHasMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         if (IsReading())
@@ -165,7 +165,7 @@ public:
      * 
      * @tparam T The type to skip.
      */
-    template<SavepointMemcpyable T>
+    template<SavepointCanMemcpy T>
     void Skip()
     {
         if (IsReading())
@@ -245,7 +245,7 @@ public:
 
     /** @cond INTERNAL */
 
-    void BeginReading(const void* data, size_t size)
+    void SavepointBeginReading(const void* data, size_t size)
     {
         void* pointer = const_cast<void*>(data);
         Reader = {static_cast<uint8_t*>(pointer), size};
@@ -254,7 +254,7 @@ public:
         Skip<SavepointVersion>();
     }
 
-    void BeginWriting(SavepointVersion version)
+    void SavepointBeginWriting(SavepointVersion version)
     {
         Reader = {};
         Writer.resize(kHeader);
@@ -263,7 +263,7 @@ public:
         Version = version;
     }
 
-    const void* GetData() const
+    const void* SavepointGetData() const
     {
         return Writer.data();
     }
@@ -294,8 +294,8 @@ private:
  * @see SavepointBase
  * @see SAVEPOINT_DERIVED
  */
-template<SavepointStdPointer T>
-void SavepointVisit(SavepointVisitor& visitor, T& item)
+template<SavepointIsStdPointer T>
+void Visit(SavepointVisitor& visitor, T& item)
 {
     using ValueT = typename T::element_type;
     if (visitor.IsReading())
@@ -364,8 +364,8 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
  * @param visitor The visitor.
  * @param item The pair.
  */
-template<SavepointPair T>
-void SavepointVisit(SavepointVisitor& visitor, T& item)
+template<SavepointIsPair T>
+void Visit(SavepointVisitor& visitor, T& item)
 {
     // Required because maps use const for value_type::first_type
     using First = std::remove_const_t<typename T::first_type>;
@@ -382,11 +382,11 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
  * @param item The pointer.
  */
 template<std::ranges::range T>
-void SavepointVisit(SavepointVisitor& visitor, T& item)
+void Visit(SavepointVisitor& visitor, T& item)
 {
     using ValueT = typename T::value_type;
     size_t size = item.size();
-    if constexpr (SavepointDynamicRange<T>)
+    if constexpr (SavepointIsDynamicRange<T>)
     {
         if (visitor.IsReading() && size)
         {
@@ -404,7 +404,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
             visitor.Fail();
             return;
         }
-        if constexpr (SavepointDynamicRange<T>)
+        if constexpr (SavepointIsDynamicRange<T>)
         {
             auto inserter = std::inserter(item, std::ranges::end(item));
             for (size_t i = 0; i < size; i++)
@@ -415,7 +415,7 @@ void SavepointVisit(SavepointVisitor& visitor, T& item)
                 *inserter++ = element;
             }
         }
-        else if constexpr (SavepointStaticRange<T>)
+        else if constexpr (SavepointIsStaticRange<T>)
         {
             size_t maxSize = std::ranges::size(item);
             if (size > maxSize)

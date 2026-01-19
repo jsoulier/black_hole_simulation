@@ -26,8 +26,8 @@ endif()
 target_precompile_headers(savepoint PUBLIC
     <savepoint/base.hpp>
     <savepoint/driver.hpp>
+    <savepoint/entity.hpp>
     <savepoint/fwd.hpp>
-    <savepoint/id.hpp>
     <savepoint/log.hpp>
     <savepoint/savepoint.hpp>
     <savepoint/status.hpp>

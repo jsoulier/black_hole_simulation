@@ -8,11 +8,10 @@
 static constexpr SavepointVersion kVersion{0, 0, 0};
 
 // Your base class inherits from SavepointBase
-struct Entity : public SavepointBase
+struct Entity : SavepointBase, SavepointEntity
 {
     int X;
     int Y;
-    SavepointID ID;
 
     Entity()
         : X{0}
@@ -94,23 +93,21 @@ int main()
     // Write derived classes as usual
     std::shared_ptr<ZombieEntity> inZombie = std::make_shared<ZombieEntity>();
     std::shared_ptr<SpiderEntity> inSpider = std::make_shared<SpiderEntity>();
-    savepoint.Write(inZombie, inZombie->ID, 0);
-    savepoint.Write(inSpider, inSpider->ID, 0);
+    savepoint.Write(inZombie, 0);
+    savepoint.Write(inSpider, 0);
 
     // Read using your base class' class name
     int reads = 0;
-    savepoint.Read<std::shared_ptr<Entity>>([&](std::shared_ptr<Entity>& entity, SavepointID id)
+    savepoint.Read<std::shared_ptr<Entity>>([&](std::shared_ptr<Entity>& entity)
     {
         // The read entity is either a ZombieEntity or a SpiderEntity. You can safely take ownership of it
         if (ZombieEntity* outZombie = dynamic_cast<ZombieEntity*>(entity.get()))
         {
-            assert(id == inZombie->ID);
             assert(*outZombie == *inZombie);
             reads++;
         }
         else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(entity.get()))
         {
-            assert(id == inSpider->ID);
             assert(*outSpider == *inSpider);
             reads++;
         }

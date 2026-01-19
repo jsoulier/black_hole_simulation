@@ -7,14 +7,18 @@
 // The version of your application
 static constexpr SavepointVersion kVersion{0, 0, 0};
 
-struct Entity
+struct Entity : SavepointEntity
 {
     // The data we want to serialize
     int X;
     int Y;
 
-    // An ID for uniquely identifying the entity
-    SavepointID ID;
+    Entity() = default;
+    Entity(int x, int y)
+        : X{x}
+        , Y{y}
+    {
+    }
 
     // Any objects that use pointers or may be modified in the future should
     // implement the Visit function. The Visit function allows complex datatypes
@@ -25,7 +29,6 @@ struct Entity
         // Visit X and Y
         visitor(X);
         visitor(Y);
-        // Don't visit the ID (used later)
     }
 
     // Optional
@@ -55,22 +58,15 @@ int main()
         break;
     }
 
-    // Create and write an entity along with their ID to level 0
+    // Create and write an entity o level 0
     Entity inEntity{1, 2};
-    assert(!inEntity.ID.IsValid());
-    savepoint.Write(inEntity, inEntity.ID, 0);
-    assert(inEntity.ID.IsValid());
+    savepoint.Write(inEntity, 0);
 
     // Provide a callback to read entities from level 0
     int reads = 0;
-    savepoint.Read<Entity>([&](Entity& outEntity, SavepointID id)
+    savepoint.Read<Entity>([&](Entity& outEntity)
     {
-        // Make sure to hold onto the ID
-        outEntity.ID = id;
-
-        // Optional
         assert(outEntity == inEntity);
-        assert(id == inEntity.ID);
         reads++;
     }, 0);
     assert(reads == 1);

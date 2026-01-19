@@ -3,11 +3,11 @@
 #ifdef SAVEPOINT_SQLITE3
 
 #include <savepoint/driver.hpp>
-#include <savepoint/id.hpp>
 #include <savepoint/status.hpp>
 #include <savepoint/version.hpp>
 #include <savepoint/visitor.hpp>
 
+#include <cstdint>
 #include <string_view>
 
 typedef struct sqlite3 sqlite;
@@ -29,7 +29,7 @@ public:
     void Read(const SavepointReadVisitorTile2DFunction& function, int level) override;
     void Read(const SavepointReadVisitorTile3DFunction& function, int level) override;
     void Read(const SavepointReadLevelFunction& function) override;
-    void Delete(const SavepointID id) override;
+    void Delete(SavepointID id) override;
     void Close() override;
     void Save() override;
     void Clear() override;

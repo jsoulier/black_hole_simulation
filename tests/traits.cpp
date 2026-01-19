@@ -9,45 +9,45 @@
 #include <unordered_map>
 #include <vector>
 
-static_assert(SavepointPointer<void*>);
-static_assert(SavepointPointer<void**>);
-static_assert(SavepointPointer<const void*>);
-static_assert(SavepointPointer<void const*>);
-static_assert(SavepointPointer<const void* const>);
-static_assert(!SavepointPointer<int>);
-static_assert(SavepointPointer<std::shared_ptr<int>>);
-static_assert(SavepointPointer<std::unique_ptr<int>>);
+static_assert(SavepointIsPointer<void*>);
+static_assert(SavepointIsPointer<void**>);
+static_assert(SavepointIsPointer<const void*>);
+static_assert(SavepointIsPointer<void const*>);
+static_assert(SavepointIsPointer<const void* const>);
+static_assert(!SavepointIsPointer<int>);
+static_assert(SavepointIsPointer<std::shared_ptr<int>>);
+static_assert(SavepointIsPointer<std::unique_ptr<int>>);
 
 struct NoVisit {};
 struct MemberVisit { void Visit(SavepointVisitor& visitor) {} };
 struct FreeVisit {};
-static void SavepointVisit(SavepointVisitor& visitor, FreeVisit& item) {}
+static void Visit(SavepointVisitor& visitor, FreeVisit& item) {}
 
-static_assert(SavepointFreeVisit<FreeVisit>);
-static_assert(!SavepointFreeVisit<MemberVisit>);
-static_assert(!SavepointFreeVisit<NoVisit>);
-static_assert(!SavepointMemberVisit<FreeVisit>);
-static_assert(SavepointMemberVisit<MemberVisit>);
-static_assert(!SavepointMemberVisit<NoVisit>);
+static_assert(SavepointHasFreeVisit<FreeVisit>);
+static_assert(!SavepointHasFreeVisit<MemberVisit>);
+static_assert(!SavepointHasFreeVisit<NoVisit>);
+static_assert(!SavepointHasMemberVisit<FreeVisit>);
+static_assert(SavepointHasMemberVisit<MemberVisit>);
+static_assert(!SavepointHasMemberVisit<NoVisit>);
 
-static_assert(!SavepointDynamicRange<std::array<int, 1>>);
-static_assert(SavepointDynamicRange<std::vector<int>>);
-static_assert(!SavepointDynamicRange<std::string_view>);
-static_assert(SavepointDynamicRange<std::map<int, int>>);
-static_assert(SavepointDynamicRange<std::unordered_map<int, int>>);
-static_assert(SavepointDynamicRange<std::set<int>>);
-static_assert(SavepointDynamicRange<std::string>);
+static_assert(!SavepointIsDynamicRange<std::array<int, 1>>);
+static_assert(SavepointIsDynamicRange<std::vector<int>>);
+static_assert(!SavepointIsDynamicRange<std::string_view>);
+static_assert(SavepointIsDynamicRange<std::map<int, int>>);
+static_assert(SavepointIsDynamicRange<std::unordered_map<int, int>>);
+static_assert(SavepointIsDynamicRange<std::set<int>>);
+static_assert(SavepointIsDynamicRange<std::string>);
 
-static_assert(SavepointStaticRange<std::array<int, 1>>);
-static_assert(!SavepointStaticRange<std::vector<int>>);
-static_assert(!SavepointStaticRange<std::string_view>);
-static_assert(!SavepointStaticRange<std::map<int, int>>);
-static_assert(!SavepointStaticRange<std::unordered_map<int, int>>);
-static_assert(!SavepointStaticRange<std::set<int>>);
-static_assert(!SavepointStaticRange<std::string>);
+static_assert(SavepointIsStaticRange<std::array<int, 1>>);
+static_assert(!SavepointIsStaticRange<std::vector<int>>);
+static_assert(!SavepointIsStaticRange<std::string_view>);
+static_assert(!SavepointIsStaticRange<std::map<int, int>>);
+static_assert(!SavepointIsStaticRange<std::unordered_map<int, int>>);
+static_assert(!SavepointIsStaticRange<std::set<int>>);
+static_assert(!SavepointIsStaticRange<std::string>);
 
-static_assert(!SavepointMemberVisit<std::string>);
-static_assert(SavepointFreeVisit<std::string>);
+static_assert(!SavepointHasMemberVisit<std::string>);
+static_assert(SavepointHasFreeVisit<std::string>);
 
 int main()
 {

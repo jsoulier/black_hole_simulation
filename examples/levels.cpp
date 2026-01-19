@@ -9,10 +9,8 @@
 
 static constexpr SavepointVersion kVersion{0, 0, 0};
 
-struct Entity
+struct Entity : SavepointEntity
 {
-    SavepointID ID;
-
     void Visit(SavepointVisitor& visitor) {}
 };
 
@@ -29,17 +27,17 @@ int main()
     savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
 
     Entity entity1;
-    savepoint.Write(entity1, entity1.ID, 0);
-    savepoint.Write(entity1, entity1.ID, 1);
-    savepoint.Write(entity1, entity1.ID, 2);
+    savepoint.Write(entity1, 0);
+    savepoint.Write(entity1, 1);
+    savepoint.Write(entity1, 2);
     std::vector<int> inLevels = {2};
     std::vector<int> outLevels = savepoint.GetLevels();
     assert(outLevels == inLevels);
 
     Entity entity2;
     Entity entity3;
-    savepoint.Write(entity2, entity2.ID, 3);
-    savepoint.Write(entity3, entity3.ID, 4);
+    savepoint.Write(entity2, 3);
+    savepoint.Write(entity3, 4);
     inLevels = {2, 3, 4};
     outLevels = savepoint.GetLevels();
     std::sort(outLevels.begin(), outLevels.end());

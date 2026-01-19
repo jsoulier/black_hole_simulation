@@ -10,54 +10,63 @@
 /** @cond INTERNAL */
 
 template<typename T>
-struct SavepointUniquePointerImpl : std::false_type {};
+struct SavepointIsUniquePointerImpl : std::false_type {};
 
 template<typename T, typename Deleter>
-struct SavepointUniquePointerImpl<std::unique_ptr<T, Deleter>> : std::true_type {};
+struct SavepointIsUniquePointerImpl<std::unique_ptr<T, Deleter>> : std::true_type {};
 
 template<typename T>
-concept SavepointUniquePointer = SavepointUniquePointerImpl<T>::value;
+concept SavepointIsUniquePointer = SavepointIsUniquePointerImpl<T>::value;
 
 template<typename T>
-struct SavepointSharedPointerImpl : std::false_type {};
+struct SavepointIsSharedPointerImpl : std::false_type {};
 
 template<typename T>
-struct SavepointSharedPointerImpl<std::shared_ptr<T>> : std::true_type {};
+struct SavepointIsSharedPointerImpl<std::shared_ptr<T>> : std::true_type {};
 
 template<typename T>
-concept SavepointSharedPointer = SavepointSharedPointerImpl<T>::value;
+concept SavepointIsSharedPointer = SavepointIsSharedPointerImpl<T>::value;
 
 template<typename T>
-concept SavepointStdPointer = SavepointUniquePointer<T> || SavepointSharedPointer<T>;
+concept SavepointIsStdPointer = SavepointIsUniquePointer<T> || SavepointIsSharedPointer<T>;
 
 template<typename T>
-concept SavepointPointer = std::is_pointer_v<T> || SavepointStdPointer<T>;
+concept SavepointIsPointer = std::is_pointer_v<T> || SavepointIsStdPointer<T>;
+
+template<typename T, typename Base>
+concept SavepointIsPointerBaseOf = requires { typename T::element_type; } && std::derived_from<typename T::element_type, Base>;
 
 template<typename T>
-struct SavepointPairImpl : std::false_type {};
+struct SavepointIsPairImpl : std::false_type {};
 
 template<typename First, typename Second>
-struct SavepointPairImpl<std::pair<First, Second>> : std::true_type {};
+struct SavepointIsPairImpl<std::pair<First, Second>> : std::true_type {};
 
 template<typename T>
-concept SavepointPair = SavepointPairImpl<T>::value;
+concept SavepointIsPair = SavepointIsPairImpl<T>::value;
 
 template<typename T>
-concept SavepointDynamicRange = requires(T item) { item.insert(std::ranges::end(item), std::declval<typename T::value_type>()); };
+concept SavepointIsDynamicRange = requires(T item) { item.insert(std::ranges::end(item), std::declval<typename T::value_type>()); };
 
 template<typename T>
-concept SavepointStaticRange = !SavepointDynamicRange<T> && requires(T item) { item[0] = std::declval<typename T::value_type>(); };
+concept SavepointIsStaticRange = !SavepointIsDynamicRange<T> && requires(T item) { item[0] = std::declval<typename T::value_type>(); };
 
 template<typename T>
-concept SavepointFreeVisit = requires(SavepointVisitor visitor, T item) { { SavepointVisit(visitor, item) }; };
+concept SavepointHasFreeVisit = requires(SavepointVisitor visitor, T item) { { Visit(visitor, item) }; };
 
 template<typename T>
-concept SavepointMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
+concept SavepointHasMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
 
 template<typename T>
-concept SavepointMemcpyable = !SavepointPointer<T> && !SavepointFreeVisit<T> && !SavepointMemberVisit<T>;
+concept SavepointCanMemcpy = !SavepointIsPointer<T> && !SavepointHasFreeVisit<T> && !SavepointHasMemberVisit<T>;
 
 template<typename T>
-concept SavepointVisitable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
+concept SavepointCanVisit = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
+
+template<typename T>
+struct SavepointIsEntityImpl : std::false_type {};
+
+template<typename T>
+concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIsPointerBaseOf<T, SavepointEntity>;
 
 /** @endcond */

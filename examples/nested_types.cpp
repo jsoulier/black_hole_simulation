@@ -58,6 +58,11 @@ struct EntityInventory
     // A container of elements with a Visit implementation
     std::vector<Item> Items;
 
+    EntityInventory()
+        : Items{{1, 50}, {2, 50}, {5, 50}}
+    {
+    }
+
     void Visit(SavepointVisitor& visitor)
     {
         // Visit will be called for each element in the container
@@ -79,23 +84,21 @@ struct EntityInventory
 // |-> Position
 //   |-> X
 //   |-> Y
-struct Entity
+struct Entity : SavepointEntity
 {
     std::shared_ptr<EntityInventory> Inventory;
     std::unordered_set<Effect> Effects;
     Vector2 Position;
-    SavepointID ID;
 
     Entity()
         : Inventory{std::make_shared<EntityInventory>()}
-        , Effects{}
-        , Position{}
+        , Effects{EffectStrength, EffectSlowness}
+        , Position{100, 200}
     {
     }
 
     void Visit(SavepointVisitor& visitor)
     {
-        // Members are complex types but serialization is trivial
         visitor(Inventory);
         visitor(Effects);
         visitor(Position);
@@ -117,11 +120,8 @@ int main()
     savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
 
     Entity inEntity;
-    inEntity.Inventory->Items = {{1, 50}, {2, 50}, {5, 50}};
-    inEntity.Effects = {EffectStrength, EffectSlowness};
-    inEntity.Position = {100, 200};
-    savepoint.Write(inEntity, inEntity.ID, 0);
-    savepoint.Read<Entity>([&](Entity& outEntity, SavepointID id)
+    savepoint.Write(inEntity, 0);
+    savepoint.Read<Entity>([&](Entity& outEntity)
     {
         assert(outEntity == inEntity);
     }, 0);

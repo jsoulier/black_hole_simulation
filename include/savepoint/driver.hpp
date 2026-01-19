@@ -1,7 +1,7 @@
 #pragma once
 
+#include <savepoint/entity.hpp>
 #include <savepoint/fwd.hpp>
-#include <savepoint/id.hpp>
 #include <savepoint/status.hpp>
 #include <savepoint/version.hpp>
 
@@ -41,7 +41,7 @@ public:
     virtual void Read(const SavepointReadVisitorTile2DFunction& function, int level) = 0;
     virtual void Read(const SavepointReadVisitorTile3DFunction& function, int level) = 0;
     virtual void Read(const SavepointReadLevelFunction& function) = 0;
-    virtual void Delete(const SavepointID id) = 0;
+    virtual void Delete(SavepointID id) = 0;
     virtual void Close() = 0;
     virtual void Save() = 0;
     virtual void Clear() = 0;

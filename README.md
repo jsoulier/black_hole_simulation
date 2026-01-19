@@ -33,11 +33,17 @@ You can find all examples [here](examples)
 
 #include <cassert>
 
-struct Entity
+struct Entity : SavepointEntity
 {
     int X;
     int Y;
-    SavepointID ID;
+
+    Entity() = default;
+    Entity(int x, int y)
+        : X{x}
+        , Y{y}
+    {
+    }
 
     void Visit(SavepointVisitor& visitor)
     {
@@ -57,11 +63,10 @@ int main()
     savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", SavepointVersion{});
 
     Entity inEntity{1, 2};
-    savepoint.Write(inEntity, inEntity.ID, 0);
-    savepoint.Read<Entity>([&](Entity& outEntity, SavepointID id)
+    savepoint.Write(inEntity, 0);
+    savepoint.Read<Entity>([&](Entity& outEntity)
     {
         assert(outEntity == inEntity);
-        assert(id == inEntity.ID);
     }, 0);
     
     savepoint.Close();

@@ -78,7 +78,7 @@ struct ItemV4
     }
 };
 
-struct EntityV1
+struct EntityV1 : SavepointEntity
 {
     float X = 1.0f;
     float Y = 2.0f;
@@ -99,7 +99,7 @@ struct EntityV1
     }
 };
 
-struct EntityV2
+struct EntityV2 : SavepointEntity
 {
     int Strength = 4;
     float X = 1.0f;
@@ -135,7 +135,7 @@ struct EntityV2
     }
 };
 
-struct EntityV3
+struct EntityV3 : SavepointEntity
 {
     int Strength = 4;
     float X = 1.0f;
@@ -180,7 +180,7 @@ struct EntityV3
     }
 };
 
-struct EntityV4
+struct EntityV4 : SavepointEntity
 {
     int Strength = 4;
     float X = 1.0f;
@@ -401,7 +401,7 @@ struct Tile3D
     }
 };
 
-struct Vector
+struct Vector : SavepointEntity
 {
     std::vector<int> Data = {1, 5, 3, 7};
 
@@ -416,7 +416,7 @@ struct Vector
     }
 };
 
-struct ArrayV1
+struct ArrayV1 : SavepointEntity
 {
     std::array<int, 2> Data = {1, 3};
 
@@ -431,7 +431,7 @@ struct ArrayV1
     }
 };
 
-struct ArrayV2
+struct ArrayV2 : SavepointEntity
 {
     std::array<int, 3> Data = {1, 3, 2};
     int Sentinel = 4;
@@ -457,7 +457,7 @@ struct ArrayV2
     }
 };
 
-struct ArrayV3
+struct ArrayV3 : SavepointEntity
 {
     std::array<int, 1> Data = {1};
     int Sentinel = 4;
@@ -487,7 +487,7 @@ struct ArrayV3
     }
 };
 
-struct Map
+struct Map : SavepointEntity
 {
     std::map<int, int> Data = {{1, 2}, {2, 3}};
 
@@ -502,7 +502,7 @@ struct Map
     }
 };
 
-struct Set
+struct Set : SavepointEntity
 {
     std::set<int> Data = {1, 2, 3};
 
@@ -517,7 +517,7 @@ struct Set
     }
 };
 
-struct UniquePtr
+struct UniquePtr : SavepointEntity
 {
     std::unique_ptr<int> Data = std::make_unique<int>(1);
 
@@ -532,7 +532,7 @@ struct UniquePtr
     }
 };
 
-struct SharedPtr
+struct SharedPtr : SavepointEntity
 {
     std::shared_ptr<int> Data = std::make_shared<int>(1);
 
@@ -547,7 +547,7 @@ struct SharedPtr
     }
 };
 
-struct SharedPtrVector
+struct SharedPtrVector : SavepointEntity
 {
     std::vector<std::shared_ptr<int>> Data;
 
@@ -570,7 +570,7 @@ struct SharedPtrVector
     }
 };
 
-struct NullPtr
+struct NullPtr : SavepointEntity
 {
     std::shared_ptr<int> Data;
 
@@ -585,9 +585,8 @@ struct NullPtr
     }
 };
 
-struct BaseEntity : public SavepointBase
+struct BaseEntity : SavepointBase, SavepointEntity
 {
-    SavepointID ID;
     int X;
     int Y;
 
@@ -669,14 +668,12 @@ static void TestReadWrite(SavepointDriver driver, SavepointVersion inVersion)
     Savepoint savepoint;
     SavepointStatus status = savepoint.Open(driver, kFileName, inVersion);
     assert(status != SavepointStatus::Failed);
-    SavepointID inID;
     InT inEntity;
-    savepoint.Write(inEntity, inID, 0);
+    savepoint.Write(inEntity, 0);
     int i = 0;
-    savepoint.Read<OutT>([&](OutT& outEntity, SavepointID outID)
+    savepoint.Read<OutT>([&](OutT& outEntity)
     {
         assert(outEntity == inEntity);
-        assert(outID == inID);
         i++;
     }, 0);
     assert(i == 1);
@@ -790,35 +787,31 @@ static void Test(SavepointDriver driver)
         std::shared_ptr<DerivedZombie> inZombie = std::make_shared<DerivedZombie>();
         std::shared_ptr<DerivedSkeleton> inSkeleton = std::make_shared<DerivedSkeleton>();
         std::shared_ptr<DerivedSpider> inSpider = std::make_shared<DerivedSpider>();
-        savepoint.Write(inItem, inItem->ID, 0);
-        savepoint.Write(inZombie, inZombie->ID, 0);
-        savepoint.Write(inSkeleton, inSkeleton->ID, 0);
-        savepoint.Write(inSpider, inSpider->ID, 0);
+        savepoint.Write(inItem, 0);
+        savepoint.Write(inZombie, 0);
+        savepoint.Write(inSkeleton, 0);
+        savepoint.Write(inSpider, 0);
         int i = 0;
-        savepoint.Read<std::shared_ptr<BaseEntity>>([&](std::shared_ptr<BaseEntity>& base, SavepointID outID)
+        savepoint.Read<std::shared_ptr<BaseEntity>>([&](std::shared_ptr<BaseEntity>& base)
         {
-            if (outID == inItem->ID)
+            DerivedItem* outItem = dynamic_cast<DerivedItem*>(base.get());
+            DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base.get());
+            DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base.get());
+            DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base.get());
+            if (outItem)
             {
-                DerivedItem* outItem = dynamic_cast<DerivedItem*>(base.get());
-                assert(outItem);
                 assert(*outItem == *inItem);
             }
-            else if (outID == inZombie->ID)
+            else if (outZombie)
             {
-                DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base.get());
-                assert(outZombie);
                 assert(*outZombie == *inZombie);
             }
-            else if (outID == inSkeleton->ID)
+            else if (outSkeleton)
             {
-                DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base.get());
-                assert(outSkeleton);
                 assert(*outSkeleton == *inSkeleton);
             }
-            else if (outID == inSpider->ID)
+            else if (outSpider)
             {
-                DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base.get());
-                assert(outSpider);
                 assert(*outSpider == *inSpider);
             }
             else
@@ -866,9 +859,6 @@ static void Test(SavepointDriver driver)
     TestReadWrite<SharedPtr, SharedPtr>(driver, kVersion1);
     TestReadWrite<SharedPtrVector, SharedPtrVector>(driver, kVersion1);
     TestReadWrite<NullPtr, NullPtr>(driver, kVersion1);
-    TestReadWrite<SavepointTime, SavepointTime>(driver, kVersion1);
-    TestReadWrite<SavepointID, SavepointID>(driver, kVersion1);
-    TestReadWrite<SavepointVersion, SavepointVersion>(driver, kVersion1);
 }
 
 int main()

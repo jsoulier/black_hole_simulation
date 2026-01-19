@@ -1,10 +1,11 @@
 #ifdef SAVEPOINT_NULL
 
 #include <savepoint/driver.hpp>
-#include <savepoint/id.hpp>
+#include <savepoint/entity.hpp>
 #include <savepoint/status.hpp>
 #include <savepoint/version.hpp>
 
+#include <cstdint>
 #include <string_view>
 
 #include "null.hpp"
@@ -61,7 +62,7 @@ void SavepointDriverNull::Read(const SavepointReadLevelFunction& function)
 {
 }
 
-void SavepointDriverNull::Delete(const SavepointID id)
+void SavepointDriverNull::Delete(SavepointID id)
 {
 }
 

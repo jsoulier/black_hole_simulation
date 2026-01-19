@@ -2,8 +2,8 @@
 
 #include <savepoint/base.hpp>
 #include <savepoint/driver.hpp>
+#include <savepoint/entity.hpp>
 #include <savepoint/fwd.hpp>
-#include <savepoint/id.hpp>
 #include <savepoint/log.hpp>
 #include <savepoint/status.hpp>
 #include <savepoint/time.hpp>
@@ -29,11 +29,10 @@ using SavepointReadFunction = std::function<void(T& item)>;
  * 
  * @tparam T The type to read.
  * @param item The read item.
- * @param id The read ID.
  * @see SavepointID
  */
 template<typename T>
-using SavepointReadEntityFunction = std::function<void(T& item, SavepointID id)>;
+using SavepointReadEntityFunction = std::function<void(T& item)>;
 
 /**
  * @brief The 2D tile read function signature.
@@ -127,10 +126,14 @@ public:
      * @tparam T The type to write.
      * @param item The item to write.
      */
-    template<SavepointVisitable T>
+    template<SavepointCanVisit T>
     void Write(T& item)
     {
-        Visitor.BeginWriting(Version);
+        if (!IsOpen())
+        {
+            return;
+        }
+        Visitor.SavepointBeginWriting(Version);
         Visitor(item);
         Driver->Write(Visitor);
     }
@@ -145,15 +148,19 @@ public:
      * 
      * @tparam T The type to write.
      * @param item The item to write.
-     * @param id The ID.
      * @param level The level.
-     * @see SavepointID
+     * @see SavepointEntity
      */
-    template<SavepointVisitable T>
-    void Write(T& item, SavepointID& id, int level)
+    template<SavepointIsEntity T>
+    void Write(T& item, int level)
     {
-        Visitor.BeginWriting(Version);
+        if (!IsOpen())
+        {
+            return;
+        }
+        Visitor.SavepointBeginWriting(Version);
         Visitor(item);
+        SavepointID& id = GetID(item);
         // Not an error. Inserting a new entry
         if (!id.IsValid())
         {
@@ -182,10 +189,14 @@ public:
      * @param y The y location.
      * @param level The level.
      */
-    template<SavepointVisitable T>
+    template<SavepointCanVisit T>
     void Write(T& item, int x, int y, int level)
     {
-        Visitor.BeginWriting(Version);
+        if (!IsOpen())
+        {
+            return;
+        }
+        Visitor.SavepointBeginWriting(Version);
         Visitor(item);
         Driver->Write(Visitor, x, y, level);
     }
@@ -203,10 +214,14 @@ public:
      * @param z The z location.
      * @param level The level.
      */
-    template<SavepointVisitable T>
+    template<SavepointCanVisit T>
     void Write(T& item, int x, int y, int z, int level)
     {
-        Visitor.BeginWriting(Version);
+        if (!IsOpen())
+        {
+            return;
+        }
+        Visitor.SavepointBeginWriting(Version);
         Visitor(item);
         Driver->Write(Visitor, x, y, z, level);
     }
@@ -217,9 +232,13 @@ public:
      * @tparam T The type to read.
      * @param item The item to read.
      */
-    template<SavepointVisitable T>
+    template<SavepointCanVisit T>
     void Read(T& item)
     {
+        if (!IsOpen())
+        {
+            return;
+        }
         Driver->Read([&item](SavepointVisitor& visitor)
         {
             visitor(item);
@@ -232,16 +251,21 @@ public:
      * @tparam T The type to read.
      * @param function The function to use.
      * @param level The level.
-     * @see SavepointID
+     * @see SavepointEntity
      */
-    template<SavepointVisitable T>
+    template<SavepointCanVisit T>
     void Read(const SavepointReadEntityFunction<T>& function, int level)
     {
-        Driver->Read([&function](SavepointVisitor& visitor, SavepointID id)
+        if (!IsOpen())
+        {
+            return;
+        }
+        Driver->Read([this, &function](SavepointVisitor& visitor, SavepointID id)
         {
             T item;
             visitor(item);
-            function(item, id);
+            GetID(item) = id;
+            function(item);
         }, level);
     }
 
@@ -252,9 +276,13 @@ public:
      * @param function The function to use.
      * @param level The level.
      */
-    template<SavepointVisitable T>
+    template<SavepointCanVisit T>
     void Read(const SavepointReadTile2DFunction<T>& function, int level)
     {
+        if (!IsOpen())
+        {
+            return;
+        }
         Driver->Read([&function](SavepointVisitor& visitor, int x, int y)
         {
             T item;
@@ -270,9 +298,13 @@ public:
      * @param function The function to use.
      * @param level The level.
      */
-    template<SavepointVisitable T>
+    template<SavepointCanVisit T>
     void Read(const SavepointReadTile3DFunction<T>& function, int level)
     {
+        if (!IsOpen())
+        {
+            return;
+        }
         Driver->Read([&function](SavepointVisitor& visitor, int x, int y, int z)
         {
             T item;
@@ -288,6 +320,10 @@ public:
      */
     std::vector<int> GetLevels()
     {
+        if (!IsOpen())
+        {
+            return {};
+        }
         std::vector<int> levels;
         Driver->Read([&levels](int level)
         {
@@ -299,9 +335,23 @@ public:
     /**
      * @brief Deletes an entity from the Savepoint.
      * 
-     * @param id The ID.
+     * @tparam T The type to delete
+     * @param item The item to delete.
+     * @see SavepointEntity
      */
-    void Delete(const SavepointID id);
+    template<SavepointIsEntity T>
+    void Delete(T& item)
+    {
+        if (IsOpen())
+        {
+            return;
+        }
+        SavepointID& id = GetID(item);
+        if (id.IsValid())
+        {
+            Driver->Delete(id);
+        }
+    }
     
     /**
      * @brief Closes the connection. Does NOT call Savepoint::Save.
@@ -329,6 +379,19 @@ public:
     void Clear();
 
 private:
+    template<SavepointIsEntity T>
+    static constexpr SavepointID& GetID(T& item)
+    {
+        if constexpr (SavepointIsStdPointer<T>)
+        {
+            return item->ID;
+        }
+        else
+        {
+            return item.ID;
+        }
+    }
+
     SavepointVersion Version;
     SavepointVisitor Visitor;
     std::unique_ptr<ISavepointDriver> Driver;

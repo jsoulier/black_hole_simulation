@@ -7,11 +7,17 @@
 static constexpr SavepointVersion kVersion{0, 0, 0};
 
 // The old entity from basic_usage.cpp
-struct EntityV1
+struct EntityV1 : SavepointEntity
 {
     int X;
     int Y;
-    SavepointID ID;
+
+    EntityV1() = default;
+    EntityV1(int x, int y)
+        : X{x}
+        , Y{y}
+    {
+    }
 
     void Visit(SavepointVisitor& visitor)
     {
@@ -25,13 +31,12 @@ static constexpr SavepointVersion kVersionAddedZ{0, 0, 1};
 static constexpr SavepointVersion kVersionAddedW{0, 0, 2};
 
 // The new entity
-struct EntityV2
+struct EntityV2 : SavepointEntity
 {
     int X;
     int Z; // Added a Z component in 0.0.1
     int Y;
     int W; // Added a W component in 0.0.2
-    SavepointID ID;
 
     void Visit(SavepointVisitor& visitor)
     {
@@ -56,10 +61,10 @@ int main()
 
     // Write a V1 entity
     EntityV1 inEntity{1, 2};
-    savepoint.Write(inEntity, inEntity.ID, 0);
+    savepoint.Write(inEntity, 0);
     
     // Read a V1 entity as a V2 entity
-    savepoint.Read<EntityV2>([&](EntityV2& outEntity, SavepointID id)
+    savepoint.Read<EntityV2>([&](EntityV2& outEntity)
     {
         // X and Y were read
         assert(outEntity == inEntity);
