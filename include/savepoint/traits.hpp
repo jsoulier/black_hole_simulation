@@ -34,7 +34,7 @@ template<typename T>
 concept SavepointIsPointer = std::is_pointer_v<T> || SavepointIsStdPointer<T>;
 
 template<typename T, typename Base>
-concept SavepointIsPointerBaseOf = requires { typename T::element_type; } && std::derived_from<typename T::element_type, Base>;
+concept SavepointIsPointerBaseOf = SavepointIsStdPointer<T> && std::is_base_of_v<Base, typename T::element_type>;
 
 template<typename T>
 struct SavepointIsPairImpl : std::false_type {};
@@ -58,7 +58,7 @@ template<typename T>
 concept SavepointHasMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
 
 template<typename T>
-concept SavepointCanMemcpy = !SavepointIsPointer<T> && !SavepointHasFreeVisit<T> && !SavepointHasMemberVisit<T>;
+concept SavepointCanMemcpy = !SavepointIsPointer<T> && !SavepointHasFreeVisit<T> && !SavepointHasMemberVisit<T> && std::is_trivially_copyable_v<T>;
 
 template<typename T>
 concept SavepointCanVisit = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
