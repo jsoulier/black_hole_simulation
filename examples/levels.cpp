@@ -56,6 +56,14 @@ int main()
     std::sort(outLevels.begin(), outLevels.end());
     assert(outLevels == inLevels);
 
+    savepoint.Delete(entity1);
+    savepoint.Delete(entity2);
+    savepoint.Delete(entity3);
+    inLevels = {0, 4, 5, 6};
+    outLevels = savepoint.GetLevels();
+    std::sort(outLevels.begin(), outLevels.end());
+    assert(outLevels == inLevels);
+
     savepoint.Close();
     return 0;
 }

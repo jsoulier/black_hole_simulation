@@ -342,7 +342,7 @@ public:
     template<SavepointIsEntity T>
     void Delete(T& item)
     {
-        if (IsOpen())
+        if (!IsOpen())
         {
             return;
         }
