@@ -1,11 +1,6 @@
 #pragma once
 
-#ifdef SAVEPOINT_NULL
-
-#include <savepoint/driver.hpp>
-#include <savepoint/fwd.hpp>
-#include <savepoint/status.hpp>
-#include <savepoint/version.hpp>
+#include <savepoint/savepoint.hpp>
 
 #include <cstdint>
 #include <string_view>
@@ -30,5 +25,3 @@ public:
     void Save() override;
     void Clear() override;
 };
-
-#endif

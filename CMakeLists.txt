@@ -4,37 +4,22 @@ project(savepoint)
 option(SAVEPOINT_NULL "Enable Null driver" ON)
 option(SAVEPOINT_SQLITE3 "Enable SQLite3 driver" ON)
 
-add_library(savepoint
-    src/base.cpp
-    src/log.cpp
-    src/null.cpp
-    src/savepoint.cpp
-    src/sqlite3.cpp
-)
+add_library(savepoint src/savepoint.cpp)
 add_library(savepoint::savepoint ALIAS savepoint)
 target_include_directories(savepoint PUBLIC include)
 set_target_properties(savepoint PROPERTIES CXX_STANDARD 23)
 set_target_properties(savepoint PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+target_precompile_headers(savepoint PUBLIC <savepoint/savepoint.hpp>)
 if(SAVEPOINT_NULL)
     target_compile_definitions(savepoint PRIVATE SAVEPOINT_NULL)
+    target_sources(savepoint PRIVATE src/null.cpp)
 endif()
 if(SAVEPOINT_SQLITE3)
     add_subdirectory(lib/sqlite3)
     target_compile_definitions(savepoint PRIVATE SAVEPOINT_SQLITE3)
     target_link_libraries(savepoint PRIVATE savepoint_sqlite3)
+    target_sources(savepoint PRIVATE src/sqlite3.cpp)
 endif()
-target_precompile_headers(savepoint PUBLIC
-    <savepoint/base.hpp>
-    <savepoint/driver.hpp>
-    <savepoint/entity.hpp>
-    <savepoint/fwd.hpp>
-    <savepoint/log.hpp>
-    <savepoint/savepoint.hpp>
-    <savepoint/status.hpp>
-    <savepoint/traits.hpp>
-    <savepoint/version.hpp>
-    <savepoint/visitor.hpp>
-)
 
 if(PROJECT_IS_TOP_LEVEL)
     set(BINARY_DIR ${CMAKE_BINARY_DIR}/bin)
@@ -67,7 +52,6 @@ if(PROJECT_IS_TOP_LEVEL)
         target_link_libraries(${TARGET} savepoint)
         add_test(NAME ${TARGET} COMMAND ${TARGET})
     endfunction()
-    savepoint_test(coverage)
-    savepoint_test(traits)
+    savepoint_test(basic)
     enable_testing()
 endif()

@@ -1,16 +1,111 @@
 #include <savepoint/savepoint.hpp>
 
+#include <cstddef>
+#include <cstdio>
 #include <format>
+#include <functional>
 #include <memory>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 
+#if SAVEPOINT_NULL
 #include "null.hpp"
+#endif
+#if SAVEPOINT_SQLITE3
 #include "sqlite3.hpp"
+#endif
+
+static void DefaultLogFunction(const std::string_view& string);
+
+static SavepointLogFunction logFunction = DefaultLogFunction;
+
+struct Hash
+{
+    using is_transparent = void;
+
+    size_t operator()(const std::string_view& string) const
+    {
+        return std::hash<std::string_view>{}(string);
+    }
+
+    size_t operator()(const std::string& string) const
+    {
+        return std::hash<std::string_view>{}(string);
+    }
+};
+
+static auto& GetDerivedFunctions()
+{
+    // Required because of SIOF
+    static std::unordered_map<std::string, SavepointDerivedFunction, Hash, std::equal_to<>> functions;
+    return functions;
+}
+
+static void DefaultLogFunction(const std::string_view& string)
+{
+    std::fprintf(stderr, "%s\n", string.data());
+}
+
+void SavepointSetLogFunction(const SavepointLogFunction& function)
+{
+    logFunction = function;
+}
+
+void SavepointLog(const std::string_view& string)
+{
+    logFunction(string);
+}
+
+void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function)
+{
+    GetDerivedFunctions().emplace(string, function);
+}
+
+bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
+{
+    if (!base)
+    {
+        SavepointLog("Tried to write null base");
+        return false;
+    }
+    std::string_view string = base->SavepointDerivedGetString();
+    // TODO: required?
+    auto it = GetDerivedFunctions().find(string);
+    if (it == GetDerivedFunctions().end())
+    {
+        SavepointLog(std::format("Failed to find base string: {}", string));
+        return false;
+    }
+    visitor(string);
+    visitor(*base);
+    return true;
+}
+
+SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
+{
+    std::string string;
+    visitor(string);
+    auto it = GetDerivedFunctions().find(string);
+    if (it == GetDerivedFunctions().end())
+    {
+        SavepointLog(std::format("Failed to find base string: {}", string));
+        return nullptr;
+    }
+    SavepointBase* base = it->second();
+    if (!base)
+    {
+        SavepointLog(std::format("Failed to allocate base: {}", string));
+        return nullptr;
+    }
+    visitor(*base);
+    return base;
+}
 
 Savepoint::~Savepoint()
 {
-    if (IsOpen())
+    if (Driver->IsOpen())
     {
         Close();
     }
@@ -43,14 +138,9 @@ SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& 
     return Driver->Open(path, version);
 }
 
-bool Savepoint::IsOpen() const
-{
-    return Driver->IsOpen();
-}
-
 void Savepoint::Close()
 {
-    if (IsOpen())
+    if (Driver->IsOpen())
     {
         Driver->Close();
     }
@@ -58,7 +148,7 @@ void Savepoint::Close()
 
 void Savepoint::Save()
 {
-    if (IsOpen())
+    if (Driver->IsOpen())
     {
         Driver->Save();
     }
@@ -66,7 +156,7 @@ void Savepoint::Save()
 
 void Savepoint::Clear()
 {
-    if (IsOpen())
+    if (Driver->IsOpen())
     {
         Driver->Clear();
     }

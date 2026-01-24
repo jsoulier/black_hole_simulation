@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "savepoint_coverage_test (win32)",
+            "name": "savepoint_basic_test (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_coverage_test.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_basic_test.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
