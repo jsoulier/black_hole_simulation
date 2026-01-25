@@ -346,9 +346,10 @@ public:
 
 using SavepointDerivedFunction = SavepointBase*(*)();
 
+void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
+SavepointDerivedFunction SavepointGetDerivedFunction(const std::string_view& string);
 bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor);
 SavepointBase* SavepointReadDerived(SavepointVisitor& visitor);
-void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
 
 template<typename T>
 struct SavepointIsUniquePointerImpl : std::false_type {};

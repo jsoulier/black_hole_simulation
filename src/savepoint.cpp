@@ -63,6 +63,19 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
     GetDerivedFunctions().emplace(string, function);
 }
 
+SavepointDerivedFunction SavepointGetDerivedFunction(const std::string_view& string)
+{
+    auto it = GetDerivedFunctions().find(string);
+    if (it != GetDerivedFunctions().end())
+    {
+        return it->second;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
 bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
 {
     if (!base)
@@ -72,8 +85,8 @@ bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
     }
     std::string_view string = base->SavepointDerivedGetString();
     // TODO: required?
-    auto it = GetDerivedFunctions().find(string);
-    if (it == GetDerivedFunctions().end())
+    SavepointDerivedFunction function = SavepointGetDerivedFunction(string);
+    if (function == nullptr)
     {
         SavepointLog(std::format("Failed to find base string: {}", string));
         return false;
@@ -87,13 +100,13 @@ SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
 {
     std::string string;
     visitor(string);
-    auto it = GetDerivedFunctions().find(string);
-    if (it == GetDerivedFunctions().end())
+    SavepointDerivedFunction function = SavepointGetDerivedFunction(string);
+    if (function == nullptr)
     {
         SavepointLog(std::format("Failed to find base string: {}", string));
         return nullptr;
     }
-    SavepointBase* base = it->second();
+    SavepointBase* base = function();
     if (!base)
     {
         SavepointLog(std::format("Failed to allocate base: {}", string));
