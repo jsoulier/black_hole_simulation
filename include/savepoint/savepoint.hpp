@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include <savepoint/fwd.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -43,16 +45,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-class ISavepointDriver;
-class Savepoint;
-class SavepointBase;
-class SavepointEntity;
-template<typename ClockT, typename DurationT>
-class SavepointTimeImpl;
-class SavepointVersion;
-class SavepointVisitor;
-enum class SavepointDriver : uint8_t;
 
 /**
  * @brief The log function signature.
