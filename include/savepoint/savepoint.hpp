@@ -266,6 +266,31 @@ class SavepointEntity
 {
     friend class Savepoint;
 
+    /**
+     * @brief Get the unique entity ID.
+     * 
+     * A limitation of Savepoint is that you can't serialize references to other entities.
+     * Instead of a reference, it will create a copy and unassociate the reference when
+     * deserialized. If you need to maintain references, you can serialize the ID instead.
+     * 
+     * @todo https://github.com/jsoulier/savepoint/issues/21
+     * @return The unique ID.
+     */
+    uint32_t SavepointGetID() const
+    {
+        return ID.Value;
+    }
+
+    /**
+     * @brief Check if an entity ID is valid.
+     * 
+     * @return If an entity ID is valid.
+     */
+    bool SavepointIsValid() const
+    {
+        return ID.IsValid();
+    }
+
 private:
     SavepointID ID;
 };
