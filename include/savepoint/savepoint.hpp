@@ -59,11 +59,12 @@ using SavepointLogFunction = std::function<void(const std::string_view& string)>
  */
 void SavepointSetLogFunction(const SavepointLogFunction& function);
 
-/** @cond INTERNAL */
-
+/**
+ * @brief Invoke the currently set log function.
+ * 
+ * @param string The log message.
+ */
 void SavepointLog(const std::string_view& string);
-
-/** @endcond */
 
 /**
  * @brief Used to specify a Savepoint version.
@@ -614,16 +615,19 @@ private:
         Reader = {static_cast<uint8_t*>(pointer), size};
         Offset = 0;
         operator()(Version);
+        // Unused for now
         Skip<SavepointVersion>();
     }
 
     void Begin(SavepointVersion version)
     {
-        Reader = {};
-        Writer.resize(sizeof(SavepointVersion) * 2);
-        std::memcpy(Writer.data(), &version, sizeof(SavepointVersion));
-        std::memcpy(Writer.data() + sizeof(SavepointVersion), &kSavepointVersion, sizeof(SavepointVersion));
+        static constexpr size_t kSize = sizeof(SavepointVersion);
         Version = version;
+        Reader = {};
+        Writer.resize(kSize * 2);
+        std::memcpy(Writer.data(), &version, kSize);
+        // Unused for now
+        std::memcpy(Writer.data() + kSize, &kSavepointVersion, kSize);
     }
 
     const void* GetData() const
@@ -841,7 +845,7 @@ using SavepointReadLevelFunction = std::function<void(int level)>;
 class ISavepointDriver
 {
 public:
-    virtual SavepointStatus Open(const std::string_view& path, SavepointVersion version) = 0;
+    virtual SavepointStatus Open(const std::string_view& path) = 0;
     virtual bool IsOpen() const = 0;
     virtual void Write(const void* data, size_t size) = 0;
     virtual uint32_t Insert(const void* data, size_t size, int level) = 0;

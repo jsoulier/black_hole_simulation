@@ -77,7 +77,6 @@ static constexpr const char* kClearTiles3DSQL =
 
 SavepointDriverSQLite3::SavepointDriverSQLite3()
     : ISavepointDriver()
-    , Version{}
     , Handle{nullptr}
     , WriteStatusStmt{nullptr}
     , WriteStmt{nullptr}
@@ -98,7 +97,7 @@ SavepointDriverSQLite3::SavepointDriverSQLite3()
 {
 }
 
-SavepointStatus SavepointDriverSQLite3::Open(const std::string_view& path, SavepointVersion version)
+SavepointStatus SavepointDriverSQLite3::Open(const std::string_view& path)
 {
     sqlite3* handle = nullptr;
     if (sqlite3_open(path.data(), &handle) != SQLITE_OK)
@@ -206,7 +205,6 @@ SavepointStatus SavepointDriverSQLite3::Open(const std::string_view& path, Savep
         status = SavepointStatus::New;
     }
     sqlite3_reset(ReadStatusStmt);
-    Version = version;
     Handle = handle;
     return status;
 }

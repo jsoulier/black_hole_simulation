@@ -2,6 +2,7 @@
 
 #include <savepoint/savepoint.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 
@@ -12,7 +13,7 @@ class SavepointDriverSQLite3 : public ISavepointDriver
 {
 public:
     SavepointDriverSQLite3();
-    SavepointStatus Open(const std::string_view& path, SavepointVersion version) override;
+    SavepointStatus Open(const std::string_view& path) override;
     bool IsOpen() const override;
     void Write(const void* data, size_t size) override;
     uint32_t Insert(const void* data, size_t size, int level) override;
@@ -30,7 +31,6 @@ public:
     void Clear() override;
 
 private:
-    SavepointVersion Version;
     sqlite3* Handle;
     sqlite3_stmt* WriteStatusStmt;
     sqlite3_stmt* WriteStmt;

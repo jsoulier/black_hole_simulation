@@ -148,7 +148,7 @@ SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& 
         return SavepointStatus::Failed;
     }
     Version = version;
-    return Driver->Open(path, version);
+    return Driver->Open(path);
 }
 
 void Savepoint::Close()

@@ -1,11 +1,12 @@
 #include <savepoint/savepoint.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 
 #include "null.hpp"
 
-SavepointStatus SavepointDriverNull::Open(const std::string_view& path, SavepointVersion version)
+SavepointStatus SavepointDriverNull::Open(const std::string_view& path)
 {
     return SavepointStatus::New;
 }
