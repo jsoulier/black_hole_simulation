@@ -32,8 +32,6 @@
 class ISavepointDriver;
 class Savepoint;
 class SavepointBase;
-class SavepointDriverNull;
-class SavepointDriverSQLite3;
 class SavepointEntity;
 template<typename ClockT, typename DurationT>
 class SavepointTimeImpl;

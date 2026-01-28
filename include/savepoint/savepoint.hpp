@@ -164,15 +164,18 @@ static constexpr SavepointVersion kSavepointVersion{0, 0, 0};
 class SavepointID
 {
     friend class Savepoint;
-    friend class SavepointDriverNull;
-    friend class SavepointDriverSQLite3;
 
 public:
+    /**
+     * @brief Reserved value for an invalid ID.
+     */
+    static constexpr uint32_t kInvalidID = std::numeric_limits<uint32_t>::max();
+
     /**
      * @brief Default initialize an invalid ID.
      */
     constexpr SavepointID()
-        : Value{std::numeric_limits<uint32_t>::max()}
+        : Value{kInvalidID}
     {
     }
 
@@ -222,6 +225,7 @@ private:
  * 
  * @snippet examples/basic_usage.cpp basic_usage
  * @see Savepoint
+ * @see SavepointID
  */
 class SavepointEntity
 {
@@ -235,7 +239,7 @@ public:
      * Instead of a reference, it will create a copy and unassociate the reference when
      * deserialized. If you need to maintain references, you can serialize the ID instead.
      * 
-     * @todo https://github.com/jsoulier/savepoint/issues/21
+     * @see SavepointID
      * @return The unique ID.
      */
     SavepointID SavepointGetID() const
@@ -402,11 +406,6 @@ concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIs
 class SavepointVisitor
 {
     friend class Savepoint;
-    friend class SavepointDriverNull;
-    friend class SavepointDriverSQLite3;
-
-private:
-    static constexpr size_t kHeader = sizeof(SavepointVersion) * 2;
 
 public:
     /**
@@ -621,7 +620,7 @@ private:
     void Begin(SavepointVersion version)
     {
         Reader = {};
-        Writer.resize(kHeader);
+        Writer.resize(sizeof(SavepointVersion) * 2);
         std::memcpy(Writer.data(), &version, sizeof(SavepointVersion));
         std::memcpy(Writer.data() + sizeof(SavepointVersion), &kSavepointVersion, sizeof(SavepointVersion));
         Version = version;
@@ -833,10 +832,10 @@ enum class SavepointDriver : uint8_t
 
 /** @cond INTERNAL */
 
-using SavepointReadVisitorFunction = std::function<void(SavepointVisitor& visitor)>;
-using SavepointReadVisitorEntityFunction = std::function<void(SavepointVisitor& visitor, SavepointID id)>;
-using SavepointReadVisitorTile2DFunction = std::function<void(SavepointVisitor& visitor, int x, int y)>;
-using SavepointReadVisitorTile3DFunction = std::function<void(SavepointVisitor& visitor, int x, int y, int z)>;
+using SavepointReadDataFunction = std::function<void(const void* data, size_t size)>;
+using SavepointReadEntityDataFunction = std::function<void(const void* data, size_t size, uint32_t)>;
+using SavepointReadTile2DDataFunction = std::function<void(const void* data, size_t size, int x, int y)>;
+using SavepointReadTile3DDataFunction = std::function<void(const void* data, size_t size, int x, int y, int z)>;
 using SavepointReadLevelFunction = std::function<void(int level)>;
 
 class ISavepointDriver
@@ -844,17 +843,17 @@ class ISavepointDriver
 public:
     virtual SavepointStatus Open(const std::string_view& path, SavepointVersion version) = 0;
     virtual bool IsOpen() const = 0;
-    virtual void Write(SavepointVisitor& visitor) = 0;
-    virtual SavepointID Insert(SavepointVisitor& visitor, int level) = 0;
-    virtual SavepointID Update(SavepointVisitor& visitor, SavepointID id, int level) = 0;
-    virtual void Write(SavepointVisitor& visitor, int x, int y, int level) = 0;
-    virtual void Write(SavepointVisitor& visitor, int x, int y, int z, int level) = 0;
-    virtual void Read(const SavepointReadVisitorFunction& function) = 0;
-    virtual void Read(const SavepointReadVisitorEntityFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadVisitorTile2DFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadVisitorTile3DFunction& function, int level) = 0;
+    virtual void Write(const void* data, size_t size) = 0;
+    virtual uint32_t Insert(const void* data, size_t size, int level) = 0;
+    virtual bool Update(const void* data, size_t size, uint32_t id, int level) = 0;
+    virtual void Write(const void* data, size_t size, int x, int y, int level) = 0;
+    virtual void Write(const void* data, size_t size, int x, int y, int z, int level) = 0;
+    virtual void Read(const SavepointReadDataFunction& function) = 0;
+    virtual void Read(const SavepointReadEntityDataFunction& function, int level) = 0;
+    virtual void Read(const SavepointReadTile2DDataFunction& function, int level) = 0;
+    virtual void Read(const SavepointReadTile3DDataFunction& function, int level) = 0;
     virtual void Read(const SavepointReadLevelFunction& function) = 0;
-    virtual void Delete(SavepointID id) = 0;
+    virtual void Delete(uint32_t id) = 0;
     virtual void Close() = 0;
     virtual void Save() = 0;
     virtual void Clear() = 0;
@@ -941,7 +940,7 @@ public:
      * @brief Deleted move assignment operator.
      */
     Savepoint& operator=(Savepoint&& other) = delete;
-    
+
     /**
      * @brief Opens a new connection.
      * 
@@ -972,7 +971,7 @@ public:
         }
         Visitor.Begin(Version);
         Visitor(item);
-        Driver->Write(Visitor);
+        Driver->Write(Visitor.GetData(), Visitor.GetSize());
     }
 
     /**
@@ -998,19 +997,15 @@ public:
         Visitor.Begin(Version);
         Visitor(item);
         SavepointID& id = GetID(item);
-        // Not an error. Inserting a new entry
         if (!id.IsValid())
         {
-            id = Driver->Insert(Visitor, level);
+            // Not an error. Inserting a new entry
+            id.Value = Driver->Insert(Visitor.GetData(), Visitor.GetSize(), level);
         }
-        else
+        else if (!Driver->Update(Visitor.GetData(), Visitor.GetSize(), id.Value, level))
         {
-            id = Driver->Update(Visitor, id, level);
             // Update failed so try inserting
-            if (!id.IsValid())
-            {
-                id = Driver->Insert(Visitor, level);
-            }
+            id.Value = Driver->Insert(Visitor.GetData(), Visitor.GetSize(), level);
         }
     }
 
@@ -1035,7 +1030,7 @@ public:
         }
         Visitor.Begin(Version);
         Visitor(item);
-        Driver->Write(Visitor, x, y, level);
+        Driver->Write(Visitor.GetData(), Visitor.GetSize(), x, y, level);
     }
 
     /**
@@ -1060,7 +1055,7 @@ public:
         }
         Visitor.Begin(Version);
         Visitor(item);
-        Driver->Write(Visitor, x, y, z, level);
+        Driver->Write(Visitor.GetData(), Visitor.GetSize(), x, y, z, level);
     }
 
     /**
@@ -1076,9 +1071,10 @@ public:
         {
             return;
         }
-        Driver->Read([&item](SavepointVisitor& visitor)
+        Driver->Read([this, &item](const void* data, size_t size)
         {
-            visitor(item);
+            Visitor.Begin(data, size);
+            Visitor(item);
         });
     }
 
@@ -1097,11 +1093,12 @@ public:
         {
             return;
         }
-        Driver->Read([this, &function](SavepointVisitor& visitor, SavepointID id)
+        Driver->Read([this, &function](const void* data, size_t size, uint32_t id)
         {
             T item;
-            visitor(item);
-            GetID(item) = id;
+            Visitor.Begin(data, size);
+            Visitor(item);
+            GetID(item).Value = id;
             function(item);
         }, level);
     }
@@ -1120,10 +1117,11 @@ public:
         {
             return;
         }
-        Driver->Read([&function](SavepointVisitor& visitor, int x, int y)
+        Driver->Read([this, &function](const void* data, size_t size, int x, int y)
         {
             T item;
-            visitor(item);
+            Visitor.Begin(data, size);
+            Visitor(item);
             function(item, x, y);
         }, level);
     }
@@ -1142,10 +1140,11 @@ public:
         {
             return;
         }
-        Driver->Read([&function](SavepointVisitor& visitor, int x, int y, int z)
+        Driver->Read([this, &function](const void* data, size_t size, int x, int y, int z)
         {
             T item;
-            visitor(item);
+            Visitor.Begin(data, size);
+            Visitor(item);
             function(item, x, y, z);
         }, level);
     }
@@ -1186,7 +1185,7 @@ public:
         SavepointID& id = GetID(item);
         if (id.IsValid())
         {
-            Driver->Delete(id);
+            Driver->Delete(id.Value);
         }
     }
     

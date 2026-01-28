@@ -15,41 +15,41 @@ bool SavepointDriverNull::IsOpen() const
     return false;
 }
 
-void SavepointDriverNull::Write(SavepointVisitor& visitor)
+void SavepointDriverNull::Write(const void* data, size_t size)
 {
 }
 
-SavepointID SavepointDriverNull::Insert(SavepointVisitor& visitor, int level)
+uint32_t SavepointDriverNull::Insert(const void* data, size_t size, int level)
 {
-    return SavepointID{};
+    return SavepointID::kInvalidID; 
 }
 
-SavepointID SavepointDriverNull::Update(SavepointVisitor& visitor, SavepointID id, int level)
+bool SavepointDriverNull::Update(const void* data, size_t size, uint32_t id, int level)
 {
-    return SavepointID{};
+    return false;
 }
 
-void SavepointDriverNull::Write(SavepointVisitor& visitor, int x, int y, int level)
-{
-}
-
-void SavepointDriverNull::Write(SavepointVisitor& visitor, int x, int y, int z, int level)
+void SavepointDriverNull::Write(const void* data, size_t size, int x, int y, int level)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadVisitorFunction& function)
+void SavepointDriverNull::Write(const void* data, size_t size, int x, int y, int z, int level)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadVisitorEntityFunction& function, int level)
+void SavepointDriverNull::Read(const SavepointReadDataFunction& function)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadVisitorTile2DFunction& function, int level)
+void SavepointDriverNull::Read(const SavepointReadEntityDataFunction& function, int level)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadVisitorTile3DFunction& function, int level)
+void SavepointDriverNull::Read(const SavepointReadTile2DDataFunction& function, int level)
+{
+}
+
+void SavepointDriverNull::Read(const SavepointReadTile3DDataFunction& function, int level)
 {
 }
 
@@ -57,7 +57,7 @@ void SavepointDriverNull::Read(const SavepointReadLevelFunction& function)
 {
 }
 
-void SavepointDriverNull::Delete(SavepointID id)
+void SavepointDriverNull::Delete(uint32_t id)
 {
 }
 
