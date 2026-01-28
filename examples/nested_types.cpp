@@ -13,7 +13,7 @@ struct Vector2
     int X;
     int Y;
 
-    // Visit implementation is optional since Vector2 will not change
+    // Visit implementation is optional since Vector2 won't ever change
     void Visit(SavepointVisitor& visitor)
     {
         visitor(X);
@@ -33,7 +33,7 @@ enum Effect
     EffectWeakness,
     EffectSwiftness,
     EffectSlowness,
-    // Be sure to add enums to the end
+    // And... be sure to add enums to the end
 };
 
 struct Item

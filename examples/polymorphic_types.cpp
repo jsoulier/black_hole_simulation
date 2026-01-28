@@ -7,7 +7,7 @@
 
 static constexpr SavepointVersion kVersion{0, 0, 0};
 
-// Your base class inherits from SavepointBase
+// Your base class inherits from SavepointBase (and optionally SavepointEntity)
 struct Entity : SavepointBase, SavepointEntity
 {
     int X;

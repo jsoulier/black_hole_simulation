@@ -38,7 +38,7 @@ struct Hash
 
 static auto& GetDerivedFunctions()
 {
-    // Required because of SIOF
+    // Avoiding SIOF
     static std::unordered_map<std::string, SavepointDerivedFunction, Hash, std::equal_to<>> functions;
     return functions;
 }
@@ -83,7 +83,7 @@ bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
         SavepointLog("Tried to write null base");
         return false;
     }
-    std::string_view string = base->SavepointDerivedGetString();
+    std::string_view string = base->SavepointGetString();
     // TODO: required?
     SavepointDerivedFunction function = SavepointGetDerivedFunction(string);
     if (function == nullptr)

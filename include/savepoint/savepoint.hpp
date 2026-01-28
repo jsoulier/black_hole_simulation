@@ -30,7 +30,6 @@
 #include <savepoint/fwd.hpp>
 
 #include <algorithm>
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -158,98 +157,60 @@ private:
 static constexpr SavepointVersion kSavepointVersion{0, 0, 0};
 
 /**
- * @brief The default time specialization.
- */
-using SavepointTime = SavepointTimeImpl<std::chrono::system_clock, std::chrono::seconds>;
-
-/**
- * @brief Used to represent a time.
+ * @brief Used to uniquely identify a Savepoint entry.
  * 
- * @tparam ClockT The clock type.
- * @tparam DurationT The duration type.
+ * @see SavepointEntity
  */
-template<typename ClockT, typename DurationT>
-class SavepointTimeImpl
+class SavepointID
 {
+    friend class Savepoint;
+    friend class SavepointDriverNull;
+    friend class SavepointDriverSQLite3;
+
 public:
-    /** @brief The time point type used by the clock type. */
-    using TimePointT = typename ClockT::time_point;
-
-    /** @brief The underlying representation of the duration. */
-    using RepT = typename DurationT::rep;
-
     /**
-     * @brief Create a time with an optional value.
-     * 
-     * @tparam T The type of the clock.
-     * @param value The time value.
+     * @brief Default initialize an invalid ID.
      */
-    template<typename T = ClockT>
-    // Waiting on MacOS's clang to support is_clock_v
-    // requires std::chrono::is_clock_v<T>
-    SavepointTimeImpl(T::time_point value = T::now())
-        : Value{std::chrono::duration_cast<DurationT>(value.time_since_epoch()).count()}
-    {
-    }
-
-    /**
-     * @brief Get the time as a string.
-     * 
-     * @return The time as a string.
-     */
-    std::string GetString() const
-    {
-        // https://en.cppreference.com/w/cpp/chrono/duration/formatter.html
-        TimePointT value{DurationT(Value)};
-        value = std::chrono::floor<DurationT>(value);
-        std::string string = std::format("{:%F %T}", value);
-        // For some reason there are trailing zeroes (at least on MSVC)
-        auto position = string.rfind('.');
-        if (position != std::string::npos)
-        {
-            return string.substr(0, position);
-        }
-        else
-        {
-            return string;
-        }
-    }
-
-    /**
-     * @brief Compare the time to another time.
-     * 
-     * @param other The other time.
-     * @return True if the comparison evaluated to true.
-     */
-    auto operator<=>(const SavepointTimeImpl& other) const = default;
-
-private:
-    RepT Value;
-};
-
-/** @cond INTERNAL */
-
-struct SavepointID
-{
     constexpr SavepointID()
         : Value{std::numeric_limits<uint32_t>::max()}
     {
     }
 
-    constexpr SavepointID(uint32_t value)
-        : Value{value}
+    /**
+     * @brief Check if two IDs are equal.
+     * 
+     * @param other The other ID.
+     * @return True if the IDs are equal.
+     */
+    constexpr bool operator==(const SavepointID other) const
     {
+        return Value == other.Value;
     }
 
+    /**
+     * @brief Check if two IDs are not equal.
+     * 
+     * @param other The other ID.
+     * @return True if the IDs are not equal.
+     */
+    constexpr bool operator!=(const SavepointID other) const
+    {
+        return Value != other.Value;
+    }
+
+    /**
+     * @brief Check if an ID is valid.
+     * 
+     * @return True if the ID is valid.
+     */
     constexpr bool IsValid() const
     {
         return Value != SavepointID{}.Value;
     }
 
+private:
     uint32_t Value;
 };
-
-/** @endcond */
 
 /**
  * @brief Used to uniquely identify a Savepoint entry.
@@ -266,6 +227,7 @@ class SavepointEntity
 {
     friend class Savepoint;
 
+public:
     /**
      * @brief Get the unique entity ID.
      * 
@@ -276,19 +238,9 @@ class SavepointEntity
      * @todo https://github.com/jsoulier/savepoint/issues/21
      * @return The unique ID.
      */
-    uint32_t SavepointGetID() const
+    SavepointID SavepointGetID() const
     {
-        return ID.Value;
-    }
-
-    /**
-     * @brief Check if an entity ID is valid.
-     * 
-     * @return If an entity ID is valid.
-     */
-    bool SavepointIsValid() const
-    {
-        return ID.IsValid();
+        return ID;
     }
 
 private:
@@ -322,17 +274,18 @@ public:
      */
     virtual void Visit(SavepointVisitor& visitor) {}
 
-    /** @cond INTERNAL */
-
-    virtual std::string_view SavepointDerivedGetString() const = 0;
-
-    /** @endcond */
+    /**
+     * @brief Get the class name string of the underlying object.
+     * 
+     * @return The class name string.
+     */
+    virtual std::string_view SavepointGetString() const = 0;
 };
 
 /**
  * @brief Helper for concrete derived classes to implement SavepointBase methods.
  * 
- * Implements SavepointDerivedGetString and automatically registers a factory function
+ * Implements SavepointGetString and automatically registers a factory function
  * for the derived class. It allows a SavepointVisitor to to create an instance of
  * the derived class whilst only knowing its class name.
  * 
@@ -354,7 +307,7 @@ public:
         }; \
         static inline SavepointDerivedFunctionRegistrar SavepointDerivedFunctionRegistrar; \
     public: \
-        std::string_view SavepointDerivedGetString() const override \
+        std::string_view SavepointGetString() const override \
         { \
             return #T; \
         } \
@@ -417,13 +370,10 @@ template<typename T>
 concept SavepointHasMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
 
 template<typename T>
-concept SavepointCanMemcpy = !SavepointIsPointer<T> && !SavepointHasFreeVisit<T> && !SavepointHasMemberVisit<T> && std::is_trivially_copyable_v<T>;
+concept SavepointIsCopyable = !SavepointIsPointer<T> && !SavepointHasFreeVisit<T> && !SavepointHasMemberVisit<T> && std::is_trivially_copyable_v<T>;
 
 template<typename T>
-concept SavepointCanVisit = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
-
-template<typename T>
-struct SavepointIsEntityImpl : std::false_type {};
+concept SavepointIsVisitable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
 
 template<typename T>
 concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIsPointerBaseOf<T, SavepointEntity>;
@@ -451,6 +401,10 @@ concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIs
  */
 class SavepointVisitor
 {
+    friend class Savepoint;
+    friend class SavepointDriverNull;
+    friend class SavepointDriverSQLite3;
+
 private:
     static constexpr size_t kHeader = sizeof(SavepointVersion) * 2;
 
@@ -468,7 +422,7 @@ public:
      * @param version The version required to deserialize.
      * @param args The args for default initialization.
      */
-    template<SavepointCanMemcpy T, typename... Args>
+    template<SavepointIsCopyable T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
         // For detecting bugs in MSVC concepts
@@ -576,7 +530,7 @@ public:
      * 
      * @tparam T The type to skip.
      */
-    template<SavepointCanMemcpy T>
+    template<SavepointIsCopyable T>
     void Skip()
     {
         if (IsReading())
@@ -654,9 +608,8 @@ public:
         }
     }
 
-    /** @cond INTERNAL */
-
-    void SavepointBeginReading(const void* data, size_t size)
+private:
+    void Begin(const void* data, size_t size)
     {
         void* pointer = const_cast<void*>(data);
         Reader = {static_cast<uint8_t*>(pointer), size};
@@ -665,7 +618,7 @@ public:
         Skip<SavepointVersion>();
     }
 
-    void SavepointBeginWriting(SavepointVersion version)
+    void Begin(SavepointVersion version)
     {
         Reader = {};
         Writer.resize(kHeader);
@@ -674,14 +627,11 @@ public:
         Version = version;
     }
 
-    const void* SavepointGetData() const
+    const void* GetData() const
     {
         return Writer.data();
     }
 
-    /** @endcond */
-
-private:
     SavepointVersion Version;
     std::vector<uint8_t> Writer;
     std::span<uint8_t> Reader;
@@ -1013,14 +963,14 @@ public:
      * @tparam T The type to write.
      * @param item The item to write.
      */
-    template<SavepointCanVisit T>
+    template<SavepointIsVisitable T>
     void Write(T& item)
     {
         if (!Driver->IsOpen())
         {
             return;
         }
-        Visitor.SavepointBeginWriting(Version);
+        Visitor.Begin(Version);
         Visitor(item);
         Driver->Write(Visitor);
     }
@@ -1045,7 +995,7 @@ public:
         {
             return;
         }
-        Visitor.SavepointBeginWriting(Version);
+        Visitor.Begin(Version);
         Visitor(item);
         SavepointID& id = GetID(item);
         // Not an error. Inserting a new entry
@@ -1076,14 +1026,14 @@ public:
      * @param y The y location.
      * @param level The level.
      */
-    template<SavepointCanVisit T>
+    template<SavepointIsVisitable T>
     void Write(T& item, int x, int y, int level)
     {
         if (!Driver->IsOpen())
         {
             return;
         }
-        Visitor.SavepointBeginWriting(Version);
+        Visitor.Begin(Version);
         Visitor(item);
         Driver->Write(Visitor, x, y, level);
     }
@@ -1101,14 +1051,14 @@ public:
      * @param z The z location.
      * @param level The level.
      */
-    template<SavepointCanVisit T>
+    template<SavepointIsVisitable T>
     void Write(T& item, int x, int y, int z, int level)
     {
         if (!Driver->IsOpen())
         {
             return;
         }
-        Visitor.SavepointBeginWriting(Version);
+        Visitor.Begin(Version);
         Visitor(item);
         Driver->Write(Visitor, x, y, z, level);
     }
@@ -1119,7 +1069,7 @@ public:
      * @tparam T The type to read.
      * @param item The item to read.
      */
-    template<SavepointCanVisit T>
+    template<SavepointIsVisitable T>
     void Read(T& item)
     {
         if (!Driver->IsOpen())
@@ -1140,7 +1090,7 @@ public:
      * @param level The level.
      * @see SavepointEntity
      */
-    template<SavepointCanVisit T>
+    template<SavepointIsVisitable T>
     void Read(const SavepointReadEntityFunction<T>& function, int level)
     {
         if (!Driver->IsOpen())
@@ -1163,7 +1113,7 @@ public:
      * @param function The function to use.
      * @param level The level.
      */
-    template<SavepointCanVisit T>
+    template<SavepointIsVisitable T>
     void Read(const SavepointReadTile2DFunction<T>& function, int level)
     {
         if (!Driver->IsOpen())
@@ -1185,7 +1135,7 @@ public:
      * @param function The function to use.
      * @param level The level.
      */
-    template<SavepointCanVisit T>
+    template<SavepointIsVisitable T>
     void Read(const SavepointReadTile3DFunction<T>& function, int level)
     {
         if (!Driver->IsOpen())
