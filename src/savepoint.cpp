@@ -84,7 +84,7 @@ bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
         return false;
     }
     std::string_view string = base->SavepointGetString();
-    // TODO: required?
+    // TODO: Can this ever happen?
     SavepointDerivedFunction function = SavepointGetDerivedFunction(string);
     if (function == nullptr)
     {

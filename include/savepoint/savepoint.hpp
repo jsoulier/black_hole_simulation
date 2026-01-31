@@ -662,6 +662,10 @@ template<SavepointIsStdPointer T>
 void Visit(SavepointVisitor& visitor, T& item)
 {
     using ValueT = typename T::element_type;
+    if constexpr (std::is_polymorphic_v<ValueT>)
+    {
+        static_assert(std::is_base_of_v<SavepointBase, ValueT>, "Missing SavepointBase inheritance");
+    }
     if (visitor.IsReading())
     {
         bool hasPointer = false;
