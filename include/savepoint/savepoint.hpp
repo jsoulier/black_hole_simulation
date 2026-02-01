@@ -325,6 +325,7 @@ void SavepointAddDerivedFunction(const std::string_view& string, const Savepoint
 SavepointDerivedFunction SavepointGetDerivedFunction(const std::string_view& string);
 bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor);
 SavepointBase* SavepointReadDerived(SavepointVisitor& visitor);
+void SavepointSkipDerived(SavepointVisitor& visitor);
 
 template<typename T>
 struct SavepointIsUniquePointerImpl : std::false_type {};
@@ -698,11 +699,18 @@ void Visit(SavepointVisitor& visitor, T& item)
             }
             else
             {
-                // Don't static_assert because it'll fail on already instantiated
-                // derived classes with abstract parents
+                // Don't static_assert because it'll fail on already instantiated derived classes with abstract parents
                 SavepointLog("No method to create pointer");
                 visitor.Fail();
                 return;
+            }
+        }
+        else
+        {
+            // Not using the derived interface but we still need to strip away that information
+            if constexpr (std::is_base_of_v<SavepointBase, ValueT>)
+            {
+                SavepointSkipDerived(visitor);
             }
         }
         visitor(*item);

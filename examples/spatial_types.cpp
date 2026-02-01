@@ -1,5 +1,4 @@
 // [spatial_types]
-// TODO: comments
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>

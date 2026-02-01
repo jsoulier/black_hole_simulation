@@ -116,6 +116,13 @@ SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
     return base;
 }
 
+void SavepointSkipDerived(SavepointVisitor& visitor)
+{
+    // TODO: There's a bug in MSVC. If I try this in SavepointVisit, the concept constraints explode
+    std::string string;
+    visitor(string);
+}
+
 Savepoint::~Savepoint()
 {
     if (Driver->IsOpen())
