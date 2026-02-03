@@ -17,5 +17,13 @@
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
+        {
+            "name": "savepoint_spatial_types_example (win32)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/savepoint_spatial_types_example.exe",
+            "cwd": "${workspaceFolder}/build/bin",
+            "preLaunchTask": "CMake: build"
+        },
     ]
 }

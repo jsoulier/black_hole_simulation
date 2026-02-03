@@ -849,10 +849,12 @@ enum class SavepointDriver : uint8_t
 /** @cond INTERNAL */
 
 using SavepointReadDataFunction = std::function<void(const void* data, size_t size)>;
-using SavepointReadEntityDataFunction = std::function<void(const void* data, size_t size, uint32_t)>;
-using SavepointReadTile2DDataFunction = std::function<void(const void* data, size_t size, int x, int y)>;
-using SavepointReadTile3DDataFunction = std::function<void(const void* data, size_t size, int x, int y, int z)>;
-using SavepointReadLevelFunction = std::function<void(int level)>;
+using SavepointReadAllEntityDataFunction = std::function<void(const void* data, size_t size, uint32_t)>;
+using SavepointReadAllTile2DDataFunction = std::function<void(const void* data, size_t size, int x, int y)>;
+using SavepointReadAllTile3DDataFunction = std::function<void(const void* data, size_t size, int x, int y, int z)>;
+using SavepointReadTile2DDataFunction = std::function<void(const void* data, size_t size)>;
+using SavepointReadTile3DDataFunction = std::function<void(const void* data, size_t size)>;
+using SavepointReadAllLevelsFunction = std::function<void(int level)>;
 
 class ISavepointDriver
 {
@@ -865,10 +867,12 @@ public:
     virtual void Write(const void* data, size_t size, int x, int y, int level) = 0;
     virtual void Write(const void* data, size_t size, int x, int y, int z, int level) = 0;
     virtual void Read(const SavepointReadDataFunction& function) = 0;
-    virtual void Read(const SavepointReadEntityDataFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadTile2DDataFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadTile3DDataFunction& function, int level) = 0;
-    virtual void Read(const SavepointReadLevelFunction& function) = 0;
+    virtual void Read(const SavepointReadAllEntityDataFunction& function, int level) = 0;
+    virtual void Read(const SavepointReadAllTile2DDataFunction& function, int level) = 0;
+    virtual void Read(const SavepointReadAllTile3DDataFunction& function, int level) = 0;
+    virtual bool Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y) = 0;
+    virtual bool Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z) = 0;
+    virtual void Read(const SavepointReadAllLevelsFunction& function) = 0;
     virtual void Delete(uint32_t id) = 0;
     virtual void Close() = 0;
     virtual void Save() = 0;
@@ -1163,6 +1167,55 @@ public:
             Visitor(item);
             function(item, x, y, z);
         }, level);
+    }
+
+    /**
+     * @brief Read a 2D tile at the specified level and location from the Savepoint.
+     * 
+     * @tparam T The type to read.
+     * @param tile The tile to read.
+     * @param x The x location.
+     * @param y The y location.
+     * @param level The level.
+     * @return True if the tile exists.
+     */
+    template<SavepointIsVisitable T>
+    bool Read(T& tile, int x, int y, int level)
+    {
+        if (!Driver->IsOpen())
+        {
+            return false;
+        }
+        return Driver->Read([this, &tile](const void* data, size_t size)
+        {
+            Visitor.Begin(data, size);
+            Visitor(tile);
+        }, level, x, y);
+    }
+
+    /**
+     * @brief Read a 3D tile at the specified level and location from the Savepoint.
+     * 
+     * @tparam T The type to read.
+     * @param tile The tile to read.
+     * @param x The x location.
+     * @param y The y location.
+     * @param z The z location.
+     * @param level The level.
+     * @return True if the tile exists.
+     */
+    template<SavepointIsVisitable T>
+    bool Read(T& tile, int x, int y, int z, int level)
+    {
+        if (!Driver->IsOpen())
+        {
+            return false;
+        }
+        return Driver->Read([this, &tile](const void* data, size_t size)
+        {
+            Visitor.Begin(data, size);
+            Visitor(tile);
+        }, level, x, y, z);
     }
 
     /**

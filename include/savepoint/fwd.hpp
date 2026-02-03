@@ -33,8 +33,6 @@ class ISavepointDriver;
 class Savepoint;
 class SavepointBase;
 class SavepointEntity;
-template<typename ClockT, typename DurationT>
-class SavepointTimeImpl;
 class SavepointVersion;
 class SavepointVisitor;
 enum class SavepointDriver : uint8_t;

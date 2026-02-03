@@ -42,19 +42,29 @@ void SavepointDriverNull::Read(const SavepointReadDataFunction& function)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadEntityDataFunction& function, int level)
+void SavepointDriverNull::Read(const SavepointReadAllEntityDataFunction& function, int level)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadTile2DDataFunction& function, int level)
+void SavepointDriverNull::Read(const SavepointReadAllTile2DDataFunction& function, int level)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadTile3DDataFunction& function, int level)
+void SavepointDriverNull::Read(const SavepointReadAllTile3DDataFunction& function, int level)
 {
 }
 
-void SavepointDriverNull::Read(const SavepointReadLevelFunction& function)
+bool SavepointDriverNull::Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y)
+{
+    return false;
+}
+
+bool SavepointDriverNull::Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z)
+{
+    return false;
+}
+
+void SavepointDriverNull::Read(const SavepointReadAllLevelsFunction& function)
 {
 }
 

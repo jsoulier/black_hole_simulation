@@ -17,15 +17,19 @@ enum TileType
 struct Tile
 {
     TileType Type;
+    int X;
+    int Y;
 
     void Visit(SavepointVisitor& visitor)
     {
         visitor(Type);
+        visitor(X);
+        visitor(Y);
     }
 
     bool operator==(const Tile& other) const
     {
-        return Type == other.Type;
+        return Type == other.Type && X == other.X && Y == other.Y;
     }
 };
 
@@ -45,6 +49,8 @@ int main()
     for (int y = 0; y < 32; y++)
     {
         inTiles[x][y].Type = TileType(distribution(generator));
+        inTiles[x][y].X = x;
+        inTiles[x][y].Y = y;
         savepoint.Write(inTiles[x][y], x, y, 0);
     }
 
@@ -55,6 +61,16 @@ int main()
         reads++;
     }, 0);
     assert(reads == 32 * 32);
+
+    for (int x = 0; x < 32; x++)
+    for (int y = 0; y < 32; y++)
+    {
+        Tile tile;
+        bool exists = savepoint.Read(tile, x, y, 0);
+        assert(exists);
+        assert(tile.X == x);
+        assert(tile.Y == y);
+    }
 
     savepoint.Close();
     return 0;
