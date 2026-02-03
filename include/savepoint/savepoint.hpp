@@ -37,10 +37,12 @@
 #include <functional>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -355,13 +357,25 @@ template<typename T, typename Base>
 concept SavepointIsPointerBaseOf = SavepointIsStdPointer<T> && std::is_base_of_v<Base, typename T::element_type>;
 
 template<typename T>
-struct SavepointIsPairImpl : std::false_type {};
+struct SavepointIsTupleImpl : std::false_type {};
 
 template<typename First, typename Second>
-struct SavepointIsPairImpl<std::pair<First, Second>> : std::true_type {};
+struct SavepointIsTupleImpl<std::pair<First, Second>> : std::true_type {};
+
+template<typename... Args>
+struct SavepointIsTupleImpl<std::tuple<Args...>> : std::true_type {};
 
 template<typename T>
-concept SavepointIsPair = SavepointIsPairImpl<T>::value;
+concept SavepointIsTuple = SavepointIsTupleImpl<T>::value;
+
+template<typename T>
+struct SavepointIsOptionalImpl : std::false_type {};
+
+template<typename T>
+struct SavepointIsOptionalImpl<std::optional<T>> : std::true_type {};
+
+template<typename T>
+concept SavepointIsOptional = SavepointIsOptionalImpl<T>::value;
 
 template<typename T>
 concept SavepointIsDynamicRange = requires(T item) { item.insert(std::ranges::end(item), std::declval<typename T::value_type>()); };
@@ -734,20 +748,57 @@ void Visit(SavepointVisitor& visitor, T& item)
 }
 
 /**
- * @brief Visit implementation for serializing an std::pair.
+ * @brief Visit implementation for serializing an std::pair or std::tuple.
  * 
- * @tparam T The type of the pair.
+ * @tparam T The type of the tuple.
  * @param visitor The visitor.
- * @param item The pair.
+ * @param item The tuple.
  */
-template<SavepointIsPair T>
+template<SavepointIsTuple T>
 void Visit(SavepointVisitor& visitor, T& item)
 {
-    // Required because maps use const for value_type::first_type
-    using First = std::remove_const_t<typename T::first_type>;
-    First& first = const_cast<First&>(item.first);
-    visitor(first);
-    visitor(item.second);
+    std::apply([&](auto&... elems)
+    {
+        // Const casts required because maps use const for value_type::first_type
+        (visitor(const_cast<std::remove_const_t<std::remove_reference_t<decltype(elems)>>&>(elems)), ...);
+    },
+    item);
+}
+
+/**
+ * @brief Visit implementation for serializing an std::optional.
+ * 
+ * @tparam T The type of the optional.
+ * @param visitor The visitor.
+ * @param item The optional.
+ */
+template<SavepointIsOptional T>
+void Visit(SavepointVisitor& visitor, T& item)
+{
+    if (visitor.IsReading())
+    {
+        bool hasValue = false;
+        visitor(hasValue);
+        if (!hasValue)
+        {
+            item.reset();
+            return;
+        }
+        if (!item.has_value())
+        {
+            item.emplace();
+        }
+        visitor(item.value());
+    }
+    else
+    {
+        bool hasValue = item.has_value();
+        visitor(hasValue);
+        if (hasValue)
+        {
+            visitor(item.value());
+        }
+    }
 }
 
 /**
