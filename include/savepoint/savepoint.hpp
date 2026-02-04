@@ -454,15 +454,7 @@ public:
             }
             else
             {
-                if (HasError())
-                {
-                    if constexpr (sizeof...(Args) > 0)
-                    {
-                        item = T{std::forward<Args>(args)...};
-                    }
-                    return;
-                }
-                if (Version < version)
+                if (HasError() || Version < version)
                 {
                     if constexpr (sizeof...(Args) > 0)
                     {
@@ -500,7 +492,7 @@ private:
     {
         if (IsReading())
         {
-            if (HasError())
+            if (HasError() || Version < version)
             {
                 if constexpr (sizeof...(Args) > 0)
                 {
@@ -511,14 +503,6 @@ private:
             if (!GetSize())
             {
                 SavepointLog(std::format("Tried to read past visitor: {} -> {}", Version.GetString(), version.GetString()));
-                if constexpr (sizeof...(Args) > 0)
-                {
-                    item = T{std::forward<Args>(args)...};
-                }
-                return false;
-            }
-            if (Version < version)
-            {
                 if constexpr (sizeof...(Args) > 0)
                 {
                     item = T{std::forward<Args>(args)...};
