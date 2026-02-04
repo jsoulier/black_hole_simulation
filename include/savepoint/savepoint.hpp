@@ -454,6 +454,14 @@ public:
             }
             else
             {
+                if (HasError())
+                {
+                    if constexpr (sizeof...(Args) > 0)
+                    {
+                        item = T{std::forward<Args>(args)...};
+                    }
+                    return;
+                }
                 if (Version < version)
                 {
                     if constexpr (sizeof...(Args) > 0)
@@ -477,11 +485,51 @@ public:
         }
         else
         {
+            if (HasError())
+            {
+                return;
+            }
             Writer.resize(Writer.size() + sizeof(T));
             std::memcpy(Writer.data() + Writer.size() - sizeof(T), std::addressof(item), sizeof(T));
         }
     }
 
+private:
+    template<typename T, typename... Args>
+    bool TryVisit(T& item, SavepointVersion version = {}, Args&&... args)
+    {
+        if (IsReading())
+        {
+            if (HasError())
+            {
+                if constexpr (sizeof...(Args) > 0)
+                {
+                    item = T{std::forward<Args>(args)...};
+                }
+                return false;
+            }
+            if (!GetSize())
+            {
+                SavepointLog(std::format("Tried to read past visitor: {} -> {}", Version.GetString(), version.GetString()));
+                if constexpr (sizeof...(Args) > 0)
+                {
+                    item = T{std::forward<Args>(args)...};
+                }
+                return false;
+            }
+            if (Version < version)
+            {
+                if constexpr (sizeof...(Args) > 0)
+                {
+                    item = T{std::forward<Args>(args)...};
+                }
+                return false;
+            }
+        }
+        return !HasError();
+    }
+
+public:
     /**
      * @brief Visit using the implementation from Visit.
      *
@@ -497,18 +545,10 @@ public:
     template<SavepointHasFreeVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (IsReading())
+        if (TryVisit(item, version, std::forward<Args>(args)...))
         {
-            if (Version < version || GetSize() == 0)
-            {
-                if constexpr (sizeof...(Args) > 0)
-                {
-                    item = T{std::forward<Args>(args)...};
-                }
-                return;
-            }
+            Visit(*this, item);
         }
-        Visit(*this, item);
     }
 
     /**
@@ -526,18 +566,10 @@ public:
     template<SavepointHasMemberVisit T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        if (IsReading())
+        if (TryVisit(item, version, std::forward<Args>(args)...))
         {
-            if (Version < version || GetSize() == 0)
-            {
-                if constexpr (sizeof...(Args) > 0)
-                {
-                    item = T{std::forward<Args>(args)...};
-                }
-                return;
-            }
+            item.Visit(*this);
         }
-        item.Visit(*this);
     }
 
     /**
@@ -548,6 +580,10 @@ public:
     template<SavepointIsCopyable T>
     void Skip()
     {
+        if (HasError())
+        {
+            return;
+        }
         if (IsReading())
         {
             if (sizeof(T) > GetSize())
@@ -564,16 +600,27 @@ public:
     }
 
     /**
-     * @brief Disable deserialization.
+     * @brief Disable reading and writing.
+     * 
+     * If a serialization error is detected, you can use SetError to disable a read or write on the Savepoint.
+     * 
+     * @see HasError
+     * @snippet examples/set_error.cpp set_error
      */
-    void Fail()
+    void SetError()
     {
-        if (!IsReading())
-        {
-            SavepointLog("Tried to fail while writing");
-            return;
-        }
-        Offset = Reader.size();
+        Error = true;
+    }
+
+    /**
+     * @brief Check if an error is set.
+     * 
+     * @return True if an error is set.
+     * @see SetError
+     */
+    bool HasError() const
+    {
+        return Error;
     }
 
     /**
@@ -613,6 +660,10 @@ public:
      */
     size_t GetSize() const
     {
+        if (HasError())
+        {
+            return 0;
+        }
         if (IsReading())
         {
             return Reader.size() - std::min(Offset, Reader.size());
@@ -626,23 +677,24 @@ public:
 private:
     void Begin(const void* data, size_t size)
     {
-        void* pointer = const_cast<void*>(data);
-        Reader = {static_cast<uint8_t*>(pointer), size};
+        Version = SavepointVersion{};
+        Error = false;
+        Reader = {static_cast<uint8_t*>(const_cast<void*>(data)), size};
+        Writer.clear();
         Offset = 0;
         operator()(Version);
-        // Unused for now
         Skip<SavepointVersion>();
     }
 
     void Begin(SavepointVersion version)
     {
-        static constexpr size_t kSize = sizeof(SavepointVersion);
         Version = version;
+        Error = false;
+        Writer.resize(sizeof(version) * 2);
         Reader = {};
-        Writer.resize(kSize * 2);
-        std::memcpy(Writer.data(), &version, kSize);
-        // Unused for now
-        std::memcpy(Writer.data() + kSize, &kSavepointVersion, kSize);
+        Offset = 0;
+        std::memcpy(Writer.data(), &version, sizeof(version));
+        std::memcpy(Writer.data() + sizeof(version), &kSavepointVersion, sizeof(version));
     }
 
     const void* GetData() const
@@ -651,6 +703,7 @@ private:
     }
 
     SavepointVersion Version;
+    bool Error;
     std::vector<uint8_t> Writer;
     std::span<uint8_t> Reader;
     size_t Offset;
@@ -707,7 +760,7 @@ void Visit(SavepointVisitor& visitor, T& item)
                 if (!item)
                 {
                     SavepointLog("Failed to allocate pointer");
-                    visitor.Fail();
+                    visitor.SetError();
                     return;
                 }
             }
@@ -715,7 +768,7 @@ void Visit(SavepointVisitor& visitor, T& item)
             {
                 // Don't static_assert because it'll fail on already instantiated derived classes with abstract parents
                 SavepointLog("No method to create pointer");
-                visitor.Fail();
+                visitor.SetError();
                 return;
             }
         }
@@ -817,7 +870,6 @@ void Visit(SavepointVisitor& visitor, T& item)
     {
         if (visitor.IsReading() && size)
         {
-            SavepointLog("Tried to read into non-empty range");
             item.clear();
         }
     }
@@ -828,7 +880,7 @@ void Visit(SavepointVisitor& visitor, T& item)
         if (size > visitor.GetSize())
         {
             SavepointLog("Tried to read past visitor");
-            visitor.Fail();
+            visitor.SetError();
             return;
         }
         if constexpr (SavepointIsDynamicRange<T>)
@@ -921,8 +973,8 @@ public:
     virtual void Read(const SavepointReadAllEntityDataFunction& function, int level) = 0;
     virtual void Read(const SavepointReadAllTile2DDataFunction& function, int level) = 0;
     virtual void Read(const SavepointReadAllTile3DDataFunction& function, int level) = 0;
-    virtual bool Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y) = 0;
-    virtual bool Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z) = 0;
+    virtual void Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y) = 0;
+    virtual void Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z) = 0;
     virtual void Read(const SavepointReadAllLevelsFunction& function) = 0;
     virtual void Delete(uint32_t id) = 0;
     virtual void Close() = 0;
@@ -1042,6 +1094,10 @@ public:
         }
         Visitor.Begin(Version);
         Visitor(item);
+        if (Visitor.HasError())
+        {
+            return;
+        }
         Driver->Write(Visitor.GetData(), Visitor.GetSize());
     }
 
@@ -1068,6 +1124,18 @@ public:
         Visitor.Begin(Version);
         Visitor(item);
         SavepointID& id = GetID(item);
+        if (Visitor.HasError())
+        {
+            if (id.IsValid())
+            {
+                SavepointLog(std::format("Failed to write entity: id={}, level={}", id.Value, level));
+            }
+            else
+            {
+                SavepointLog(std::format("Failed to write entity: level={}", level));
+            }
+            return;
+        }
         if (!id.IsValid())
         {
             // Not an error. Inserting a new entry
@@ -1101,6 +1169,11 @@ public:
         }
         Visitor.Begin(Version);
         Visitor(item);
+        if (Visitor.HasError())
+        {
+            SavepointLog(std::format("Failed to write tile: x={}, y={}, level={}", x, y, level));
+            return;
+        }
         Driver->Write(Visitor.GetData(), Visitor.GetSize(), x, y, level);
     }
 
@@ -1126,6 +1199,11 @@ public:
         }
         Visitor.Begin(Version);
         Visitor(item);
+        if (Visitor.HasError())
+        {
+            SavepointLog(std::format("Failed to write tile: x={}, y={}, z={}, level={}", x, y, z, level));
+            return;
+        }
         Driver->Write(Visitor.GetData(), Visitor.GetSize(), x, y, z, level);
     }
 
@@ -1134,19 +1212,28 @@ public:
      * 
      * @tparam T The type to read.
      * @param item The item to read.
+     * @return True if the singleton exists.
      */
     template<SavepointIsVisitable T>
-    void Read(T& item)
+    bool Read(T& item)
     {
         if (!Driver->IsOpen())
         {
-            return;
+            return false;
         }
-        Driver->Read([this, &item](const void* data, size_t size)
+        bool exists = false;
+        Driver->Read([this, &item, &exists](const void* data, size_t size)
         {
             Visitor.Begin(data, size);
             Visitor(item);
+            exists = true;
         });
+        if (Visitor.HasError())
+        {
+            SavepointLog("Failed to read singleton");
+            return false;
+        }
+        return exists;
     }
 
     /**
@@ -1164,11 +1251,16 @@ public:
         {
             return;
         }
-        Driver->Read([this, &function](const void* data, size_t size, uint32_t id)
+        Driver->Read([this, &function, level](const void* data, size_t size, uint32_t id)
         {
             T item;
             Visitor.Begin(data, size);
             Visitor(item);
+            if (Visitor.HasError())
+            {
+                SavepointLog(std::format("Failed to read entity: id={}, level={}", id, level));
+                return;
+            }
             GetID(item).Value = id;
             function(item);
         }, level);
@@ -1188,11 +1280,16 @@ public:
         {
             return;
         }
-        Driver->Read([this, &function](const void* data, size_t size, int x, int y)
+        Driver->Read([this, &function, level](const void* data, size_t size, int x, int y)
         {
             T item;
             Visitor.Begin(data, size);
             Visitor(item);
+            if (Visitor.HasError())
+            {
+                SavepointLog(std::format("Failed to read tile: x={}, y={}, level={}", x, y, level));
+                return;
+            }
             function(item, x, y);
         }, level);
     }
@@ -1211,11 +1308,16 @@ public:
         {
             return;
         }
-        Driver->Read([this, &function](const void* data, size_t size, int x, int y, int z)
+        Driver->Read([this, &function, level](const void* data, size_t size, int x, int y, int z)
         {
             T item;
             Visitor.Begin(data, size);
             Visitor(item);
+            if (Visitor.HasError())
+            {
+                SavepointLog(std::format("Failed to read tile: x={}, y={}, z={}, level={}", x, y, z, level));
+                return;
+            }
             function(item, x, y, z);
         }, level);
     }
@@ -1237,11 +1339,18 @@ public:
         {
             return false;
         }
-        return Driver->Read([this, &tile](const void* data, size_t size)
+        bool exists = false;
+        Driver->Read([this, &tile, &exists](const void* data, size_t size)
         {
             Visitor.Begin(data, size);
             Visitor(tile);
+            exists = true;
         }, level, x, y);
+        if (Visitor.HasError())
+        {
+            SavepointLog(std::format("Failed to read tile: x={}, y={}, level={}", x, y, level));
+        }
+        return exists;
     }
 
     /**
@@ -1262,11 +1371,18 @@ public:
         {
             return false;
         }
-        return Driver->Read([this, &tile](const void* data, size_t size)
+        bool exists = false;
+        Driver->Read([this, &tile, &exists](const void* data, size_t size)
         {
             Visitor.Begin(data, size);
             Visitor(tile);
+            exists = true;
         }, level, x, y, z);
+        if (Visitor.HasError())
+        {
+            SavepointLog(std::format("Failed to read tile: x={}, y={}, z={}, level={}", x, y, z, level));
+        }
+        return exists;
     }
 
     /**
@@ -1306,6 +1422,7 @@ public:
         if (id.IsValid())
         {
             Driver->Delete(id.Value);
+            id = SavepointID{};
         }
     }
     

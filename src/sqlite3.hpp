@@ -24,8 +24,8 @@ public:
     void Read(const SavepointReadAllEntityDataFunction& function, int level) override;
     void Read(const SavepointReadAllTile2DDataFunction& function, int level) override;
     void Read(const SavepointReadAllTile3DDataFunction& function, int level) override;
-    bool Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y) override;
-    bool Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z) override;
+    void Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y) override;
+    void Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z) override;
     void Read(const SavepointReadAllLevelsFunction& function) override;
     void Delete(uint32_t id) override;
     void Close() override;

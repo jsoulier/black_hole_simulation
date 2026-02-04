@@ -11,7 +11,7 @@ Including documentation, the library is roughly 2K lines of code.
 - UUID and spatial keys
 - Inherited and nested fields
 - Polymorphic types
-- Pointers and containers 
+- Pointers, containers, tuples, etc
 - Fast development workflow
 
 ### Limitations

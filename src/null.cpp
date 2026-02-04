@@ -54,14 +54,12 @@ void SavepointDriverNull::Read(const SavepointReadAllTile3DDataFunction& functio
 {
 }
 
-bool SavepointDriverNull::Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y)
+void SavepointDriverNull::Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y)
 {
-    return false;
 }
 
-bool SavepointDriverNull::Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z)
+void SavepointDriverNull::Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z)
 {
-    return false;
 }
 
 void SavepointDriverNull::Read(const SavepointReadAllLevelsFunction& function)

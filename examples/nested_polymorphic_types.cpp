@@ -32,7 +32,7 @@ struct BaseInventory : public SavepointBase
         visitor(Items);
     }
 
-    virtual bool IsSameAs(const std::shared_ptr<BaseInventory>& inventory) const
+    virtual bool IsEqual(const std::shared_ptr<BaseInventory>& inventory) const
     {
         return Items == inventory->Items;
     }
@@ -54,9 +54,9 @@ struct BaseEntity : public SavepointBase, SavepointEntity
         visitor(Inventory);
     }
 
-    virtual bool IsSameAs(const std::shared_ptr<BaseEntity>& entity) const
+    virtual bool IsEqual(const std::shared_ptr<BaseEntity>& entity) const
     {
-        return Inventory->IsSameAs(entity->Inventory);
+        return Inventory->IsEqual(entity->Inventory);
     }
 
     std::shared_ptr<BaseInventory> Inventory;
@@ -82,10 +82,10 @@ struct PlayerInventory : public BaseInventory
         visitor(ShoesIndex);
     }
 
-    bool IsSameAs(const std::shared_ptr<BaseInventory>& inventory) const override
+    bool IsEqual(const std::shared_ptr<BaseInventory>& inventory) const override
     {
         const std::shared_ptr<PlayerInventory> player = std::dynamic_pointer_cast<PlayerInventory>(inventory);
-        return BaseInventory::IsSameAs(inventory) && ShirtIndex == player->ShirtIndex &&
+        return BaseInventory::IsEqual(inventory) && ShirtIndex == player->ShirtIndex &&
             PantsIndex == player->PantsIndex && ShoesIndex == player->ShoesIndex;
     }
 
@@ -124,10 +124,10 @@ struct PlayerEntity : public BaseEntity
         visitor(Hunger);
     }
 
-    bool IsSameAs(const std::shared_ptr<BaseEntity>& entity) const override
+    bool IsEqual(const std::shared_ptr<BaseEntity>& entity) const override
     {
         const std::shared_ptr<PlayerEntity> player = std::dynamic_pointer_cast<PlayerEntity>(entity);
-        return BaseEntity::IsSameAs(entity) && Health == player->Health && Hunger == player->Health;
+        return BaseEntity::IsEqual(entity) && Health == player->Health && Hunger == player->Health;
     }
 
     int Health;
@@ -148,7 +148,7 @@ int main()
     int reads = 0;
     savepoint.Read<std::shared_ptr<BaseEntity>>([&](std::shared_ptr<BaseEntity>& outEntity)
     {
-        assert(outEntity->IsSameAs(inEntity));
+        assert(outEntity->IsEqual(inEntity));
         reads++;
     }, 0);
     assert(reads == 1);
