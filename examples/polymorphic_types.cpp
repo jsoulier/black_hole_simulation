@@ -7,8 +7,8 @@
 
 static constexpr SavepointVersion kVersion{0, 0, 0};
 
-// Your base class inherits from SavepointBase (and optionally SavepointEntity)
-struct Entity : SavepointBase, SavepointEntity
+// Your base class inherits from SavepointPoly (and optionally SavepointEntity)
+struct Entity : SavepointPoly, SavepointEntity
 {
     int X;
     int Y;
@@ -35,8 +35,8 @@ struct Entity : SavepointBase, SavepointEntity
 // Your derived classes inherit from Entity as usual
 struct ZombieEntity : public Entity
 {
-    // Your concrete derived classes use SAVEPOINT_DERIVED to implement required methods
-    SAVEPOINT_DERIVED(ZombieEntity);
+    // Your concrete derived classes use SAVEPOINT_POLY to implement required methods
+    SAVEPOINT_POLY(ZombieEntity);
 
     int Strength;
 
@@ -61,7 +61,7 @@ struct ZombieEntity : public Entity
 
 struct SpiderEntity : public Entity
 {
-    SAVEPOINT_DERIVED(SpiderEntity);
+    SAVEPOINT_POLY(SpiderEntity);
 
     int Eyes;
 

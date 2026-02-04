@@ -18,7 +18,7 @@ Including documentation, the library is roughly 2K lines of code.
 
 - Automatic schema upgrades require [versioning](examples/basic_upgraded.cpp) for newly added members
 - Saves are binary and not compatible across different bit-widths or endianness
-- Entity references can't be serialized (use `SavepointID` instead)
+- Entity references can't be serialized (but there's a solution [here](examples/references.cpp))
 
 ### Documentation
 

@@ -31,7 +31,7 @@
 
 class ISavepointDriver;
 class Savepoint;
-class SavepointBase;
+class SavepointPoly;
 class SavepointEntity;
 class SavepointVersion;
 class SavepointVisitor;

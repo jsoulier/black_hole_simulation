@@ -585,7 +585,7 @@ struct NullPtr : SavepointEntity
     }
 };
 
-struct BaseEntity : SavepointBase, SavepointEntity
+struct PolyEntity : SavepointPoly, SavepointEntity
 {
     int X;
     int Y;
@@ -596,65 +596,65 @@ struct BaseEntity : SavepointBase, SavepointEntity
         visitor(Y);
     }
 
-    bool operator==(const BaseEntity& other) const
+    bool operator==(const PolyEntity& other) const
     {
         return X == other.X &&
             Y == other.Y;
     }
 };
 
-struct BaseMob : BaseEntity
+struct PolyMob : PolyEntity
 {
     int Health;
     int Damage;
 
     void Visit(SavepointVisitor& visitor) override
     {
-        BaseEntity::Visit(visitor);
+        PolyEntity::Visit(visitor);
         visitor(Health);
         visitor(Damage);
     }
 
-    bool operator==(const BaseMob& other) const
+    bool operator==(const PolyMob& other) const
     {
-        return BaseEntity::operator==(other) &&
+        return PolyEntity::operator==(other) &&
             Health == other.Health &&
             Damage == other.Damage;
     }
 };
 
-struct DerivedItem : BaseEntity
+struct PolyItem : PolyEntity
 {
-    SAVEPOINT_DERIVED(DerivedItem)
+    SAVEPOINT_POLY(PolyItem)
 };
 
-struct DerivedZombie : BaseMob
+struct PolyZombie : PolyMob
 {
-    SAVEPOINT_DERIVED(DerivedZombie)
+    SAVEPOINT_POLY(PolyZombie)
 };
 
-struct DerivedSkeleton : BaseMob
+struct PolySkeleton : PolyMob
 {
-    SAVEPOINT_DERIVED(DerivedSkeleton)
+    SAVEPOINT_POLY(PolySkeleton)
 };
 
-struct DerivedSpider : BaseMob
+struct PolySpider : PolyMob
 {
-    SAVEPOINT_DERIVED(DerivedSpider)
+    SAVEPOINT_POLY(PolySpider)
 
     int Eyes = 8;
     int Legs = 8;
 
     void Visit(SavepointVisitor& visitor) override
     {
-        BaseMob::Visit(visitor);
+        PolyMob::Visit(visitor);
         visitor(Eyes);
         visitor(Legs);
     }
 
-    bool operator==(const DerivedSpider& other) const
+    bool operator==(const PolySpider& other) const
     {
-        return BaseMob::operator==(other) &&
+        return PolyMob::operator==(other) &&
             Eyes == other.Eyes &&
             Legs == other.Legs;
     }
@@ -783,21 +783,21 @@ static void Test(SavepointDriver driver)
     }
     savepoint.Clear();
     {
-        std::shared_ptr<DerivedItem> inItem = std::make_shared<DerivedItem>();
-        std::shared_ptr<DerivedZombie> inZombie = std::make_shared<DerivedZombie>();
-        std::shared_ptr<DerivedSkeleton> inSkeleton = std::make_shared<DerivedSkeleton>();
-        std::shared_ptr<DerivedSpider> inSpider = std::make_shared<DerivedSpider>();
+        std::shared_ptr<PolyItem> inItem = std::make_shared<PolyItem>();
+        std::shared_ptr<PolyZombie> inZombie = std::make_shared<PolyZombie>();
+        std::shared_ptr<PolySkeleton> inSkeleton = std::make_shared<PolySkeleton>();
+        std::shared_ptr<PolySpider> inSpider = std::make_shared<PolySpider>();
         savepoint.Write(inItem, 0);
         savepoint.Write(inZombie, 0);
         savepoint.Write(inSkeleton, 0);
         savepoint.Write(inSpider, 0);
         int i = 0;
-        savepoint.Read<std::shared_ptr<BaseEntity>>([&](std::shared_ptr<BaseEntity>& base)
+        savepoint.Read<std::shared_ptr<PolyEntity>>([&](std::shared_ptr<PolyEntity>& base)
         {
-            DerivedItem* outItem = dynamic_cast<DerivedItem*>(base.get());
-            DerivedZombie* outZombie = dynamic_cast<DerivedZombie*>(base.get());
-            DerivedSkeleton* outSkeleton = dynamic_cast<DerivedSkeleton*>(base.get());
-            DerivedSpider* outSpider = dynamic_cast<DerivedSpider*>(base.get());
+            PolyItem* outItem = dynamic_cast<PolyItem*>(base.get());
+            PolyZombie* outZombie = dynamic_cast<PolyZombie*>(base.get());
+            PolySkeleton* outSkeleton = dynamic_cast<PolySkeleton*>(base.get());
+            PolySpider* outSpider = dynamic_cast<PolySpider*>(base.get());
             if (outItem)
             {
                 assert(*outItem == *inItem);

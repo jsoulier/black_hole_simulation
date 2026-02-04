@@ -36,10 +36,10 @@ struct Hash
     }
 };
 
-static auto& GetDerivedFunctions()
+static auto& GetPolyFunctions()
 {
     // Avoiding SIOF
-    static std::unordered_map<std::string, SavepointDerivedFunction, Hash, std::equal_to<>> functions;
+    static std::unordered_map<std::string, SavepointPolyFunction, Hash, std::equal_to<>> functions;
     return functions;
 }
 
@@ -58,15 +58,15 @@ void SavepointLog(const std::string_view& string)
     logFunction(string);
 }
 
-void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function)
+void SavepointAddPolyFunction(const std::string_view& string, const SavepointPolyFunction function)
 {
-    GetDerivedFunctions().emplace(string, function);
+    GetPolyFunctions().emplace(string, function);
 }
 
-SavepointDerivedFunction SavepointGetDerivedFunction(const std::string_view& string)
+SavepointPolyFunction SavepointGetPolyFunction(const std::string_view& string)
 {
-    auto it = GetDerivedFunctions().find(string);
-    if (it != GetDerivedFunctions().end())
+    auto it = GetPolyFunctions().find(string);
+    if (it != GetPolyFunctions().end())
     {
         return it->second;
     }
@@ -76,16 +76,16 @@ SavepointDerivedFunction SavepointGetDerivedFunction(const std::string_view& str
     }
 }
 
-bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
+bool SavepointWritePoly(SavepointPoly* base, SavepointVisitor& visitor)
 {
     if (!base)
     {
         SavepointLog("Tried to write null base");
         return false;
     }
-    std::string_view string = base->SavepointGetString();
+    std::string_view string = base->GetClassName();
     // TODO: Can this ever happen?
-    SavepointDerivedFunction function = SavepointGetDerivedFunction(string);
+    SavepointPolyFunction function = SavepointGetPolyFunction(string);
     if (function == nullptr)
     {
         SavepointLog(std::format("Failed to find base string: {}", string));
@@ -96,17 +96,17 @@ bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor)
     return true;
 }
 
-SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
+SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor)
 {
     std::string string;
     visitor(string);
-    SavepointDerivedFunction function = SavepointGetDerivedFunction(string);
+    SavepointPolyFunction function = SavepointGetPolyFunction(string);
     if (function == nullptr)
     {
         SavepointLog(std::format("Failed to find base string: {}", string));
         return nullptr;
     }
-    SavepointBase* base = function();
+    SavepointPoly* base = function();
     if (!base)
     {
         SavepointLog(std::format("Failed to allocate base: {}", string));
@@ -116,9 +116,10 @@ SavepointBase* SavepointReadDerived(SavepointVisitor& visitor)
     return base;
 }
 
-void SavepointSkipDerived(SavepointVisitor& visitor)
+void SavepointSkipPoly(SavepointVisitor& visitor)
 {
-    // TODO: There's a bug in MSVC. If I try this in SavepointVisit, the concept constraints explode
+    // TODO: There's a bug in MSVC.
+    // If I try this in SavepointVisit, the concept constraints explode. Here seems okay though
     std::string string;
     visitor(string);
 }

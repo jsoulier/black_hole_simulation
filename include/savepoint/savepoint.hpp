@@ -167,6 +167,7 @@ static constexpr SavepointVersion kSavepointVersion{0, 0, 0};
 class SavepointID
 {
     friend class Savepoint;
+    friend struct std::hash<SavepointID>;
 
 public:
     /**
@@ -183,26 +184,12 @@ public:
     }
 
     /**
-     * @brief Check if two IDs are equal.
+     * @brief Compare the ID to another ID.
      * 
      * @param other The other ID.
-     * @return True if the IDs are equal.
+     * @return True if the comparison evaluated to true.
      */
-    constexpr bool operator==(const SavepointID other) const
-    {
-        return Value == other.Value;
-    }
-
-    /**
-     * @brief Check if two IDs are not equal.
-     * 
-     * @param other The other ID.
-     * @return True if the IDs are not equal.
-     */
-    constexpr bool operator!=(const SavepointID other) const
-    {
-        return Value != other.Value;
-    }
+    constexpr auto operator<=>(const SavepointID& other) const = default;
 
     /**
      * @brief Check if an ID is valid.
@@ -217,6 +204,29 @@ public:
 private:
     uint32_t Value;
 };
+
+namespace std
+{
+
+/**
+ * @brief Hash implementation for a SavepointID.
+ */
+template <>
+struct hash<SavepointID>
+{
+    /**
+     * @brief Hash a SavepointID.
+     * 
+     * @param id The ID.
+     * @return The hash.
+     */
+    size_t operator()(const SavepointID& id) const noexcept
+    {
+        return std::hash<uint32_t>{}(id.Value);
+    }
+};
+
+}
 
 /**
  * @brief Used to uniquely identify a Savepoint entry.
@@ -245,7 +255,7 @@ public:
      * @see SavepointID
      * @return The unique ID.
      */
-    SavepointID SavepointGetID() const
+    SavepointID GetID() const
     {
         return ID;
     }
@@ -258,20 +268,20 @@ private:
  * @brief Serves as the base class for the user's base class.
  * 
  * To support polymorphic types, Savepoint offers a base class you can use.
- * Savepoint checks if visited objects inherit from SavepointBase and if so, 
+ * Savepoint checks if visited objects inherit from SavepointPoly and if so, 
  * serializes the object alongside its type information. When Savepoint reads
  * the type information out, it knows to instantiate the derived class.
  * 
  * @snippet examples/polymorphic_types.cpp polymorphic_types
- * @see SAVEPOINT_DERIVED
+ * @see SAVEPOINT_POLY
  */
-class SavepointBase
+class SavepointPoly
 {
 public:
     /**
      * @brief Default destructor.
      */
-    virtual ~SavepointBase() = default;
+    virtual ~SavepointPoly() = default;
 
     /**
      * @brief The Visit method to be called from SavepointVisitor.
@@ -286,48 +296,48 @@ public:
      * 
      * @return The class name string.
      */
-    virtual std::string_view SavepointGetString() const = 0;
+    virtual std::string_view GetClassName() const = 0;
 };
 
 /**
- * @brief Helper for concrete derived classes to implement SavepointBase methods.
+ * @brief Helper for concrete derived classes to implement SavepointPoly methods.
  * 
- * Implements SavepointGetString and automatically registers a factory function
+ * Implements GetClassName and automatically registers a factory function
  * for the derived class. It allows a SavepointVisitor to to create an instance of
  * the derived class whilst only knowing its class name.
  * 
  * @param T The class type.
- * @see SavepointBase
+ * @see SavepointPoly
  */
-#define SAVEPOINT_DERIVED(T) \
+#define SAVEPOINT_POLY(T) \
     private: \
-        struct SavepointDerivedFunctionRegistrar \
+        struct SavepointRegistrar \
         { \
-            static SavepointBase* Function() \
+            static SavepointPoly* Function() \
             { \
                 return new T(); \
             } \
-            SavepointDerivedFunctionRegistrar() \
+            SavepointRegistrar() \
             { \
-                SavepointAddDerivedFunction(#T, Function); \
+                SavepointAddPolyFunction(#T, Function); \
             } \
         }; \
-        static inline SavepointDerivedFunctionRegistrar SavepointDerivedFunctionRegistrar; \
+        static inline SavepointRegistrar SavepointRegistrar; \
     public: \
-        std::string_view SavepointGetString() const override \
+        std::string_view GetClassName() const override \
         { \
             return #T; \
         } \
 
 /** @cond INTERNAL */
 
-using SavepointDerivedFunction = SavepointBase*(*)();
+using SavepointPolyFunction = SavepointPoly*(*)();
 
-void SavepointAddDerivedFunction(const std::string_view& string, const SavepointDerivedFunction function);
-SavepointDerivedFunction SavepointGetDerivedFunction(const std::string_view& string);
-bool SavepointWriteDerived(SavepointBase* base, SavepointVisitor& visitor);
-SavepointBase* SavepointReadDerived(SavepointVisitor& visitor);
-void SavepointSkipDerived(SavepointVisitor& visitor);
+void SavepointAddPolyFunction(const std::string_view& string, const SavepointPolyFunction function);
+SavepointPolyFunction SavepointGetPolyFunction(const std::string_view& string);
+bool SavepointWritePoly(SavepointPoly* base, SavepointVisitor& visitor);
+SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor);
+void SavepointSkipPoly(SavepointVisitor& visitor);
 
 template<typename T>
 struct SavepointIsUniquePointerImpl : std::false_type {};
@@ -353,8 +363,8 @@ concept SavepointIsStdPointer = SavepointIsUniquePointer<T> || SavepointIsShared
 template<typename T>
 concept SavepointIsPointer = std::is_pointer_v<T> || SavepointIsStdPointer<T>;
 
-template<typename T, typename Base>
-concept SavepointIsPointerBaseOf = SavepointIsStdPointer<T> && std::is_base_of_v<Base, typename T::element_type>;
+template<typename T, typename Poly>
+concept SavepointIsPointerPolyOf = SavepointIsStdPointer<T> && std::is_base_of_v<Poly, typename T::element_type>;
 
 template<typename T>
 struct SavepointIsTupleImpl : std::false_type {};
@@ -393,10 +403,10 @@ template<typename T>
 concept SavepointIsCopyable = !SavepointIsPointer<T> && !SavepointHasFreeVisit<T> && !SavepointHasMemberVisit<T> && std::is_trivially_copyable_v<T>;
 
 template<typename T>
-concept SavepointIsVisitable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointBase, T>;
+concept SavepointIsVisitable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointPoly, T>;
 
 template<typename T>
-concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIsPointerBaseOf<T, SavepointEntity>;
+concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIsPointerPolyOf<T, SavepointEntity>;
 
 /** @endcond */
 
@@ -442,7 +452,7 @@ public:
     {
         // For detecting bugs in MSVC concepts
         static_assert(!SavepointIsPointer<T>);
-        static_assert(!std::is_base_of_v<SavepointBase, T>);
+        static_assert(!std::is_base_of_v<SavepointPoly, T>);
         static_assert(!std::ranges::range<T>);
         if (IsReading())
         {
@@ -465,6 +475,7 @@ public:
                 if (sizeof(T) > GetSize())
                 {
                     SavepointLog(std::format("Tried to read past visitor: {} -> {}", Version.GetString(), version.GetString()));
+                    SetError();
                     if constexpr (sizeof...(Args) > 0)
                     {
                         item = T{std::forward<Args>(args)...};
@@ -494,15 +505,6 @@ private:
         {
             if (HasError() || Version < version)
             {
-                if constexpr (sizeof...(Args) > 0)
-                {
-                    item = T{std::forward<Args>(args)...};
-                }
-                return false;
-            }
-            if (!GetSize())
-            {
-                SavepointLog(std::format("Tried to read past visitor: {} -> {}", Version.GetString(), version.GetString()));
                 if constexpr (sizeof...(Args) > 0)
                 {
                     item = T{std::forward<Args>(args)...};
@@ -707,8 +709,8 @@ private:
  * @tparam T The type of the pointer.
  * @param visitor The visitor.
  * @param item The pointer.
- * @see SavepointBase
- * @see SAVEPOINT_DERIVED
+ * @see SavepointPoly
+ * @see SAVEPOINT_POLY
  */
 template<SavepointIsStdPointer T>
 void Visit(SavepointVisitor& visitor, T& item)
@@ -716,7 +718,7 @@ void Visit(SavepointVisitor& visitor, T& item)
     using ValueT = typename T::element_type;
     if constexpr (std::is_polymorphic_v<ValueT>)
     {
-        static_assert(std::is_base_of_v<SavepointBase, ValueT>, "Missing SavepointBase inheritance");
+        static_assert(std::is_base_of_v<SavepointPoly, ValueT>, "Missing SavepointPoly inheritance");
     }
     if (visitor.IsReading())
     {
@@ -733,9 +735,9 @@ void Visit(SavepointVisitor& visitor, T& item)
         }
         if (!item)
         {
-            if constexpr (std::is_base_of_v<SavepointBase, ValueT>)
+            if constexpr (std::is_base_of_v<SavepointPoly, ValueT>)
             {
-                item.reset(dynamic_cast<ValueT*>(SavepointReadDerived(visitor)));
+                item.reset(dynamic_cast<ValueT*>(SavepointReadPoly(visitor)));
                 return;
             }
             else if constexpr (std::is_default_constructible_v<ValueT>)
@@ -759,9 +761,9 @@ void Visit(SavepointVisitor& visitor, T& item)
         else
         {
             // Not using the derived interface but we still need to strip away that information
-            if constexpr (std::is_base_of_v<SavepointBase, ValueT>)
+            if constexpr (std::is_base_of_v<SavepointPoly, ValueT>)
             {
-                SavepointSkipDerived(visitor);
+                SavepointSkipPoly(visitor);
             }
         }
         visitor(*item);
@@ -772,9 +774,9 @@ void Visit(SavepointVisitor& visitor, T& item)
         visitor(hasPointer);
         if (hasPointer)
         {
-            if constexpr (std::is_base_of_v<SavepointBase, ValueT>)
+            if constexpr (std::is_base_of_v<SavepointPoly, ValueT>)
             {
-                SavepointWriteDerived(item.get(), visitor);
+                SavepointWritePoly(item.get(), visitor);
             }
             else
             {
