@@ -329,15 +329,50 @@ public:
             return #T; \
         } \
 
-/** @cond INTERNAL */
-
+/**
+ * @brief The polymorphic factory function signature.
+ * 
+ * @return The polymorphic object.
+ */
 using SavepointPolyFunction = SavepointPoly*(*)();
 
+/**
+ * @brief Add a polymorphic factory function.
+ * 
+ * @param string The name of the polymorphic type.
+ * @param function The polymorphic factory function.
+ * @see SAVEPOINT_POLY
+ */
 void SavepointAddPolyFunction(const std::string_view& string, const SavepointPolyFunction function);
+
+/**
+ * @brief Get a polymorphic factory function.
+ * 
+ * @param string The name of the polymorphic type.
+ * @return The polymorphic factory function.
+ * @see SAVEPOINT_POLY
+ */
 SavepointPolyFunction SavepointGetPolyFunction(const std::string_view& string);
-bool SavepointWritePoly(SavepointPoly* base, SavepointVisitor& visitor);
+
+/**
+ * @brief Read a polymorphic object from a visitor.
+ * 
+ * @param visitor The visitor.
+ * @return The polymorphic object or nullptr on error.
+ * @see SAVEPOINT_POLY
+ */
 SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor);
-void SavepointSkipPoly(SavepointVisitor& visitor);
+
+/**
+ * @brief Write a polymorphic object to a visitor.
+ * 
+ * @param poly The polymorphic object.
+ * @param visitor The visitor.
+ * @see SAVEPOINT_POLY
+ */
+void SavepointWritePoly(SavepointPoly* poly, SavepointVisitor& visitor);
+
+/** @cond INTERNAL */
 
 template<typename T>
 struct SavepointIsUniquePointerImpl : std::false_type {};
@@ -408,6 +443,8 @@ concept SavepointIsVisitable = !std::is_same_v<T, SavepointVisitor> && !std::is_
 template<typename T>
 concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIsPointerPolyOf<T, SavepointEntity>;
 
+void SavepointSkipString(SavepointVisitor& visitor);
+
 /** @endcond */
 
 /**
@@ -431,9 +468,52 @@ concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIs
  */
 class SavepointVisitor
 {
-    friend class Savepoint;
-
 public:
+    /**
+     * @brief Default initializes the visitor.
+     */
+    SavepointVisitor()
+        : Version{}
+        , Error{false}
+        , Writer{}
+        , Reader{}
+        , Offset{0}
+    {
+    }
+
+    /**
+     * @brief Prepare a visitor for writing to bytes.
+     * 
+     * @param version The version of the application to be written.
+     */
+    void Begin(SavepointVersion version)
+    {
+        Version = version;
+        Error = false;
+        Writer.resize(sizeof(version) * 2);
+        Reader = {};
+        Offset = 0;
+        std::memcpy(Writer.data(), &version, sizeof(version));
+        std::memcpy(Writer.data() + sizeof(version), &kSavepointVersion, sizeof(version));
+    }
+
+    /**
+     * @brief Prepare a visitor for reading from bytes.
+     * 
+     * @param data The data as bytes.
+     * @param size The number of bytes.
+     */
+    void Begin(const void* data, size_t size)
+    {
+        Version = SavepointVersion{};
+        Error = false;
+        Reader = {static_cast<uint8_t*>(const_cast<void*>(data)), size};
+        Writer.clear();
+        Offset = 0;
+        operator()(Version);
+        Skip<SavepointVersion>();
+    }
+
     /**
      * @brief Serialize to/from an items's raw bytes.
      * 
@@ -660,34 +740,17 @@ public:
         }
     }
 
-private:
-    void Begin(const void* data, size_t size)
-    {
-        Version = SavepointVersion{};
-        Error = false;
-        Reader = {static_cast<uint8_t*>(const_cast<void*>(data)), size};
-        Writer.clear();
-        Offset = 0;
-        operator()(Version);
-        Skip<SavepointVersion>();
-    }
-
-    void Begin(SavepointVersion version)
-    {
-        Version = version;
-        Error = false;
-        Writer.resize(sizeof(version) * 2);
-        Reader = {};
-        Offset = 0;
-        std::memcpy(Writer.data(), &version, sizeof(version));
-        std::memcpy(Writer.data() + sizeof(version), &kSavepointVersion, sizeof(version));
-    }
-
+    /**
+     * @brief Get the data as bytes.
+     * 
+     * @return The data as bytes.
+     */
     const void* GetData() const
     {
         return Writer.data();
     }
 
+private:
     SavepointVersion Version;
     bool Error;
     std::vector<uint8_t> Writer;
@@ -763,7 +826,7 @@ void Visit(SavepointVisitor& visitor, T& item)
             // Not using the derived interface but we still need to strip away that information
             if constexpr (std::is_base_of_v<SavepointPoly, ValueT>)
             {
-                SavepointSkipPoly(visitor);
+                SavepointSkipString(visitor);
             }
         }
         visitor(*item);

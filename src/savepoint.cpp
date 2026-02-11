@@ -76,26 +76,6 @@ SavepointPolyFunction SavepointGetPolyFunction(const std::string_view& string)
     }
 }
 
-bool SavepointWritePoly(SavepointPoly* base, SavepointVisitor& visitor)
-{
-    if (!base)
-    {
-        SavepointLog("Tried to write null base");
-        return false;
-    }
-    std::string_view string = base->GetClassName();
-    // TODO: Can this ever happen?
-    SavepointPolyFunction function = SavepointGetPolyFunction(string);
-    if (function == nullptr)
-    {
-        SavepointLog(std::format("Failed to find base string: {}", string));
-        return false;
-    }
-    visitor(string);
-    visitor(*base);
-    return true;
-}
-
 SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor)
 {
     std::string string;
@@ -103,23 +83,31 @@ SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor)
     SavepointPolyFunction function = SavepointGetPolyFunction(string);
     if (function == nullptr)
     {
-        SavepointLog(std::format("Failed to find base string: {}", string));
+        SavepointLog(std::format("Failed to find poly string: {}", string));
         return nullptr;
     }
-    SavepointPoly* base = function();
-    if (!base)
+    SavepointPoly* poly = function();
+    if (poly)
     {
-        SavepointLog(std::format("Failed to allocate base: {}", string));
-        return nullptr;
+        visitor(*poly);
     }
-    visitor(*base);
-    return base;
+    else
+    {
+        SavepointLog(std::format("Failed to allocate poly: {}", string));
+    }
+    return poly;
 }
 
-void SavepointSkipPoly(SavepointVisitor& visitor)
+void SavepointWritePoly(SavepointPoly* poly, SavepointVisitor& visitor)
 {
-    // TODO: There's a bug in MSVC.
-    // If I try this in SavepointVisit, the concept constraints explode. Here seems okay though
+    std::string_view string = poly->GetClassName();
+    visitor(string);
+    visitor(*poly);
+}
+
+void SavepointSkipString(SavepointVisitor& visitor)
+{
+    // TODO: There's a bug in MSVC. If I try this in SavepointVisit, the concept constraints explode.
     std::string string;
     visitor(string);
 }
