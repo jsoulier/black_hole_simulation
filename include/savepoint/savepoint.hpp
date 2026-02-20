@@ -741,6 +741,16 @@ public:
     }
 
     /**
+     * @brief Check if a visitor has no remaining bytes.
+     * 
+     * @return True if no remaining bytes.
+     */
+    bool IsEmpty()
+    {
+        return GetSize() == 0;
+    }
+
+    /**
      * @brief Get the data as bytes.
      * 
      * @return The data as bytes.
@@ -1275,6 +1285,11 @@ public:
         {
             Visitor.Begin(data, size);
             Visitor(item);
+            if (!Visitor.IsEmpty())
+            {
+                SavepointLog("Visitor has unread data");
+                Visitor.SetError();
+            }
             exists = true;
         });
         if (Visitor.HasError())
@@ -1305,6 +1320,11 @@ public:
             T item;
             Visitor.Begin(data, size);
             Visitor(item);
+            if (!Visitor.IsEmpty())
+            {
+                SavepointLog("Visitor has unread data");
+                Visitor.SetError();
+            }
             if (Visitor.HasError())
             {
                 SavepointLog(std::format("Failed to read entity: id={}, level={}", id, level));
@@ -1334,6 +1354,11 @@ public:
             T item;
             Visitor.Begin(data, size);
             Visitor(item);
+            if (!Visitor.IsEmpty())
+            {
+                SavepointLog("Visitor has unread data");
+                Visitor.SetError();
+            }
             if (Visitor.HasError())
             {
                 SavepointLog(std::format("Failed to read tile: x={}, y={}, level={}", x, y, level));
@@ -1362,6 +1387,11 @@ public:
             T item;
             Visitor.Begin(data, size);
             Visitor(item);
+            if (!Visitor.IsEmpty())
+            {
+                SavepointLog("Visitor has unread data");
+                Visitor.SetError();
+            }
             if (Visitor.HasError())
             {
                 SavepointLog(std::format("Failed to read tile: x={}, y={}, z={}, level={}", x, y, z, level));
@@ -1393,6 +1423,11 @@ public:
         {
             Visitor.Begin(data, size);
             Visitor(tile);
+            if (!Visitor.IsEmpty())
+            {
+                SavepointLog("Visitor has unread data");
+                Visitor.SetError();
+            }
             exists = true;
         }, level, x, y);
         if (Visitor.HasError())
@@ -1425,6 +1460,11 @@ public:
         {
             Visitor.Begin(data, size);
             Visitor(tile);
+            if (!Visitor.IsEmpty())
+            {
+                SavepointLog("Visitor has unread data");
+                Visitor.SetError();
+            }
             exists = true;
         }, level, x, y, z);
         if (Visitor.HasError())

@@ -847,9 +847,9 @@ static void Test(SavepointDriver driver)
     TestReadWrite<ArrayV1, ArrayV1>(driver, kVersion1);
     TestReadWrite<ArrayV1, ArrayV2>(driver, kVersion1);
     TestReadWrite<ArrayV1, ArrayV3>(driver, kVersion1);
-    TestReadWrite<ArrayV2, ArrayV2>(driver, kVersion1);
-    TestReadWrite<ArrayV2, ArrayV3>(driver, kVersion1);
-    TestReadWrite<ArrayV3, ArrayV3>(driver, kVersion1);
+    TestReadWrite<ArrayV2, ArrayV2>(driver, kVersion2);
+    TestReadWrite<ArrayV2, ArrayV3>(driver, kVersion2);
+    TestReadWrite<ArrayV3, ArrayV3>(driver, kVersion2);
     TestReadWrite<ArrayV2, ArrayV2>(driver, kVersion2);
     TestReadWrite<ArrayV2, ArrayV3>(driver, kVersion2);
     TestReadWrite<ArrayV3, ArrayV3>(driver, kVersion2);
