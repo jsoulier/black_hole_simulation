@@ -30,6 +30,8 @@ struct UniformBuffer
     glm::vec3 CameraForward;
     float DiskR1 = kBlackHoleRadius * 2.2f;
     float DiskR2 = kBlackHoleRadius * 5.2f;
+    uint32_t FrameCount;
+    uint32_t ResetAccumulation;
 };
 
 struct Object
@@ -44,6 +46,7 @@ static SDL_Window* window;
 static SDL_GPUDevice* device;
 static SDL_GPUComputePipeline* geodesicPipeline;
 static SDL_GPUTexture* colorTexture;
+static SDL_GPUTexture* accumulationTexture;
 static SDL_GPUBuffer* objectBuffer;
 static float pitch;
 static float yaw;
@@ -100,7 +103,15 @@ static bool Init()
         colorTexture = SDL_CreateGPUTexture(device, &info);
         if (!colorTexture)
         {
-            SDL_Log("Failed to create texture: %s", SDL_GetError());
+            SDL_Log("Failed to create color texture: %s", SDL_GetError());
+            return false;
+        }
+        info.format = SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT;
+        info.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_READ;
+        accumulationTexture = SDL_CreateGPUTexture(device, &info);
+        if (!accumulationTexture)
+        {
+            SDL_Log("Failed to create accumulation texture: %s", SDL_GetError());
             return false;
         }
     }
@@ -199,11 +210,13 @@ static void Draw()
         uniformBuffer.CameraRight = glm::normalize(uniformBuffer.CameraRight);
         uniformBuffer.CameraUp = glm::cross(uniformBuffer.CameraRight, uniformBuffer.CameraForward);
         uniformBuffer.CameraUp = glm::normalize(uniformBuffer.CameraUp);
+        uniformBuffer.FrameCount++;
     }
     {
-        SDL_GPUStorageTextureReadWriteBinding readWriteTexture{};
-        readWriteTexture.texture = colorTexture;
-        SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(commandBuffer, &readWriteTexture, 1, nullptr, 0);
+        SDL_GPUStorageTextureReadWriteBinding readWriteTextures[2]{};
+        readWriteTextures[0].texture = colorTexture;
+        readWriteTextures[1].texture = accumulationTexture;
+        SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(commandBuffer, readWriteTextures, 2, nullptr, 0);
         if (!computePass)
         {
             SDL_Log("Failed to begin compute pass: %s", SDL_GetError());
@@ -217,27 +230,28 @@ static void Draw()
         SDL_BindGPUComputeStorageBuffers(computePass, 0, &objectBuffer, 1);
         SDL_DispatchGPUCompute(computePass, groupsX, groupsY, 1);
         SDL_EndGPUComputePass(computePass);
+        uniformBuffer.ResetAccumulation = 0;
     }
     {
         uint32_t letterboxW;
         uint32_t letterboxH;
         uint32_t letterboxX;
         uint32_t letterboxY;
-        if ((static_cast<float>(WIDTH) / HEIGHT) > (static_cast<float>(width) / height))
+        if ((float(WIDTH) / HEIGHT) > (float(width) / height))
         {
             letterboxW = width;
-            letterboxH = HEIGHT * static_cast<float>(width) / WIDTH;
-            letterboxX = 0.0f;
-            letterboxY = (height - letterboxH) / 2.0f;
+            letterboxH = HEIGHT * float(width) / WIDTH;
+            letterboxX = 0;
+            letterboxY = (height - letterboxH) / 2;
         }
         else
         {
             letterboxH = height;
-            letterboxW = WIDTH * static_cast<float>(height) / HEIGHT;
-            letterboxX = (width - letterboxW) / 2.0f;
-            letterboxY = 0.0f;
+            letterboxW = WIDTH * float(height) / HEIGHT;
+            letterboxX = (width - letterboxW) / 2;
+            letterboxY = 0;
         }
-        SDL_FColor clearColor = {0.04f, 0.04f, 0.04f, 1.0f};
+        SDL_FColor clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
         SDL_GPUBlitInfo info{};
         info.load_op = SDL_GPU_LOADOP_CLEAR;
         info.clear_color = clearColor;
@@ -249,7 +263,7 @@ static void Draw()
         info.destination.y = letterboxY;
         info.destination.w = letterboxW;
         info.destination.h = letterboxH;
-        info.filter = SDL_GPU_FILTER_NEAREST;
+        info.filter = SDL_GPU_FILTER_LINEAR;
         SDL_BlitGPUTexture(commandBuffer, &info);
     }
     SDL_SubmitGPUCommandBuffer(commandBuffer);
@@ -271,6 +285,7 @@ int main(int argc, char** argv)
             {
             case SDL_EVENT_MOUSE_WHEEL:
                 distance = std::max(1.0f, distance - event.wheel.y * kZoom);
+                uniformBuffer.ResetAccumulation = 1;
                 break;
             case SDL_EVENT_MOUSE_MOTION:
                 if (event.motion.state & SDL_BUTTON_LMASK)
@@ -278,6 +293,7 @@ int main(int argc, char** argv)
                     static constexpr float kClamp = glm::pi<float>() / 2.0f - 0.01f;
                     yaw += event.motion.xrel * kPan;
                     pitch = std::clamp(pitch + event.motion.yrel * kPan, -kClamp, kClamp);
+                    uniformBuffer.ResetAccumulation = 1;
                 }
                 break;
             case SDL_EVENT_QUIT:
@@ -290,6 +306,7 @@ int main(int argc, char** argv)
     SDL_HideWindow(window);
     SDL_ReleaseGPUBuffer(device, objectBuffer);
     SDL_ReleaseGPUTexture(device, colorTexture);
+    SDL_ReleaseGPUTexture(device, accumulationTexture);
     SDL_ReleaseGPUComputePipeline(device, geodesicPipeline);
     SDL_ReleaseWindowFromGPUDevice(device, window);
     SDL_DestroyGPUDevice(device);

@@ -1,8 +1,12 @@
 # Black Hole Simulation
 
-![](image.png)
-
 Black Hole Simulation using SDL3 GPU with a compute shader
+
+![](image2.png)
+*Euler's method implementation (VSync at 1600x1200)*
+
+![](image1.png)
+*Original polar coordinate implementation (30 FPS at 200x150)*
 
 ### Building
 
