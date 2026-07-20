@@ -91,10 +91,10 @@ int main()
     savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
 
     // Write derived classes as usual
-    std::shared_ptr<ZombieEntity> inZombie = std::make_shared<ZombieEntity>();
-    std::shared_ptr<SpiderEntity> inSpider = std::make_shared<SpiderEntity>();
-    savepoint.Write(inZombie, 0);
-    savepoint.Write(inSpider, 0);
+    std::shared_ptr<ZombieEntity> inSharedZombie = std::make_shared<ZombieEntity>();
+    std::shared_ptr<SpiderEntity> inSharedSpider = std::make_shared<SpiderEntity>();
+    savepoint.Write(inSharedZombie, 0);
+    savepoint.Write(inSharedSpider, 0);
 
     // Read using your base class' class name
     int reads = 0;
@@ -103,12 +103,39 @@ int main()
         // The read entity is either a ZombieEntity or a SpiderEntity. You can safely take ownership of it
         if (ZombieEntity* outZombie = dynamic_cast<ZombieEntity*>(entity.get()))
         {
-            assert(*outZombie == *inZombie);
+            assert(*outZombie == *inSharedZombie);
             reads++;
         }
         else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(entity.get()))
         {
-            assert(*outSpider == *inSpider);
+            assert(*outSpider == *inSharedSpider);
+            reads++;
+        }
+        else
+        {
+            assert(false);
+        }
+    }, 0);
+    assert(reads == 2);
+
+    savepoint.Clear();
+
+    std::unique_ptr<ZombieEntity> inUniqueZombie = std::make_unique<ZombieEntity>();
+    std::unique_ptr<SpiderEntity> inUniqueSpider = std::make_unique<SpiderEntity>();
+    savepoint.Write(inUniqueZombie, 0);
+    savepoint.Write(inUniqueSpider, 0);
+
+    reads = 0;
+    savepoint.Read<std::unique_ptr<Entity>>([&](std::unique_ptr<Entity>& entity)
+    {
+        if (ZombieEntity* outZombie = dynamic_cast<ZombieEntity*>(entity.get()))
+        {
+            assert(*outZombie == *inUniqueZombie);
+            reads++;
+        }
+        else if (SpiderEntity* outSpider = dynamic_cast<SpiderEntity*>(entity.get()))
+        {
+            assert(*outSpider == *inUniqueSpider);
             reads++;
         }
         else

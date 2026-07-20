@@ -42,6 +42,7 @@ struct Entity : SavepointEntity
     std::shared_ptr<int> NullSharedPtr;
     std::list<int> List;
     std::string String;
+    std::vector<std::unique_ptr<int>> VectorUniquePtr;
 
     void OnCreate()
     {
@@ -66,6 +67,7 @@ struct Entity : SavepointEntity
         NullSharedPtr = {};
         List = {1, 2};
         String = "string";
+        VectorUniquePtr.emplace_back(std::make_unique<int>(1));
     }
 
     void Visit(SavepointVisitor& visitor)
@@ -91,6 +93,7 @@ struct Entity : SavepointEntity
         visitor(NullSharedPtr);
         visitor(List);
         visitor(String);
+        visitor(VectorUniquePtr);
     }
 
     bool operator==(const Entity& other) const
@@ -116,7 +119,8 @@ struct Entity : SavepointEntity
             *SharedPtr == *other.SharedPtr &&
             bool(NullSharedPtr) == bool(other.NullSharedPtr) &&
             List == other.List &&
-            String == other.String;
+            String == other.String &&
+            *VectorUniquePtr[0] == *other.VectorUniquePtr[0];
     }
 };
 

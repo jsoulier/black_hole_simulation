@@ -950,7 +950,7 @@ void Visit(SavepointVisitor& visitor, T& item)
                 // TODO: mutable iterators
                 ValueT element;
                 visitor(element);
-                *inserter++ = element;
+                *inserter++ = std::move(element);
             }
         }
         else if constexpr (SavepointIsStaticRange<T>)
