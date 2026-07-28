@@ -76,7 +76,7 @@ void SavepointLog(const std::string_view& string);
  * decreasing significance). Versions are packed into a u32 so comparisons are
  * cheap. Versions can also be assigned and compared at compile time.
  * 
- * @snippet examples/basic_upgraded.cpp basic_upgraded
+ * @snippet examples/9_version.cpp 9_version
  * @see Savepoint
  */
 class SavepointVersion
@@ -236,7 +236,7 @@ struct hash<SavepointID>
  * Savepoint, Savepoint will use the base class to insert or update an entry.
  * Users should not modify the base class themselves.
  * 
- * @snippet examples/basic_usage.cpp basic_usage
+ * @snippet examples/2_basic_usage.cpp 2_basic_usage
  * @see Savepoint
  * @see SavepointID
  */
@@ -272,7 +272,7 @@ private:
  * serializes the object alongside its type information. When Savepoint reads
  * the type information out, it knows to instantiate the derived class.
  * 
- * @snippet examples/polymorphic_types.cpp polymorphic_types
+ * @snippet examples/8_polymorphic_types.cpp 8_polymorphic_types
  * @see SAVEPOINT_POLY
  */
 class SavepointPoly
@@ -464,7 +464,7 @@ void SavepointSkipString(SavepointVisitor& visitor);
  * versions used in the previous write. By comparing these versions to the build
  * versions, we can determine what members are safe to deserialize.
  * 
- * @snippet examples/nested_types.cpp nested_types
+ * @snippet examples/4_nested_types.cpp 4_nested_types
  */
 class SavepointVisitor
 {
@@ -540,6 +540,7 @@ public:
             if constexpr (std::is_const_v<T>)
             {
                 SavepointLog("Tried to read into a const");
+                SetError();
                 return;
             }
             else
@@ -655,6 +656,7 @@ public:
             if (sizeof(T) > GetSize())
             {
                 SavepointLog(std::format("Tried to skip past visitor: {}", Version.GetString()));
+                SetError();
                 return;
             }
             Offset += sizeof(T);
@@ -671,7 +673,7 @@ public:
      * If a serialization error is detected, you can use SetError to disable a read or write on the Savepoint.
      * 
      * @see HasError
-     * @snippet examples/set_error.cpp set_error
+     * @snippet examples/11_error_handling.cpp 11_error_handling
      */
     void SetError()
     {
@@ -978,6 +980,7 @@ void Visit(SavepointVisitor& visitor, T& item)
         {
             // Required for write-only containers (e.g. views)
             SavepointLog("Unknown range");
+            visitor.SetError();
         }
     }
     else
@@ -1088,7 +1091,7 @@ using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, in
 /**
  * @brief The connection handle to a Savepoint file.
  * 
- * @snippet examples/basic_usage.cpp basic_usage
+ * @snippet examples/2_basic_usage.cpp 2_basic_usage
  */
 class Savepoint
 {

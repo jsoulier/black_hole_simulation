@@ -1,4 +1,4 @@
-// [external_types]
+// [5_external_types]
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>
@@ -68,4 +68,4 @@ int main()
     savepoint.Close();
     return 0;
 }
-// [external_types]
+// [5_external_types]

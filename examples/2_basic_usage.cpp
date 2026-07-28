@@ -1,4 +1,4 @@
-// [basic_usage]
+// [2_basic_usage]
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>
@@ -58,7 +58,7 @@ int main()
         break;
     }
 
-    // Create and write an entity o level 0
+    // Create and write an entity to level 0
     Entity inEntity{1, 2};
     savepoint.Write(inEntity, 0);
 
@@ -71,11 +71,10 @@ int main()
     }, 0);
     assert(reads == 1);
 
-    // Commit the transaction and start a new one. Next time the Savepoint
-    // is opened, it will return Existing instead of New
+    // Commit the transaction and start a new one. Savepoint::Open will now return Existing instead of New
     savepoint.Save();
     
     savepoint.Close();
     return 0;
 }
-// [basic_usage]
+// [2_basic_usage]

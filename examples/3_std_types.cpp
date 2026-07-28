@@ -1,4 +1,4 @@
-// [std_types]
+// [3_std_types]
 #include <savepoint/savepoint.hpp>
 
 #include <array>
@@ -40,6 +40,8 @@ struct Entity : SavepointEntity
     std::unique_ptr<int> NullUniquePtr;
     std::shared_ptr<int> SharedPtr;
     std::shared_ptr<int> NullSharedPtr;
+    std::vector<std::unique_ptr<int>> UniquePtrVector;
+    std::vector<std::shared_ptr<int>> SharedPtrVector;
     std::list<int> List;
     std::string String;
     std::vector<std::unique_ptr<int>> VectorUniquePtr;
@@ -65,6 +67,12 @@ struct Entity : SavepointEntity
         NullUniquePtr = {};
         SharedPtr = std::make_shared<int>(1);
         NullSharedPtr = {};
+        UniquePtrVector.emplace_back(std::make_unique<int>(1));
+        UniquePtrVector.emplace_back(std::make_unique<int>(3));
+        UniquePtrVector.emplace_back(std::make_unique<int>(2));
+        SharedPtrVector.emplace_back(std::make_shared<int>(1));
+        SharedPtrVector.emplace_back(std::make_shared<int>(3));
+        SharedPtrVector.emplace_back(std::make_shared<int>(2));
         List = {1, 2};
         String = "string";
         VectorUniquePtr.emplace_back(std::make_unique<int>(1));
@@ -91,6 +99,8 @@ struct Entity : SavepointEntity
         visitor(NullUniquePtr);
         visitor(SharedPtr);
         visitor(NullSharedPtr);
+        visitor(UniquePtrVector);
+        visitor(SharedPtrVector);
         visitor(List);
         visitor(String);
         visitor(VectorUniquePtr);
@@ -118,6 +128,12 @@ struct Entity : SavepointEntity
             bool(NullUniquePtr) == bool(other.NullUniquePtr) &&
             *SharedPtr == *other.SharedPtr &&
             bool(NullSharedPtr) == bool(other.NullSharedPtr) &&
+            *UniquePtrVector[0] == *other.UniquePtrVector[0] &&
+            *UniquePtrVector[1] == *other.UniquePtrVector[1] &&
+            *UniquePtrVector[2] == *other.UniquePtrVector[2] &&
+            *SharedPtrVector[0] == *other.SharedPtrVector[0] &&
+            *SharedPtrVector[1] == *other.SharedPtrVector[1] &&
+            *SharedPtrVector[2] == *other.SharedPtrVector[2] &&
             List == other.List &&
             String == other.String &&
             *VectorUniquePtr[0] == *other.VectorUniquePtr[0];
@@ -129,7 +145,8 @@ int main()
     std::filesystem::remove("savepoint.sqlite3");
 
     Savepoint savepoint;
-    savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
+    SavepointStatus status = savepoint.Open(SavepointDriver::SQLite3, "savepoint.sqlite3", kVersion);
+    assert(status == SavepointStatus::New);
 
     Entity inEntity;
     inEntity.OnCreate();
@@ -144,6 +161,7 @@ int main()
     assert(reads == 1);
 
     savepoint.Close();
+    std::filesystem::remove("savepoint.sqlite3");
     return 0;
 }
-// [std_types]
+// [3_std_types]

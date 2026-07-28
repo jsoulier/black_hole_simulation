@@ -84,6 +84,7 @@ SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor)
     if (function == nullptr)
     {
         SavepointLog(std::format("Failed to find poly string: {}", string));
+        visitor.SetError();
         return nullptr;
     }
     SavepointPoly* poly = function();
@@ -94,6 +95,7 @@ SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor)
     else
     {
         SavepointLog(std::format("Failed to allocate poly: {}", string));
+        visitor.SetError();
     }
     return poly;
 }

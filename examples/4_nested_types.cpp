@@ -1,4 +1,4 @@
-// [nested_types]
+// [4_nested_types]
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>
@@ -129,4 +129,4 @@ int main()
     savepoint.Close();
     return 0;
 }
-// [nested_types]
+// [4_nested_types]

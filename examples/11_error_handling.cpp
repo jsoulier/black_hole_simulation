@@ -1,4 +1,4 @@
-// [set_error]
+// [11_error_handling]
 #include <savepoint/savepoint.hpp>
 
 #include <cassert>
@@ -27,6 +27,7 @@ struct Entity : SavepointEntity
     }
 };
 
+// Use SetError to prevent the read callback from being invoked (prevents reading the entity)
 struct ReadEntity : Entity
 {
     void Visit(SavepointVisitor& visitor)
@@ -39,6 +40,7 @@ struct ReadEntity : Entity
     }
 };
 
+// Use SetError to prevent the insert/update from being invoked (prevents writing the entity)
 struct WriteEntity : Entity
 {
     void Visit(SavepointVisitor& visitor)
@@ -75,11 +77,14 @@ int main()
     savepoint.Write(inEntity, 0);
     assert(hasSingleEntity());
 
+    // The read failed and the callback isn't invoked
     savepoint.Read<ReadEntity>([](ReadEntity& outReadEntity) { assert(false); }, 0);
+
+    // The write failed so there's nothing to read
     savepoint.Delete(inEntity);
     WriteEntity inWriteEntity;
     savepoint.Write(inWriteEntity, 0);
-    savepoint.Read<ReadEntity>([&](Entity& outEntity) { assert(false); }, 0);
+    savepoint.Read<WriteEntity>([](WriteEntity& outWriteEntity) { assert(false); }, 0);
 
     savepoint.Write(inEntity, 0);
     assert(hasSingleEntity());
@@ -87,4 +92,4 @@ int main()
     savepoint.Close();
     return 0;
 }
-// [set_error]
+// [11_error_handling]
