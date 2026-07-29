@@ -213,7 +213,7 @@ struct Asteroid : Entity
 struct State
 {
     std::minstd_rand Generator;
-    Player Player;
+    Player User;
     std::vector<Asteroid> Asteroids;
     int Score = 0;
     int Round = 0;
@@ -227,7 +227,7 @@ struct State
     {
         Round++;
         Asteroids.clear();
-        Player.Bullets.clear();
+        User.Bullets.clear();
         int count = std::min(10, Round + 3);
         for (int i = 0; i < count; i++)
         {
@@ -236,7 +236,7 @@ struct State
             {
                 position = {RandomFloat() * kWidth, RandomFloat() * kHeight};
             }
-            while (glm::length(Offset(position, Player.Position)) < 180.0f);
+            while (glm::length(Offset(position, User.Position)) < 180.0f);
             Asteroid& asteroid = Asteroids.emplace_back();
             asteroid.Spawn(position, 42.0f);
         }
@@ -244,7 +244,7 @@ struct State
 
     void Visit(SavepointVisitor& visitor)
     {
-        visitor(Player);
+        visitor(User);
         visitor(Generator);
         visitor(Score);
         visitor(Round);
@@ -355,7 +355,7 @@ static void Save()
 
 static void Update(float deltaTime)
 {
-    Player& player = state.Player;
+    Player& player = state.User;
     if (player.Lives == 0)
     {
         return;
@@ -406,7 +406,7 @@ static void Update(float deltaTime)
 
 static void Draw()
 {
-    const Player& player = state.Player;
+    const Player& player = state.User;
     SDL_SetRenderDrawColor(renderer, 2, 7, 11, 255);
     SDL_RenderClear(renderer);
     std::minstd_rand generator{12345};
