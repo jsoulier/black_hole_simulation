@@ -2,7 +2,7 @@
 
 Savepoint is a lightweight ORM-style serializer for C++ games.
 Inspired by [cereal](https://github.com/USCiLab/cereal) and built on databases like [SQLite](https://sqlite.org/), it provides a simple interface for saving and loading C++ objects.
-Including documentation, the library is roughly 2K lines of code.
+Including documentation, the library is roughly 2.5K lines of code.
 
 ### Features
 
@@ -11,17 +11,7 @@ Including documentation, the library is roughly 2K lines of code.
 - UUID and spatial keys
 - Inherited and nested fields
 - Polymorphic types
-- Pointers, containers, tuples, etc
-- Fast development workflow
-
-### Documentation
-
-The source contains Doxygen-style comments.
-You can generate HTML docs with:
-
-```shell
-doxygen Doxyfile
-```
+- Pointers, containers, tuples, random generators, etc
 
 ### Examples
 
@@ -80,4 +70,13 @@ You can clone and add the following to your `CMakeLists.txt`:
 ```cmake
 add_subdirectory(<path>)
 target_link_libraries(<name> PRIVATE savepoint::savepoint)
+```
+
+### Documentation
+
+The source contains Doxygen-style comments.
+You can generate HTML docs with:
+
+```shell
+doxygen Doxyfile
 ```

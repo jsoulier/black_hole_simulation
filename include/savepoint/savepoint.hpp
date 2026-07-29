@@ -38,8 +38,10 @@
 #include <iterator>
 #include <memory>
 #include <optional>
+#include <random>
 #include <ranges>
 #include <span>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -421,6 +423,9 @@ struct SavepointIsOptionalImpl<std::optional<T>> : std::true_type {};
 
 template<typename T>
 concept SavepointIsOptional = SavepointIsOptionalImpl<T>::value;
+
+template<typename T>
+concept SavepointIsRandom = std::uniform_random_bit_generator<T> && requires(std::ostream& o, std::istream& i, T& item) { o << item; i >> item; };
 
 template<typename T>
 concept SavepointIsDynamicRange = requires(T item) { item.insert(std::ranges::end(item), std::declval<typename T::value_type>()); };
@@ -988,6 +993,36 @@ void Visit(SavepointVisitor& visitor, T& item)
         for (auto& element : item)
         {
             visitor(element);
+        }
+    }
+}
+
+/**
+ * @brief Visit implementation for serializing standard random number engines.
+ *
+ * @tparam T The type of the random number engine.
+ * @param visitor The visitor.
+ * @param item The random number engine.
+ * @snippet examples/14_random.cpp 14_random
+ */
+template<SavepointIsRandom T>
+void Visit(SavepointVisitor& visitor, T& item)
+{
+    std::string state;
+    if (visitor.IsWriting())
+    {
+        std::stringstream stream;
+        stream << item;
+        state = stream.str();
+    }
+    visitor(state);
+    if (visitor.IsReading() && !visitor.HasError())
+    {
+        std::stringstream stream{state};
+        if (!(stream >> item))
+        {
+            SavepointLog("Failed to read random number engine");
+            visitor.SetError();
         }
     }
 }

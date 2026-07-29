@@ -1,0 +1,6 @@
+[submodule "examples/SDL"]
+	path = examples/SDL
+	url = https://github.com/libsdl-org/SDL
+[submodule "examples/glm"]
+	path = examples/glm
+	url = https://github.com/g-truc/glm

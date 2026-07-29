@@ -2,50 +2,50 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "savepoint_basic_test (win32)",
+            "name": "2_basic_usage_example (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_basic_test.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_2_basic_usage_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
         {
-            "name": "savepoint_polymorphic_types_example (win32)",
+            "name": "3_std_types_example (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_polymorphic_types_example.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_3_std_types_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
         {
-            "name": "savepoint_spatial_types_example (win32)",
+            "name": "6_spatial_types_example (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_spatial_types_example.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_6_spatial_types_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
         {
-            "name": "savepoint_std_types_example (win32)",
+            "name": "8_polymorphic_types_example (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_std_types_example.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_8_polymorphic_types_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
         {
-            "name": "savepoint_set_error_example (win32)",
+            "name": "11_error_handling_example (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_set_error_example.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_11_error_handling_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
         {
-            "name": "savepoint_references_example (win32)",
+            "name": "13_asteroids_example (win32)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/savepoint_references_example.exe",
+            "program": "${workspaceFolder}/build/bin/savepoint_13_asteroids_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
