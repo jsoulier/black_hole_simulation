@@ -1042,8 +1042,8 @@ enum class SavepointStatus
  */
 enum class SavepointDriver : uint8_t
 {
-    SQLite3, /**< Backed by sqlite3. */
     Null,    /**< Noop. */
+    SQLite3, /**< Backed by sqlite3. */
 };
 
 /** @cond INTERNAL */
@@ -1059,6 +1059,7 @@ using SavepointReadAllLevelsFunction = std::function<void(int level)>;
 class ISavepointDriver
 {
 public:
+    virtual ~ISavepointDriver() = default;
     virtual SavepointStatus Open(const std::string_view& path) = 0;
     virtual bool IsOpen() const = 0;
     virtual void Write(const void* data, size_t size) = 0;
@@ -1185,7 +1186,7 @@ public:
     template<SavepointIsVisitable T>
     void Write(T& item)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }
@@ -1214,7 +1215,7 @@ public:
     template<SavepointIsEntity T>
     void Write(T& item, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }
@@ -1260,7 +1261,7 @@ public:
     template<SavepointIsVisitable T>
     void Write(T& item, int x, int y, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }
@@ -1290,7 +1291,7 @@ public:
     template<SavepointIsVisitable T>
     void Write(T& item, int x, int y, int z, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }
@@ -1314,7 +1315,7 @@ public:
     template<SavepointIsVisitable T>
     bool Read(T& item)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return false;
         }
@@ -1349,7 +1350,7 @@ public:
     template<SavepointIsVisitable T>
     void Read(const SavepointReadEntityFunction<T>& function, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }
@@ -1383,7 +1384,7 @@ public:
     template<SavepointIsVisitable T>
     void Read(const SavepointReadTile2DFunction<T>& function, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }
@@ -1416,7 +1417,7 @@ public:
     template<SavepointIsVisitable T>
     void Read(const SavepointReadTile3DFunction<T>& function, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }
@@ -1452,7 +1453,7 @@ public:
     template<SavepointIsVisitable T>
     bool Read(T& tile, int x, int y, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return false;
         }
@@ -1489,7 +1490,7 @@ public:
     template<SavepointIsVisitable T>
     bool Read(T& tile, int x, int y, int z, int level)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return false;
         }
@@ -1519,7 +1520,7 @@ public:
      */
     std::vector<int> GetLevels()
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return {};
         }
@@ -1541,7 +1542,7 @@ public:
     template<SavepointIsEntity T>
     void Delete(T& item)
     {
-        if (!Driver->IsOpen())
+        if (!Driver || !Driver->IsOpen())
         {
             return;
         }

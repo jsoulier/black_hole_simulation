@@ -10,14 +10,16 @@
 #include <unordered_map>
 #include <utility>
 
-#if SAVEPOINT_NULL
 #include "null.hpp"
-#endif
 #if SAVEPOINT_SQLITE3
 #include "sqlite3.hpp"
 #endif
 
-static void DefaultLogFunction(const std::string_view& string);
+static void DefaultLogFunction(const std::string_view& string)
+{
+    std::fwrite(string.data(), sizeof(char), string.size(), stderr);
+    std::fputc('\n', stderr);
+}
 
 static SavepointLogFunction logFunction = DefaultLogFunction;
 
@@ -38,14 +40,8 @@ struct Hash
 
 static auto& GetPolyFunctions()
 {
-    // Avoiding SIOF
     static std::unordered_map<std::string, SavepointPolyFunction, Hash, std::equal_to<>> functions;
     return functions;
-}
-
-static void DefaultLogFunction(const std::string_view& string)
-{
-    std::fprintf(stderr, "%s\n", string.data());
 }
 
 void SavepointSetLogFunction(const SavepointLogFunction& function)
@@ -116,7 +112,7 @@ void SavepointSkipString(SavepointVisitor& visitor)
 
 Savepoint::~Savepoint()
 {
-    if (Driver->IsOpen())
+    if (Driver && Driver->IsOpen())
     {
         Close();
     }
@@ -126,11 +122,9 @@ SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& 
 {
     switch (driver)
     {
-#ifdef SAVEPOINT_NULL
     case SavepointDriver::Null:
         Driver = std::make_unique<SavepointDriverNull>();
         break;
-#endif
 #ifdef SAVEPOINT_SQLITE3
     case SavepointDriver::SQLite3:
         Driver = std::make_unique<SavepointDriverSQLite3>();
@@ -146,12 +140,17 @@ SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& 
         return SavepointStatus::Failed;
     }
     Version = version;
-    return Driver->Open(path);
+    SavepointStatus status = Driver->Open(path);
+    if (status == SavepointStatus::Failed && Driver->IsOpen())
+    {
+        Driver->Close();
+    }
+    return status;
 }
 
 void Savepoint::Close()
 {
-    if (Driver->IsOpen())
+    if (Driver && Driver->IsOpen())
     {
         Driver->Close();
     }
@@ -159,7 +158,7 @@ void Savepoint::Close()
 
 void Savepoint::Save()
 {
-    if (Driver->IsOpen())
+    if (Driver && Driver->IsOpen())
     {
         Driver->Save();
     }
@@ -167,7 +166,7 @@ void Savepoint::Save()
 
 void Savepoint::Clear()
 {
-    if (Driver->IsOpen())
+    if (Driver && Driver->IsOpen())
     {
         Driver->Clear();
     }
