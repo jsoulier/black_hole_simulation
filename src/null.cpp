@@ -6,17 +6,21 @@
 
 #include "null.hpp"
 
-SavepointStatus SavepointDriverNull::Open(const std::string_view& path)
+SavepointStatus SavepointDriverNull::Open(const std::string_view& path, bool threadSafe, int maxWait)
 {
     return SavepointStatus::New;
 }
 
-bool SavepointDriverNull::IsOpen() const
+bool SavepointDriverNull::IsOpen()
 {
     return false;
 }
 
 void SavepointDriverNull::Write(const void* data, size_t size)
+{
+}
+
+void SavepointDriverNull::Write(const void* data, size_t size, int level)
 {
 }
 
@@ -39,6 +43,10 @@ void SavepointDriverNull::Write(const void* data, size_t size, int x, int y, int
 }
 
 void SavepointDriverNull::Read(const SavepointReadDataFunction& function)
+{
+}
+
+void SavepointDriverNull::Read(const SavepointReadDataFunction& function, int level)
 {
 }
 

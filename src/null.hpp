@@ -9,14 +9,16 @@
 class SavepointDriverNull : public ISavepointDriver
 {
 public:
-    SavepointStatus Open(const std::string_view& path) override;
-    bool IsOpen() const override;
+    SavepointStatus Open(const std::string_view& path, bool threadSafe, int maxWait) override;
+    bool IsOpen() override;
     void Write(const void* data, size_t size) override;
+    void Write(const void* data, size_t size, int level) override;
     uint32_t Insert(const void* data, size_t size, int level) override;
     bool Update(const void* data, size_t size, uint32_t id, int level) override;
     void Write(const void* data, size_t size, int x, int y, int level) override;
     void Write(const void* data, size_t size, int x, int y, int z, int level) override;
     void Read(const SavepointReadDataFunction& function) override;
+    void Read(const SavepointReadDataFunction& function, int level) override;
     void Read(const SavepointReadAllEntityDataFunction& function, int level) override;
     void Read(const SavepointReadAllTile2DDataFunction& function, int level) override;
     void Read(const SavepointReadAllTile3DDataFunction& function, int level) override;

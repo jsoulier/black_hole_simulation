@@ -118,7 +118,7 @@ Savepoint::~Savepoint()
     }
 }
 
-SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& path, SavepointVersion version)
+SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& path, SavepointVersion version, bool threadSafe, int maxWait)
 {
     switch (driver)
     {
@@ -140,7 +140,7 @@ SavepointStatus Savepoint::Open(SavepointDriver driver, const std::string_view& 
         return SavepointStatus::Failed;
     }
     Version = version;
-    SavepointStatus status = Driver->Open(path);
+    SavepointStatus status = Driver->Open(path, threadSafe, maxWait);
     if (status == SavepointStatus::Failed && Driver->IsOpen())
     {
         Driver->Close();

@@ -1,17 +1,16 @@
 # Savepoint
 
-Savepoint is a lightweight ORM-style serializer for C++ games.
+Savepoint is a lightweight ORM-style serializer for C++ applications.
 Inspired by [cereal](https://github.com/USCiLab/cereal) and built on databases like [SQLite](https://sqlite.org/), it provides a simple interface for saving and loading C++ objects.
-Including documentation, the library is roughly 2.5K lines of code.
+Including documentation, the library is roughly 3K lines of code.
 
 ### Features
 
-- Automatic transactions
-- Automatic schema upgrades
-- UUID and spatial keys
-- Inherited and nested fields
-- Polymorphic types
-- Pointers, containers, tuples, random generators, etc
+- Automatic transactions and schema upgrades
+- Entity IDs and 2D/3D spatial keys
+- Inherited, nested, polymorphic members and types
+- Smart pointers, containers, tuples, random generators, etc
+- Opt-in thread safety and concurrent SQLite connections
 
 ### Examples
 
