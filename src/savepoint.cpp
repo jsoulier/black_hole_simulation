@@ -23,6 +23,16 @@ static void DefaultLogFunction(const std::string_view& string)
 
 static SavepointLogFunction logFunction = DefaultLogFunction;
 
+void SavepointSetLogFunction(const SavepointLogFunction& function)
+{
+    logFunction = function;
+}
+
+void SavepointLog(const std::string_view& string)
+{
+    logFunction(string);
+}
+
 struct Hash
 {
     using is_transparent = void;
@@ -38,20 +48,36 @@ struct Hash
     }
 };
 
+struct DebugEntry
+{
+    std::string Name;
+    SavepointDebugFunction Function;
+};
+
 static auto& GetPolyFunctions()
 {
     static std::unordered_map<std::string, SavepointPolyFunction, Hash, std::equal_to<>> functions;
     return functions;
 }
 
-void SavepointSetLogFunction(const SavepointLogFunction& function)
+static auto& GetDebugFunctions()
 {
-    logFunction = function;
+    static std::unordered_map<uint32_t, DebugEntry> functions;
+    return functions;
 }
 
-void SavepointLog(const std::string_view& string)
+template<typename ReturnT, typename MapT, typename KeyT, typename ProjectionT = std::identity>
+static ReturnT GetOr(MapT& map, const KeyT& key, ProjectionT projection = {})
 {
-    logFunction(string);
+    auto it = map.find(key);
+    if (it != map.end())
+    {
+        return std::invoke(projection, it->second);
+    }
+    else
+    {
+        return {};
+    }
 }
 
 void SavepointAddPolyFunction(const std::string_view& string, const SavepointPolyFunction function)
@@ -59,17 +85,24 @@ void SavepointAddPolyFunction(const std::string_view& string, const SavepointPol
     GetPolyFunctions().emplace(string, function);
 }
 
+void SavepointAddDebugFunction(uint32_t id, const std::string_view& name, const SavepointDebugFunction function)
+{
+    GetDebugFunctions().emplace(id, DebugEntry{std::string{name}, function});
+}
+
 SavepointPolyFunction SavepointGetPolyFunction(const std::string_view& string)
 {
-    auto it = GetPolyFunctions().find(string);
-    if (it != GetPolyFunctions().end())
-    {
-        return it->second;
-    }
-    else
-    {
-        return nullptr;
-    }
+    return GetOr<SavepointPolyFunction>(GetPolyFunctions(), string);
+}
+
+SavepointDebugFunction SavepointGetDebugFunction(uint32_t id)
+{
+    return GetOr<SavepointDebugFunction>(GetDebugFunctions(), id, &DebugEntry::Function);
+}
+
+std::string_view SavepointGetDebugTypeName(uint32_t id)
+{
+    return GetOr<std::string_view>(GetDebugFunctions(), id, &DebugEntry::Name);
 }
 
 SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor)
@@ -101,13 +134,6 @@ void SavepointWritePoly(SavepointPoly* poly, SavepointVisitor& visitor)
     std::string_view string = poly->GetClassName();
     visitor(string);
     visitor(*poly);
-}
-
-void SavepointSkipString(SavepointVisitor& visitor)
-{
-    // TODO: There's a bug in MSVC. If I try this in SavepointVisit, the concept constraints explode.
-    std::string string;
-    visitor(string);
 }
 
 Savepoint::~Savepoint()

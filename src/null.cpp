@@ -16,29 +16,29 @@ bool SavepointDriverNull::IsOpen()
     return false;
 }
 
-void SavepointDriverNull::Write(const void* data, size_t size)
+void SavepointDriverNull::Write(const void* data, int size)
 {
 }
 
-void SavepointDriverNull::Write(const void* data, size_t size, int level)
+void SavepointDriverNull::Write(const void* data, int size, int level)
 {
 }
 
-uint32_t SavepointDriverNull::Insert(const void* data, size_t size, int level)
+int SavepointDriverNull::Insert(const void* data, int size, int level)
 {
     return SavepointID::kInvalidID; 
 }
 
-bool SavepointDriverNull::Update(const void* data, size_t size, uint32_t id, int level)
+bool SavepointDriverNull::Update(const void* data, int size, int id, int level)
 {
     return false;
 }
 
-void SavepointDriverNull::Write(const void* data, size_t size, int x, int y, int level)
+void SavepointDriverNull::Write(const void* data, int size, int x, int y, int level)
 {
 }
 
-void SavepointDriverNull::Write(const void* data, size_t size, int x, int y, int z, int level)
+void SavepointDriverNull::Write(const void* data, int size, int x, int y, int z, int level)
 {
 }
 
@@ -74,7 +74,7 @@ void SavepointDriverNull::Read(const SavepointReadAllLevelsFunction& function)
 {
 }
 
-void SavepointDriverNull::Delete(uint32_t id)
+void SavepointDriverNull::Delete(int id)
 {
 }
 

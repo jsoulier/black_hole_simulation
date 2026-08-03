@@ -49,5 +49,14 @@
             "cwd": "${workspaceFolder}/build/bin",
             "preLaunchTask": "CMake: build"
         },
+        {
+            "name": "debugger (win32)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/savepoint_debugger.exe",
+            "cwd": "${workspaceFolder}/build",
+            "args": [],
+            "preLaunchTask": "CMake: build"
+        },
     ]
 }

@@ -2,7 +2,6 @@
 
 Savepoint is a lightweight ORM-style serializer for C++ applications.
 Inspired by [cereal](https://github.com/USCiLab/cereal) and built on databases like [SQLite](https://sqlite.org/), it provides a simple interface for saving and loading C++ objects.
-Including documentation, the library is roughly 3K lines of code.
 
 ### Features
 
