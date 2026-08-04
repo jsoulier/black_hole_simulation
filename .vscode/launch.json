@@ -55,7 +55,6 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/bin/savepoint_18_debugger_example.exe",
             "cwd": "${workspaceFolder}/build/bin",
-            "args": [],
             "preLaunchTask": "CMake: build"
         },
     ]

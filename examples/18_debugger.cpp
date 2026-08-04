@@ -237,8 +237,8 @@ int main(int argc, char** argv)
                 VoxelV2 voxel2;
                 voxel1.Randomize(random);
                 voxel2.Randomize(random);
-                savepoint.Write(voxel1, x, y, z, 0);
-                savepoint.Write(voxel2, x, y, z, 0);
+                savepoint.Write(voxel1, x, y, z * 2, 0);
+                savepoint.Write(voxel2, x, y, z * 2 + 1, 0);
             }
         }
     }

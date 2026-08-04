@@ -597,7 +597,7 @@ public:
 
 private:
     int Depth;
-    std::string_view Type;
+    std::string Type;
     std::string Value;
 };
 
@@ -1037,8 +1037,8 @@ public:
         else
         {
             SavepointDebugNode node;
-            node.Type = "<unknown>";
-            node.Value = std::format("Failed to parse debug information, missing SAVEPOINT_TYPE. {} bytes", State.TypeID, GetSize());
+            node.Type = std::format("Failed to parse debug information, missing SAVEPOINT_TYPE. {} bytes", State.TypeID, GetSize());
+            node.Value = "<unknown>";
             State.Debug.push_back(std::move(node));
         }
         return State.Debug;
@@ -1986,6 +1986,7 @@ public:
         if (visitor.HasError())
         {
             SavepointLog(std::format("Failed to read tile: x={}, y={}, level={}", x, y, level));
+            exists = false;
         }
         return exists;
     }
@@ -2024,6 +2025,7 @@ public:
         if (visitor.HasError())
         {
             SavepointLog(std::format("Failed to read tile: x={}, y={}, z={}, level={}", x, y, z, level));
+            exists = false;
         }
         return exists;
     }
