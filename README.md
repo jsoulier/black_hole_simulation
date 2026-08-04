@@ -12,6 +12,10 @@ Inspired by [cereal](https://github.com/USCiLab/cereal) and built on databases l
 - Opt-in thread safety and concurrent SQLite connections
 - Integrated visual debugger
 
+### Limitations
+
+- Saves aren't guaranteed to be portable across platforms
+
 ### Examples
 
 You can find all examples [here](examples)
@@ -82,6 +86,6 @@ doxygen Doxyfile
 
 ### Debugger
 
-To use the debugger, enable `SAVEPOINT_DEBUGGER` in CMake and integrate [imgui.hpp](savepoint/imgui.hpp) into your application
+To use the debugger, enable `SAVEPOINT_DEBUGGER` in CMake and integrate [imgui.hpp](include/savepoint/imgui.hpp) into your application
 
 ![](image.png)
