@@ -725,7 +725,7 @@ public:
         State.Version = SavepointVersion{};
         State.TypeID = 0;
         State.Error = false;
-        State.Reader = {static_cast<uint8_t*>(const_cast<void*>(data)), size};
+        State.Reader = {static_cast<uint8_t*>(const_cast<void*>(data)), size_t(size)};
         State.Writer.clear();
         State.Offset = 0;
         operator()(State.Version);
@@ -781,8 +781,6 @@ public:
                 }
                 std::memcpy(std::addressof(item), State.Reader.data() + State.Offset, sizeof(T));
                 State.Offset += sizeof(T);
-                // Emitted here so a member skipped by a version gate is absent, not defaulted
-                DebugLeaf(item);
             }
         }
         else
@@ -793,8 +791,8 @@ public:
             }
             State.Writer.resize(State.Writer.size() + sizeof(T));
             std::memcpy(State.Writer.data() + State.Writer.size() - sizeof(T), std::addressof(item), sizeof(T));
-            DebugLeaf(item);
         }
+        DebugLeaf(item);
     }
 
 private:
@@ -912,7 +910,7 @@ public:
 #ifdef SAVEPOINT_DEBUGGER
         if constexpr (std::is_same_v<std::remove_cv_t<T>, char>)
         {
-            DebugString(data, size);
+            DebugLeaf(std::string_view{data, size_t(size)});
         }
         else
         {
@@ -1080,21 +1078,6 @@ public:
     {
 #ifdef SAVEPOINT_DEBUGGER
         State.Depth--;
-#endif
-    }
-
-    /**
-     * @brief Add a single leaf node to the debug nodes.
-     *
-     * @tparam T The character type.
-     * @param data The pointer to the characters.
-     * @param size The number of characters.
-     */
-    template<typename T>
-    void DebugString(const T* data, int size)
-    {
-#ifdef SAVEPOINT_DEBUGGER
-        DebugLeaf(std::string_view{data, size});
 #endif
     }
 

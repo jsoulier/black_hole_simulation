@@ -5,6 +5,7 @@
 #include <savepoint/savepoint.hpp>
 
 #include <array>
+#include <algorithm>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -30,8 +31,9 @@ static constexpr std::array<std::string_view, 5> kSavepointDebuggerModes =
     "3D tiles",
 };
 
-struct SavepointDebuggerTree
+class SavepointDebuggerTree
 {
+public:
     SavepointDebuggerTree(SavepointID id, int x, int y, int z, int level, std::vector<SavepointDebugNode> nodes)
         : ID{id}
         , X{x}
@@ -70,7 +72,6 @@ struct SavepointDebuggerTree
             ImGui::TextDisabled("Nothing was read.");
             return;
         }
-
         int pushed = 0;
         int collapsed = -1;
         for (const SavepointDebugNode& node : Nodes)
@@ -110,20 +111,47 @@ struct SavepointDebuggerTree
         }
     }
 
-    std::vector<std::string> GetValues(SavepointDebuggerMode mode) const
+    void RenderRow(SavepointDebuggerMode mode, int index, int& selected) const
     {
+        std::vector<std::string> values;
         switch (mode)
         {
         case SavepointDebuggerMode::Levels:
-            return {std::format("{}", Level)};
+            values = {std::format("{}", Level)};
+            break;
         case SavepointDebuggerMode::Entities:
-            return {std::format("{}", ID.GetValue())};
+            values = {std::format("{}", ID.GetValue())};
+            break;
         case SavepointDebuggerMode::Tiles2D:
-            return {std::format("{}", X), std::format("{}", Y)};
+            values = {std::format("{}", X), std::format("{}", Y)};
+            break;
         case SavepointDebuggerMode::Tiles3D:
-            return {std::format("{}", X), std::format("{}", Y), std::format("{}", Z)};
+            values = {std::format("{}", X), std::format("{}", Y), std::format("{}", Z)};
+            break;
         default:
-            return {};
+            break;
+        }
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::PushID(index);
+        if (ImGui::Selectable(values[0].data(), selected == index, ImGuiSelectableFlags_SpanAllColumns))
+        {
+            selected = index;
+        }
+        ImGui::PopID();
+        for (int key = 1; key < values.size(); key++)
+        {
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(values[key].data());
+        }
+        for (const SavepointDebugNode& node : Nodes)
+        {
+            if (!node.GetIsLeaf())
+            {
+                continue;
+            }
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(node.GetValue().data());
         }
     }
 
@@ -135,19 +163,122 @@ struct SavepointDebuggerTree
     std::vector<SavepointDebugNode> Nodes;
 };
 
-struct SavepointDebugger
+class SavepointDebugger
 {
+public:
     SavepointDebugger()
         : Mode{SavepointDebuggerMode::Entities}
         , CachedMode{SavepointDebuggerMode::Singleton}
         , Level{0}
         , CachedLevel{0}
-        , Slice{0}
         , Selected{-1}
         , Dirty{true}
     {
     }
 
+    void Render(Savepoint& savepoint)
+    {
+        if (Dirty || Mode != CachedMode || Level != CachedLevel)
+        {
+            Refresh(savepoint);
+        }
+        if (Mode == SavepointDebuggerMode::Singleton && !Trees.empty())
+        {
+            Selected = 0;
+        }
+        if (!ImGui::BeginTable("Savepoint", 3, ImGuiTableFlags_Resizable))
+        {
+            return;
+        }
+        ImGui::TableSetupColumn("##1", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+        ImGui::TableSetupColumn("##2", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("##3", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        uint8_t mode = uint8_t(Mode);
+        if (ImGui::BeginCombo("Mode", kSavepointDebuggerModes[mode].data()))
+        {
+            for (uint8_t i = 0; i < kSavepointDebuggerModes.size(); i++)
+            {
+                if (ImGui::Selectable(kSavepointDebuggerModes[i].data(), mode == i))
+                {
+                    Mode = SavepointDebuggerMode(i);
+                }
+            }
+            ImGui::EndCombo();
+        }
+        if (Mode != SavepointDebuggerMode::Singleton)
+        {
+            ImGui::InputInt("Level", &Level);
+        }
+        if (ImGui::Button("Refresh"))
+        {
+            Dirty = true;
+        }
+        ImGui::Text("%zu rows", Trees.size());
+        ImGui::TableNextColumn();
+        if (Trees.empty())
+        {
+            ImGui::TextDisabled("Empty");
+        }
+        else if (Mode != SavepointDebuggerMode::Singleton)
+        {
+            std::vector<std::string_view> keys = GetKeys();
+            int fields = 0;
+            for (const SavepointDebuggerTree& tree : Trees)
+            {
+                int leaves = 0;
+                for (const SavepointDebugNode& node : tree.Nodes)
+                {
+                    if (node.GetIsLeaf())
+                    {
+                        leaves++;
+                    }
+                }
+                fields = std::max(fields, leaves);
+            }
+            int columns = keys.size() + fields;
+            ImGuiTableFlags flags = ImGuiTableFlags_Borders |
+                ImGuiTableFlags_RowBg |
+                ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_ScrollX |
+                ImGuiTableFlags_ScrollY;
+            if (ImGui::BeginTable("##Rows", columns, flags))
+            {
+                ImGui::TableSetupScrollFreeze(keys.size(), 1);
+                for (std::string_view key : keys)
+                {
+                    ImGui::TableSetupColumn(key.data(), ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                }
+                for (int field = 0; field < fields; field++)
+                {
+                    ImGui::TableSetupColumn(std::format("##Column{}", field).data(), ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                }
+                ImGui::TableHeadersRow();
+                for (int i = 0; i < Trees.size(); i++)
+                {
+                    Trees[i].RenderRow(Mode, i, Selected);
+                }
+                ImGui::EndTable();
+            }
+        }
+        ImGui::TableNextColumn();
+        if (ImGui::BeginChild("##Contents"))
+        {
+            if (Selected < 0 || Selected >= Trees.size())
+            {
+                ImGui::TextDisabled("Select a row");
+            }
+            else
+            {
+                Trees[Selected].Render(Mode);
+            }
+        }
+        ImGui::EndChild();
+        ImGui::EndTable();
+    }
+
+private:
     void Clear()
     {
         Trees.clear();
@@ -214,169 +345,10 @@ struct SavepointDebugger
         }
     }
 
-    void Render(Savepoint& savepoint)
-    {
-        if (Dirty || Mode != CachedMode || Level != CachedLevel)
-        {
-            Refresh(savepoint);
-        }
-        if (Mode == SavepointDebuggerMode::Singleton && !Trees.empty())
-        {
-            Selected = 0;
-        }
-
-        if (!ImGui::BeginTable("savepoint", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
-        {
-            return;
-        }
-        ImGui::TableSetupColumn("controls", ImGuiTableColumnFlags_WidthFixed, 240.0f);
-        ImGui::TableSetupColumn("rows");
-        ImGui::TableSetupColumn("contents", ImGuiTableColumnFlags_WidthFixed, 360.0f);
-        ImGui::TableNextRow();
-
-        ImGui::TableNextColumn();
-        size_t mode = size_t(Mode);
-        ImGui::SeparatorText("View");
-        if (ImGui::BeginCombo("Mode", kSavepointDebuggerModes[mode].data()))
-        {
-            for (size_t i = 0; i < kSavepointDebuggerModes.size(); i++)
-            {
-                if (ImGui::Selectable(kSavepointDebuggerModes[i].data(), mode == i))
-                {
-                    Mode = SavepointDebuggerMode(i);
-                }
-            }
-            ImGui::EndCombo();
-        }
-        if (Mode != SavepointDebuggerMode::Singleton)
-        {
-            ImGui::InputInt("Level", &Level);
-        }
-        if (Mode == SavepointDebuggerMode::Tiles3D && ImGui::InputInt("Z slice", &Slice))
-        {
-            Selected = -1;
-        }
-        ImGui::SeparatorText("Savepoint");
-        if (ImGui::Button("Refresh"))
-        {
-            Dirty = true;
-        }
-        ImGui::Text("%zu rows", Trees.size());
-
-        ImGui::TableNextColumn();
-        ImGui::SeparatorText("Entries");
-        std::vector<int> visible;
-        for (int i = 0; i < static_cast<int>(Trees.size()); i++)
-        {
-            if (Mode != SavepointDebuggerMode::Tiles3D || Trees[i].Z == Slice)
-            {
-                visible.push_back(i);
-            }
-        }
-        if (visible.empty())
-        {
-            ImGui::TextDisabled("Nothing to show.");
-        }
-        else if (Mode == SavepointDebuggerMode::Singleton)
-        {
-            ImGui::TextDisabled("Only one entry, shown on the right.");
-        }
-        else
-        {
-            std::vector<std::string_view> keys = GetKeys();
-            std::vector<std::string> headers;
-            for (int i : visible)
-            {
-                size_t leaf = 0;
-                for (const SavepointDebugNode& node : Trees[i].Nodes)
-                {
-                    if (!node.GetIsLeaf())
-                    {
-                        continue;
-                    }
-                    if (leaf == headers.size())
-                    {
-                        headers.push_back(std::format("{} {}", node.GetTypeName(), leaf));
-                    }
-                    leaf++;
-                }
-            }
-
-            int columns = static_cast<int>(keys.size() + headers.size());
-            ImGuiTableFlags flags = ImGuiTableFlags_Borders |
-                ImGuiTableFlags_RowBg |
-                ImGuiTableFlags_Resizable |
-                ImGuiTableFlags_ScrollX |
-                ImGuiTableFlags_ScrollY;
-            if (ImGui::BeginTable("rows", columns, flags))
-            {
-                ImGui::TableSetupScrollFreeze(static_cast<int>(keys.size()), 1);
-                for (std::string_view key : keys)
-                {
-                    ImGui::TableSetupColumn(key.data(), ImGuiTableColumnFlags_WidthFixed, 50.0f);
-                }
-                for (const std::string& header : headers)
-                {
-                    ImGui::TableSetupColumn(header.c_str());
-                }
-                ImGui::TableHeadersRow();
-
-                for (int i : visible)
-                {
-                    const SavepointDebuggerTree& tree = Trees[i];
-                    std::vector<std::string> values = tree.GetValues(Mode);
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::PushID(i);
-                    if (ImGui::Selectable(values[0].c_str(), Selected == i, ImGuiSelectableFlags_SpanAllColumns))
-                    {
-                        Selected = i;
-                    }
-                    ImGui::PopID();
-                    for (size_t key = 1; key < values.size(); key++)
-                    {
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(values[key].c_str());
-                    }
-
-                    int column = static_cast<int>(values.size());
-                    for (const SavepointDebugNode& node : tree.Nodes)
-                    {
-                        if (node.GetIsLeaf() && column < columns)
-                        {
-                            ImGui::TableNextColumn();
-                            ImGui::TextUnformatted(node.GetValue().c_str());
-                            column++;
-                        }
-                    }
-                }
-                ImGui::EndTable();
-            }
-        }
-
-        ImGui::TableNextColumn();
-        ImGui::SeparatorText("Contents");
-        if (ImGui::BeginChild("contents"))
-        {
-            if (Selected < 0 || Selected >= static_cast<int>(Trees.size()))
-            {
-                ImGui::TextDisabled("Select a row.");
-            }
-            else
-            {
-                Trees[Selected].Render(Mode);
-            }
-        }
-        ImGui::EndChild();
-
-        ImGui::EndTable();
-    }
-
     SavepointDebuggerMode Mode;
     SavepointDebuggerMode CachedMode;
     int Level;
     int CachedLevel;
-    int Slice;
     int Selected;
     std::vector<SavepointDebuggerTree> Trees;
     bool Dirty;
