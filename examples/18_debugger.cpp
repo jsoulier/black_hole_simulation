@@ -189,7 +189,7 @@ SAVEPOINT_TYPE(Header)
 SAVEPOINT_TYPE(Level)
 SAVEPOINT_TYPE(Player)
 SAVEPOINT_TYPE(Floor)
-// SAVEPOINT_TYPE(VoxelV1) Undefined intentionally as an example
+// Intentionally removed: SAVEPOINT_TYPE(VoxelV1)
 SAVEPOINT_TYPE(VoxelV2)
 
 int main(int argc, char** argv)
