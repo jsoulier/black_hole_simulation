@@ -1,30 +1,3 @@
-/*
- * This is free and unencumbered software released into the public domain.
- * 
- * Anyone is free to copy, modify, publish, use, compile, sell, or
- * distribute this software, either in source code form or as a compiled
- * binary, for any purpose, commercial or non-commercial, and by any
- * means.
- * 
- * In jurisdictions that recognize copyright laws, the author or authors
- * of this software dedicate any and all copyright interest in the
- * software to the public domain. We make this dedication for the benefit
- * of the public at large and to the detriment of our heirs and
- * successors. We intend this dedication to be an overt act of
- * relinquishment in perpetuity of all present and future rights to this
- * software under copyright law.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- * 
- * For more information, please refer to <https://unlicense.org>
- */
-
 #pragma once
 
 #include <savepoint/fwd.hpp>
@@ -169,13 +142,17 @@ static constexpr SavepointVersion kSavepointVersion{0, 0, 0};
 class SavepointID
 {
     friend class Savepoint;
-    friend struct std::hash<SavepointID>;
+
+    SavepointID(int value)
+        : Value{value}
+    {
+    }
 
 public:
     /**
      * @brief Reserved value for an invalid ID.
      */
-    static constexpr uint32_t kInvalidID = std::numeric_limits<uint32_t>::max();
+    static constexpr int kInvalidID = std::numeric_limits<int>::max();
 
     /**
      * @brief Default initialize an invalid ID.
@@ -203,8 +180,18 @@ public:
         return Value != SavepointID{}.Value;
     }
 
+    /**
+     * @brief Get the raw ID value.
+     *
+     * @return The raw ID value.
+     */
+    constexpr int GetValue() const
+    {
+        return Value;
+    }
+
 private:
-    uint32_t Value;
+    int Value;
 };
 
 namespace std
@@ -224,7 +211,7 @@ struct hash<SavepointID>
      */
     size_t operator()(const SavepointID& id) const noexcept
     {
-        return std::hash<uint32_t>{}(id.Value);
+        return std::hash<uint32_t>{}(id.GetValue());
     }
 };
 
@@ -331,130 +318,294 @@ public:
             return #T; \
         } \
 
-/**
- * @brief The polymorphic factory function signature.
- * 
- * @return The polymorphic object.
- */
-using SavepointPolyFunction = SavepointPoly*(*)();
-
-/**
- * @brief Add a polymorphic factory function.
- * 
- * @param string The name of the polymorphic type.
- * @param function The polymorphic factory function.
- * @see SAVEPOINT_POLY
- */
-void SavepointAddPolyFunction(const std::string_view& string, const SavepointPolyFunction function);
-
-/**
- * @brief Get a polymorphic factory function.
- * 
- * @param string The name of the polymorphic type.
- * @return The polymorphic factory function.
- * @see SAVEPOINT_POLY
- */
-SavepointPolyFunction SavepointGetPolyFunction(const std::string_view& string);
-
-/**
- * @brief Read a polymorphic object from a visitor.
- * 
- * @param visitor The visitor.
- * @return The polymorphic object or nullptr on error.
- * @see SAVEPOINT_POLY
- */
-SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor);
-
-/**
- * @brief Write a polymorphic object to a visitor.
- * 
- * @param poly The polymorphic object.
- * @param visitor The visitor.
- * @see SAVEPOINT_POLY
- */
-void SavepointWritePoly(SavepointPoly* poly, SavepointVisitor& visitor);
-
 /** @cond INTERNAL */
 
+// Poly factory function signature
+using SavepointPolyFunction = SavepointPoly*(*)();
+
+// Register a factory function for poly types
+void SavepointAddPolyFunction(const std::string_view& string, const SavepointPolyFunction function);
+
+// Get a factory function for poly types
+SavepointPolyFunction SavepointGetPolyFunction(const std::string_view& string);
+
+// Read the visitor to get the poly factory and create the poly instance
+SavepointPoly* SavepointReadPoly(SavepointVisitor& visitor);
+
+// Write the poly instance to the visitor
+void SavepointWritePoly(SavepointPoly* poly, SavepointVisitor& visitor);
+
+// Type-erased function for populating a visitor's debug information
+using SavepointDebugFunction = void(*)(SavepointVisitor& visitor);
+
+// Register a debug function. Does nothing for ID collisions
+void SavepointAddDebugFunction(uint32_t id, const std::string_view& name, const SavepointDebugFunction function);
+
+// Get a debug function registered to an ID
+SavepointDebugFunction SavepointGetDebugFunction(uint32_t id);
+
+// Get the type name registered to an ID
+std::string_view SavepointGetDebugTypeName(uint32_t id);
+
+// https://stackoverflow.com/questions/4384765/whats-the-difference-between-pretty-function-function-func
+template<typename T>
+static constexpr std::string_view SavepointFunctionName()
+{
+#if defined(_MSC_VER)
+    return __FUNCSIG__;
+#elif defined(__clang__) || defined(__GNUC__)
+    return __PRETTY_FUNCTION__;
+#else
+    return {};
+#endif
+}
+
+static constexpr size_t kSavepointNamePrefix = SavepointFunctionName<void>().find("void");
+static constexpr size_t kSavepointNameSuffix = SavepointFunctionName<void>().size() - kSavepointNamePrefix - 4;
+
+// Try to extract the type name from the function signature
+template<typename T>
+static constexpr std::string_view SavepointTypeNameOf()
+{
+    std::string_view name = SavepointFunctionName<T>();
+    if (name.empty())
+    {
+        return {};
+    }
+    name = name.substr(kSavepointNamePrefix, name.size() - kSavepointNamePrefix - kSavepointNameSuffix);
+    for (const std::string_view& prefix : {"class ", "struct ", "enum ", "union "})
+    {
+        if (name.starts_with(prefix))
+        {
+            name.remove_prefix(prefix.size());
+            break;
+        }
+    }
+    return name;
+}
+
+// std::unique_ptr
 template<typename T>
 struct SavepointIsUniquePointerImpl : std::false_type {};
-
 template<typename T, typename Deleter>
 struct SavepointIsUniquePointerImpl<std::unique_ptr<T, Deleter>> : std::true_type {};
-
 template<typename T>
 concept SavepointIsUniquePointer = SavepointIsUniquePointerImpl<T>::value;
 
+// std::shared_ptr
 template<typename T>
 struct SavepointIsSharedPointerImpl : std::false_type {};
-
 template<typename T>
 struct SavepointIsSharedPointerImpl<std::shared_ptr<T>> : std::true_type {};
-
 template<typename T>
 concept SavepointIsSharedPointer = SavepointIsSharedPointerImpl<T>::value;
 
+// std::unique_ptr/std::shared_ptr
 template<typename T>
 concept SavepointIsStdPointer = SavepointIsUniquePointer<T> || SavepointIsSharedPointer<T>;
+template<SavepointIsStdPointer T>
+void Visit(SavepointVisitor& visitor, T& item);
 
 template<typename T>
 concept SavepointIsPointer = std::is_pointer_v<T> || SavepointIsStdPointer<T>;
 
 template<typename T, typename Poly>
-concept SavepointIsPointerPolyOf = SavepointIsStdPointer<T> && std::is_base_of_v<Poly, typename T::element_type>;
+concept SavepointIsPolyPointer = SavepointIsStdPointer<T> && std::is_base_of_v<Poly, typename T::element_type>;
 
+// std::tuple
 template<typename T>
 struct SavepointIsTupleImpl : std::false_type {};
-
 template<typename First, typename Second>
 struct SavepointIsTupleImpl<std::pair<First, Second>> : std::true_type {};
-
 template<typename... Args>
 struct SavepointIsTupleImpl<std::tuple<Args...>> : std::true_type {};
-
 template<typename T>
 concept SavepointIsTuple = SavepointIsTupleImpl<T>::value;
+template<SavepointIsTuple T>
+void Visit(SavepointVisitor& visitor, T& item);
 
+// std::optional
 template<typename T>
 struct SavepointIsOptionalImpl : std::false_type {};
-
 template<typename T>
 struct SavepointIsOptionalImpl<std::optional<T>> : std::true_type {};
-
 template<typename T>
 concept SavepointIsOptional = SavepointIsOptionalImpl<T>::value;
+template<SavepointIsOptional T>
+void Visit(SavepointVisitor& visitor, T& item);
 
+// <random>
 template<typename T>
 concept SavepointIsRandom = std::uniform_random_bit_generator<T> && requires(std::ostream& o, std::istream& i, T& item) { o << item; i >> item; };
+template<SavepointIsRandom T>
+void Visit(SavepointVisitor& visitor, T& item);
 
+// <ranges>
 template<typename T>
 concept SavepointIsDynamicRange = requires(T item) { item.insert(std::ranges::end(item), std::declval<typename T::value_type>()); };
-
 template<typename T>
 concept SavepointIsStaticRange = !SavepointIsDynamicRange<T> && requires(T item) { item[0] = std::declval<typename T::value_type>(); };
+template<typename T>
+concept SavepointIsResizableRange = requires(T item, int size) { item.resize(size); };
+template<std::ranges::range T>
+void Visit(SavepointVisitor& visitor, T& item);
 
+// SavepointVisitor::Visit/Visit
+template<typename T>
+concept SavepointIsVisitable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointPoly, T>;
 template<typename T>
 concept SavepointHasFreeVisit = requires(SavepointVisitor visitor, T item) { { Visit(visitor, item) }; };
-
 template<typename T>
 concept SavepointHasMemberVisit = requires(SavepointVisitor visitor, T item) { { item.Visit(visitor) }; };
 
+// std::memcpy
 template<typename T>
 concept SavepointIsCopyable = !SavepointIsPointer<T> && !SavepointHasFreeVisit<T> && !SavepointHasMemberVisit<T> && std::is_trivially_copyable_v<T>;
+template<typename T>
+concept SavepointIsCopyableRange = std::ranges::contiguous_range<T> && SavepointIsCopyable<std::remove_const_t<std::ranges::range_value_t<T>>>;
 
 template<typename T>
-concept SavepointIsVisitable = !std::is_same_v<T, SavepointVisitor> && !std::is_base_of_v<SavepointPoly, T>;
+concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIsPolyPointer<T, SavepointEntity>;
 
+// Type name with optional overrides for readability
 template<typename T>
-concept SavepointIsEntity = std::is_base_of_v<SavepointEntity, T> || SavepointIsPointerPolyOf<T, SavepointEntity>;
+struct SavepointTypeName { static constexpr std::string_view kValue = SavepointTypeNameOf<T>(); };
+template<typename T> requires (!std::is_same_v<T, std::remove_cvref_t<T>>)
+struct SavepointTypeName<T> { static constexpr std::string_view kValue = SavepointTypeName<T>::kValue; };
+template<typename T> requires SavepointIsStdPointer<T>
+struct SavepointTypeName<T> { static constexpr std::string_view kValue = SavepointTypeName<typename T::element_type>::kValue; };
+template<>
+struct SavepointTypeName<std::string> { static constexpr std::string_view kValue = "std::string"; };
+template<>
+struct SavepointTypeName<std::string_view> { static constexpr std::string_view kValue = "std::string_view"; };
 
-void SavepointSkipString(SavepointVisitor& visitor);
+// https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+constexpr uint32_t SavepointTypeNameHash(const std::string_view& name)
+{
+    uint32_t hash = 2166136261u;
+    for (char c : name)
+    {
+        hash ^= static_cast<uint8_t>(c);
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+// Get the type as a hash
+template<typename T>
+constexpr uint32_t SavepointTypeID()
+{
+    static constexpr std::string_view name = SavepointTypeName<T>::kValue;
+    if constexpr (name.empty())
+    {
+        return 0;
+    }
+    else
+    {
+        static constexpr uint32_t hash = SavepointTypeNameHash(name);
+        return hash;
+    }
+}
 
 /** @endcond */
 
 /**
- * @brief Implementation of the Visitor pattern for serialization.
+ * @brief Register a type so that Savepoint can deserialize it for debugging.
  * 
+ * Savepoint works by forcing the user to provide a type for reads/writes. Since the
+ * schema is built directly into the type, we need that type to visualize the contents of
+ * the database (unless you wanted to read binary). As such, you must (currently) register
+ * your types. 
+ * 
+ * The type's name is hashed and stored in the visitor as a key. If the type's name changes,
+ * you can keep it backwards compatible by overriding SavepointTypeName. 
+ *
+ * template<>
+ * struct SavepointTypeName<PlayerButWithACharacterSuffix>
+ * {
+ *     static constexpr std::string_view kValue = "Player";
+ * };
+ *
+ * @todo Delete when C++26 reflection is supported
+ * @param T The class type. Must be default constructible.
+ */
+#define SAVEPOINT_TYPE(T) \
+    static const bool k##T##SavepointTypeRegistrar = [] \
+    { \
+        SavepointAddDebugFunction(SavepointTypeID<T>(), SavepointTypeName<T>::kValue, [](SavepointVisitor& visitor) \
+        { \
+            T item{}; \
+            visitor(item); \
+        }); \
+        return true; \
+    }(); \
+
+#ifdef SAVEPOINT_DEBUGGER
+
+/**
+ * @brief Debug representation of a SavepointVisitor::Visit.
+ */
+class SavepointDebugNode
+{
+    friend class SavepointVisitor;
+
+public:
+    SavepointDebugNode()
+        : Depth{0}
+    {
+    }
+
+    /**
+     * @brief Get how deeply nested the node is (zero at the root). Useful for indentation
+     *
+     * @return The depth.
+     */
+    int GetDepth() const
+    {
+        return Depth;
+    }
+
+    /**
+     * @brief Get the node's type name. 
+     *
+     * @return The type name.
+     */
+    std::string_view GetTypeName() const
+    {
+        return Type;
+    }
+
+    /**
+     * @brief Get the node's value. Empty if the node is a leaf.
+     *
+     * @return The value.
+     */
+    const std::string& GetValue() const
+    {
+        return Value;
+    }
+
+    /**
+     * @brief Check if a node has no children.
+     *
+     * @return True if the node has no children.
+     */
+    bool GetIsLeaf() const
+    {
+        return !Value.empty();
+    }
+
+private:
+    int Depth;
+    std::string Type;
+    std::string Value;
+};
+
+#endif
+
+/**
+ * @brief Implementation of the Visitor pattern for serialization.
+ *
  * The visitor is used to serialize objects. It uses a simplified version of the
  * [pattern](https://refactoring.guru/design-patterns/visitor) with two operating modes:
  * 1. Reading from the Savepoint.
@@ -463,8 +614,9 @@ void SavepointSkipString(SavepointVisitor& visitor);
  * Visitors are a structured blob of binary data. They consist of:
  * 1. A SavepointVersion representing the user's application build version.
  * 2. A SavepointVersion representing the Savepoint build version (reserved for future use).
- * 3. The object data.
- * 
+ * 3. A u32 type hash identifying the type of the object.
+ * 4. The object data.
+ *
  * When writing, we store the current build versions. When reading, we load the
  * versions used in the previous write. By comparing these versions to the build
  * versions, we can determine what members are safe to deserialize.
@@ -485,17 +637,32 @@ private:
         void Clear()
         {
             Version = {};
+            TypeID = 0;
             Error = false;
             Writer.clear();
             Reader = {};
             Offset = 0;
+            DebugClear();
+        }
+
+        void DebugClear()
+        {
+#ifdef SAVEPOINT_DEBUGGER
+            Debug.clear();
+            Depth = 0;
+#endif
         }
 
         SavepointVersion Version;
+        uint32_t TypeID;
         bool Error;
         std::vector<uint8_t> Writer;
         std::span<uint8_t> Reader;
-        size_t Offset;
+        int Offset;
+#ifdef SAVEPOINT_DEBUGGER
+        std::vector<SavepointDebugNode> Debug;
+        int Depth;
+#endif
     };
 
 public:
@@ -503,7 +670,6 @@ public:
      * @brief Default initializes the visitor.
      */
     SavepointVisitor()
-        : State{}
     {
         if (!States.empty())
         {
@@ -528,35 +694,44 @@ public:
 
     /**
      * @brief Prepare a visitor for writing to bytes.
-     * 
+     *
+     * @tparam T The type about to be written.
      * @param version The version of the application to be written.
+     * @see SavepointTypeID
      */
+    template<typename T>
     void Begin(SavepointVersion version)
     {
         State.Version = version;
+        State.TypeID = SavepointTypeID<T>();
         State.Error = false;
-        State.Writer.resize(sizeof(version) * 2);
+        State.Writer.resize(sizeof(version) * 2 + sizeof(State.TypeID));
         State.Reader = {};
         State.Offset = 0;
         std::memcpy(State.Writer.data(), &version, sizeof(version));
         std::memcpy(State.Writer.data() + sizeof(version), &kSavepointVersion, sizeof(version));
+        std::memcpy(State.Writer.data() + sizeof(version) * 2, &State.TypeID, sizeof(State.TypeID));
+        State.DebugClear();
     }
 
     /**
      * @brief Prepare a visitor for reading from bytes.
-     * 
+     *
      * @param data The data as bytes.
      * @param size The number of bytes.
      */
-    void Begin(const void* data, size_t size)
+    void Begin(const void* data, int size)
     {
         State.Version = SavepointVersion{};
+        State.TypeID = 0;
         State.Error = false;
-        State.Reader = {static_cast<uint8_t*>(const_cast<void*>(data)), size};
+        State.Reader = {static_cast<uint8_t*>(const_cast<void*>(data)), size_t(size)};
         State.Writer.clear();
         State.Offset = 0;
         operator()(State.Version);
         Skip<SavepointVersion>();
+        operator()(State.TypeID);
+        State.DebugClear();
     }
 
     /**
@@ -575,10 +750,6 @@ public:
     template<SavepointIsCopyable T, typename... Args>
     void operator()(T& item, SavepointVersion version = {}, Args&&... args)
     {
-        // For detecting bugs in MSVC concepts
-        static_assert(!SavepointIsPointer<T>);
-        static_assert(!std::is_base_of_v<SavepointPoly, T>);
-        static_assert(!std::ranges::range<T>);
         if (IsReading())
         {
             // Required for write-only containers (e.g. views)
@@ -621,6 +792,7 @@ public:
             State.Writer.resize(State.Writer.size() + sizeof(T));
             std::memcpy(State.Writer.data() + State.Writer.size() - sizeof(T), std::addressof(item), sizeof(T));
         }
+        DebugLeaf(item);
     }
 
 private:
@@ -659,7 +831,9 @@ public:
     {
         if (TryVisit(item, version, std::forward<Args>(args)...))
         {
+            DebugPush(item);
             Visit(*this, item);
+            DebugPop();
         }
     }
 
@@ -680,13 +854,77 @@ public:
     {
         if (TryVisit(item, version, std::forward<Args>(args)...))
         {
+            DebugPush(item);
             item.Visit(*this);
+            DebugPop();
         }
     }
 
     /**
+     * @brief Visit a contiguous block of copyable elements.
+     *
+     * @tparam T The element type.
+     * @param data The pointer to the elements.
+     * @param size The number of elements.
+     */
+    template<SavepointIsCopyable T>
+    void operator()(T* data, int size)
+    {
+        if (HasError())
+        {
+            return;
+        }
+        int bytes = size * sizeof(T);
+        if (IsReading())
+        {
+            // Required for write-only containers (e.g. views)
+            if constexpr (std::is_const_v<T>)
+            {
+                SavepointLog("Tried to read into a const");
+                SetError();
+                return;
+            }
+            else
+            {
+                if (bytes > GetSize())
+                {
+                    SavepointLog(std::format("Tried to read past visitor: {}", State.Version.GetString()));
+                    SetError();
+                    return;
+                }
+                if (bytes)
+                {
+                    std::memcpy(data, State.Reader.data() + State.Offset, bytes);
+                    State.Offset += bytes;
+                }
+            }
+        }
+        else
+        {
+            if (bytes)
+            {
+                State.Writer.resize(State.Writer.size() + bytes);
+                std::memcpy(State.Writer.data() + State.Writer.size() - bytes, data, bytes);
+            }
+        }
+#ifdef SAVEPOINT_DEBUGGER
+        if constexpr (std::is_same_v<std::remove_cv_t<T>, char>)
+        {
+            DebugLeaf(std::string_view{data, size_t(size)});
+        }
+        else
+        {
+            for (int i = 0; i < size; i++)
+            {
+                DebugLeaf(data[i]);
+            }
+        }
+#endif
+    }
+
+    /**
      * @brief Skip bytes.
-     * 
+     *
      * @tparam T The type to skip.
      */
     template<SavepointIsCopyable T>
@@ -767,11 +1005,121 @@ public:
     }
 
     /**
+     * @brief Get the type ID of the item held by the visitor.
+     *
+     * Zero when reading a Savepoint written before kSavepointTypeIDVersion.
+     *
+     * @return The type ID.
+     * @see SavepointTypeID
+     */
+    uint32_t GetTypeID() const
+    {
+        return State.TypeID;
+    }
+
+#ifdef SAVEPOINT_DEBUGGER
+
+     /**
+      * @brief Deserialize the visitor by using the visitor's type hash.
+      * 
+      * Uses the visitor's type hash deserialize the visitor using the root type.
+      * Requires the user to have called SAVEPOINT_TYPE on the stored type.
+      * 
+      * @return The debug nodes.
+     * @see SAVEPOINT_TYPE
+      */
+    const std::vector<SavepointDebugNode>& GetDebugNodes()
+    {
+        if (SavepointDebugFunction function = SavepointGetDebugFunction(State.TypeID))
+        {
+            function(*this);
+        }
+        else
+        {
+            SavepointDebugNode node;
+            node.Type = std::format("Failed to parse debug information, missing SAVEPOINT_TYPE. {} bytes", State.TypeID, GetSize());
+            node.Value = "<unknown>";
+            State.Debug.push_back(std::move(node));
+        }
+        return State.Debug;
+    }
+
+#endif
+
+    /**
+     * @brief Add a non-leaf node to the debug nodes. Adds 1 level of nesting.
+     * 
+     * @tparam T The type to add.
+     * @param item The item to add.
+     */
+    template<typename T>
+    void DebugPush(T& item)
+    {
+#ifdef SAVEPOINT_DEBUGGER
+        SavepointDebugNode node;
+        node.Depth = State.Depth;
+        if constexpr (std::is_base_of_v<SavepointPoly, T>)
+        {
+            node.Type = item.GetClassName();
+        }
+        else
+        {
+            node.Type = SavepointTypeName<T>::kValue;
+        }
+        State.Debug.push_back(std::move(node));
+        State.Depth++;
+#endif
+    }
+
+    /**
+     * @brief Remove 1 level of nesting from the debug nodes.
+     */
+    void DebugPop()
+    {
+#ifdef SAVEPOINT_DEBUGGER
+        State.Depth--;
+#endif
+    }
+
+    /**
+     * @brief Add a leaf node to the debug nodes.
+     *
+     * @tparam T The type to add.
+     * @param item The item to add.
+     */
+    template<typename T>
+    void DebugLeaf(const T& item)
+    {
+#ifdef SAVEPOINT_DEBUGGER
+        SavepointDebugNode node;
+        node.Depth = State.Depth;
+        node.Type = SavepointTypeName<T>::kValue;
+        if constexpr (std::is_convertible_v<T, std::string_view>)
+        {
+            node.Value = std::format("\"{}\"", std::string_view{item});
+        }
+        else if constexpr (std::is_enum_v<T>)
+        {
+            node.Value = std::format("{}", std::to_underlying(item));
+        }
+        else if constexpr (std::formattable<T, char>)
+        {
+            node.Value = std::format("{}", item);
+        }
+        else
+        {
+            node.Value = std::format("<{} bytes>", sizeof(T));
+        }
+        State.Debug.push_back(std::move(node));
+#endif
+    }
+
+    /**
      * @brief Get the number of bytes to write or the remaining to read.
      * 
      * @return The number of bytes.
      */
-    size_t GetSize() const
+    int GetSize() const
     {
         if (HasError())
         {
@@ -779,7 +1127,7 @@ public:
         }
         if (IsReading())
         {
-            return State.Reader.size() - std::min(State.Offset, State.Reader.size());
+            return State.Reader.size() - std::min(State.Offset, int(State.Reader.size()));
         }
         else
         {
@@ -880,7 +1228,8 @@ void Visit(SavepointVisitor& visitor, T& item)
             // Not using the derived interface but we still need to strip away that information
             if constexpr (std::is_base_of_v<SavepointPoly, ValueT>)
             {
-                SavepointSkipString(visitor);
+                std::string string;
+                visitor(string);
             }
         }
         visitor(*item);
@@ -968,7 +1317,7 @@ template<std::ranges::range T>
 void Visit(SavepointVisitor& visitor, T& item)
 {
     using ValueT = typename T::value_type;
-    size_t size = item.size();
+    int size = item.size();
     if constexpr (SavepointIsDynamicRange<T>)
     {
         if (visitor.IsReading() && size)
@@ -986,10 +1335,15 @@ void Visit(SavepointVisitor& visitor, T& item)
             visitor.SetError();
             return;
         }
-        if constexpr (SavepointIsDynamicRange<T>)
+        if constexpr (SavepointIsCopyableRange<T> && SavepointIsResizableRange<T>)
+        {
+            item.resize(size);
+            visitor(std::ranges::data(item), size);
+        }
+        else if constexpr (SavepointIsDynamicRange<T>)
         {
             auto inserter = std::inserter(item, std::ranges::end(item));
-            for (size_t i = 0; i < size; i++)
+            for (int i = 0; i < size; i++)
             {
                 // TODO: mutable iterators
                 ValueT element;
@@ -999,7 +1353,7 @@ void Visit(SavepointVisitor& visitor, T& item)
         }
         else if constexpr (SavepointIsStaticRange<T>)
         {
-            size_t maxSize = std::ranges::size(item);
+            int maxSize = std::ranges::size(item);
             if (size > maxSize)
             {
                 SavepointLog(std::format("Fixed range is too small: {} < {}", maxSize, size));
@@ -1009,9 +1363,16 @@ void Visit(SavepointVisitor& visitor, T& item)
                 SavepointLog(std::format("Fixed range will be truncated: {} < {}", maxSize, size));
             }
             maxSize = std::min(size, maxSize);
-            for (size_t i = 0; i < maxSize; i++)
+            if constexpr (SavepointIsCopyableRange<T>)
             {
-                visitor(item[i]);
+                visitor(std::ranges::data(item), maxSize);
+            }
+            else
+            {
+                for (int i = 0; i < maxSize; i++)
+                {
+                    visitor(item[i]);
+                }
             }
             for (; maxSize < size; maxSize++)
             {
@@ -1027,9 +1388,16 @@ void Visit(SavepointVisitor& visitor, T& item)
     }
     else
     {
-        for (auto& element : item)
+        if constexpr (SavepointIsCopyableRange<T>)
         {
-            visitor(element);
+            visitor(std::ranges::data(item), size);
+        }
+        else
+        {
+            for (auto& element : item)
+            {
+                visitor(element);
+            }
         }
     }
 }
@@ -1085,12 +1453,12 @@ enum class SavepointDriver : uint8_t
 
 /** @cond INTERNAL */
 
-using SavepointReadDataFunction = std::function<void(const void* data, size_t size)>;
-using SavepointReadAllEntityDataFunction = std::function<void(const void* data, size_t size, uint32_t)>;
-using SavepointReadAllTile2DDataFunction = std::function<void(const void* data, size_t size, int x, int y)>;
-using SavepointReadAllTile3DDataFunction = std::function<void(const void* data, size_t size, int x, int y, int z)>;
-using SavepointReadTile2DDataFunction = std::function<void(const void* data, size_t size)>;
-using SavepointReadTile3DDataFunction = std::function<void(const void* data, size_t size)>;
+using SavepointReadDataFunction = std::function<void(const void* data, int size)>;
+using SavepointReadAllEntityDataFunction = std::function<void(const void* data, int size, int)>;
+using SavepointReadAllTile2DDataFunction = std::function<void(const void* data, int size, int x, int y)>;
+using SavepointReadAllTile3DDataFunction = std::function<void(const void* data, int size, int x, int y, int z)>;
+using SavepointReadTile2DDataFunction = std::function<void(const void* data, int size)>;
+using SavepointReadTile3DDataFunction = std::function<void(const void* data, int size)>;
 using SavepointReadAllLevelsFunction = std::function<void(int level)>;
 
 class ISavepointDriver
@@ -1099,12 +1467,12 @@ public:
     virtual ~ISavepointDriver() = default;
     virtual SavepointStatus Open(const std::string_view& path, bool threadSafe, int maxWait) = 0;
     virtual bool IsOpen() = 0;
-    virtual void Write(const void* data, size_t size) = 0;
-    virtual void Write(const void* data, size_t size, int level) = 0;
-    virtual uint32_t Insert(const void* data, size_t size, int level) = 0;
-    virtual bool Update(const void* data, size_t size, uint32_t id, int level) = 0;
-    virtual void Write(const void* data, size_t size, int x, int y, int level) = 0;
-    virtual void Write(const void* data, size_t size, int x, int y, int z, int level) = 0;
+    virtual void Write(const void* data, int size) = 0;
+    virtual void Write(const void* data, int size, int level) = 0;
+    virtual int Insert(const void* data, int size, int level) = 0;
+    virtual bool Update(const void* data, int size, int id, int level) = 0;
+    virtual void Write(const void* data, int size, int x, int y, int level) = 0;
+    virtual void Write(const void* data, int size, int x, int y, int z, int level) = 0;
     virtual void Read(const SavepointReadDataFunction& function) = 0;
     virtual void Read(const SavepointReadDataFunction& function, int level) = 0;
     virtual void Read(const SavepointReadAllEntityDataFunction& function, int level) = 0;
@@ -1113,7 +1481,7 @@ public:
     virtual void Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y) = 0;
     virtual void Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z) = 0;
     virtual void Read(const SavepointReadAllLevelsFunction& function) = 0;
-    virtual void Delete(uint32_t id) = 0;
+    virtual void Delete(int id) = 0;
     virtual void Close() = 0;
     virtual void Save() = 0;
     virtual void Clear() = 0;
@@ -1162,6 +1530,37 @@ using SavepointReadTile2DFunction = std::function<void(T& item, int x, int y)>;
  */
 template<typename T>
 using SavepointReadTile3DFunction = std::function<void(T& item, int x, int y, int z)>;
+
+#ifdef SAVEPOINT_DEBUGGER
+
+/**
+ * @brief The entity debug nodes function signature.
+ *
+ * @param debug The debug nodes.
+ * @param id The entity ID.
+ */
+using SavepointDebugEntityFunction = std::function<void(const std::vector<SavepointDebugNode>& nodes, SavepointID id)>;
+
+/**
+ * @brief The 2D tile debug nodes function signature.
+ *
+ * @param debug The debug nodes.
+ * @param x The x location.
+ * @param y The y location.
+ */
+using SavepointDebugTile2DFunction = std::function<void(const std::vector<SavepointDebugNode>& nodes, int x, int y)>;
+
+/**
+ * @brief The 3D tile debug nodes function signature.
+ *
+ * @param debug The debug nodes.
+ * @param x The x location.
+ * @param y The y location.
+ * @param z The z location.
+ */
+using SavepointDebugTile3DFunction = std::function<void(const std::vector<SavepointDebugNode>& nodes, int x, int y, int z)>;
+
+#endif
 
 /**
  * @brief The connection handle to a Savepoint file.
@@ -1232,7 +1631,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        visitor.Begin(Version);
+        visitor.Begin<T>(Version);
         visitor(item);
         if (visitor.HasError())
         {
@@ -1260,7 +1659,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        visitor.Begin(Version);
+        visitor.Begin<T>(Version);
         visitor(item);
         if (visitor.HasError())
         {
@@ -1290,7 +1689,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        visitor.Begin(Version);
+        visitor.Begin<T>(Version);
         visitor(item);
         SavepointID& id = GetID(item);
         if (visitor.HasError())
@@ -1337,7 +1736,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        visitor.Begin(Version);
+        visitor.Begin<T>(Version);
         visitor(item);
         if (visitor.HasError())
         {
@@ -1368,7 +1767,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        visitor.Begin(Version);
+        visitor.Begin<T>(Version);
         visitor(item);
         if (visitor.HasError())
         {
@@ -1394,7 +1793,7 @@ public:
         }
         SavepointVisitor visitor;
         bool exists = false;
-        Driver->Read([&visitor, &item, &exists](const void* data, size_t size)
+        Driver->Read([&visitor,&item, &exists](const void* data, int size)
         {
             visitor.Begin(data, size);
             visitor(item);
@@ -1431,7 +1830,7 @@ public:
         }
         SavepointVisitor visitor;
         bool exists = false;
-        Driver->Read([&visitor, &item, &exists](const void* data, size_t size)
+        Driver->Read([&visitor,&item, &exists](const void* data, int size)
         {
             visitor.Begin(data, size);
             visitor(item);
@@ -1466,7 +1865,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        Driver->Read([&visitor, &function, level](const void* data, size_t size, uint32_t id)
+        Driver->Read([&visitor,&function, level](const void* data, int size, int id)
         {
             T item;
             visitor.Begin(data, size);
@@ -1501,7 +1900,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        Driver->Read([&visitor, &function, level](const void* data, size_t size, int x, int y)
+        Driver->Read([&visitor,&function, level](const void* data, int size, int x, int y)
         {
             T item;
             visitor.Begin(data, size);
@@ -1535,7 +1934,7 @@ public:
             return;
         }
         SavepointVisitor visitor;
-        Driver->Read([&visitor, &function, level](const void* data, size_t size, int x, int y, int z)
+        Driver->Read([&visitor,&function, level](const void* data, int size, int x, int y, int z)
         {
             T item;
             visitor.Begin(data, size);
@@ -1573,7 +1972,7 @@ public:
         }
         SavepointVisitor visitor;
         bool exists = false;
-        Driver->Read([&visitor, &tile, &exists](const void* data, size_t size)
+        Driver->Read([&visitor,&tile, &exists](const void* data, int size)
         {
             visitor.Begin(data, size);
             visitor(tile);
@@ -1587,6 +1986,7 @@ public:
         if (visitor.HasError())
         {
             SavepointLog(std::format("Failed to read tile: x={}, y={}, level={}", x, y, level));
+            exists = false;
         }
         return exists;
     }
@@ -1611,7 +2011,7 @@ public:
         }
         SavepointVisitor visitor;
         bool exists = false;
-        Driver->Read([&visitor, &tile, &exists](const void* data, size_t size)
+        Driver->Read([&visitor,&tile, &exists](const void* data, int size)
         {
             visitor.Begin(data, size);
             visitor(tile);
@@ -1625,6 +2025,7 @@ public:
         if (visitor.HasError())
         {
             SavepointLog(std::format("Failed to read tile: x={}, y={}, z={}, level={}", x, y, z, level));
+            exists = false;
         }
         return exists;
     }
@@ -1693,6 +2094,117 @@ public:
      * @brief Remove all entities and tiles from the Savepoint.
      */
     void Clear();
+
+#ifdef SAVEPOINT_DEBUGGER
+
+    /**
+     * @brief Read the singleton's debug nodes.
+     *
+     * @param nodes The debug nodes.
+     * @return True if the singleton exists.
+     */
+    bool ReadDebug(std::vector<SavepointDebugNode>& nodes)
+    {
+        return ReadDebugImpl(nodes, [this](const SavepointReadDataFunction& function)
+        {
+            Driver->Read(function);
+        });
+    }
+
+    /**
+     * @brief Read the singleton's debug nodes for a specific level.
+     *
+     * @param nodes The tree describing the singleton.
+     * @param level The level.
+     * @return True if the singleton exists.
+     */
+    bool ReadDebug(std::vector<SavepointDebugNode>& nodes, int level)
+    {
+        return ReadDebugImpl(nodes, [this, level](const SavepointReadDataFunction& function)
+        {
+            Driver->Read(function, level);
+        });
+    }
+
+    /**
+     * @brief Read all entity debug nodes for a specific level.
+     *
+     * @param function The function to use.
+     * @param level The level.
+     */
+    void ReadDebug(const SavepointDebugEntityFunction& function, int level)
+    {
+        if (!Driver || !Driver->IsOpen())
+        {
+            return;
+        }
+        SavepointVisitor visitor;
+        Driver->Read([&visitor, &function](const void* data, int size, int id)
+        {
+            visitor.Begin(data, size);
+            function(visitor.GetDebugNodes(), SavepointID{id});
+        }, level);
+    }
+
+    /**
+     * @brief Read all 2D tile debug nodes for a specific level.
+     *
+     * @param function The function to use.
+     * @param level The level.
+     */
+    void ReadDebug(const SavepointDebugTile2DFunction& function, int level)
+    {
+        if (!Driver || !Driver->IsOpen())
+        {
+            return;
+        }
+        SavepointVisitor visitor;
+        Driver->Read([&visitor, &function](const void* data, int size, int x, int y)
+        {
+            visitor.Begin(data, size);
+            function(visitor.GetDebugNodes(), x, y);
+        }, level);
+    }
+
+    /**
+     * @brief Read all 3D tile debug nodes for a specific level.
+     *
+     * @param function The function to use.
+     * @param level The level.
+     */
+    void ReadDebug(const SavepointDebugTile3DFunction& function, int level)
+    {
+        if (!Driver || !Driver->IsOpen())
+        {
+            return;
+        }
+        SavepointVisitor visitor;
+        Driver->Read([&visitor, &function](const void* data, int size, int x, int y, int z)
+        {
+            visitor.Begin(data, size);
+            function(visitor.GetDebugNodes(), x, y, z);
+        }, level);
+    }
+
+private:
+    template<typename T>
+    bool ReadDebugImpl(std::vector<SavepointDebugNode>& nodes, const T& read)
+    {
+        if (!Driver || !Driver->IsOpen())
+        {
+            return false;
+        }
+        SavepointVisitor visitor;
+        bool exists = false;
+        read([&visitor, &nodes, &exists](const void* data, int size)
+        {
+            visitor.Begin(data, size);
+            nodes = visitor.GetDebugNodes();
+            exists = true;
+        });
+        return exists;
+    }
+#endif
 
 private:
     template<SavepointIsEntity T>

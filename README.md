@@ -2,7 +2,6 @@
 
 Savepoint is a lightweight ORM-style serializer for C++ applications.
 Inspired by [cereal](https://github.com/USCiLab/cereal) and built on databases like [SQLite](https://sqlite.org/), it provides a simple interface for saving and loading C++ objects.
-Including documentation, the library is roughly 3K lines of code.
 
 ### Features
 
@@ -11,6 +10,11 @@ Including documentation, the library is roughly 3K lines of code.
 - Inherited, nested, polymorphic members and types
 - Smart pointers, containers, tuples, random generators, etc
 - Opt-in thread safety and concurrent SQLite connections
+- Integrated visual debugger
+
+### Limitations
+
+- Saves aren't guaranteed to be portable across platforms
 
 ### Examples
 
@@ -79,3 +83,9 @@ You can generate HTML docs with:
 ```shell
 doxygen Doxyfile
 ```
+
+### Debugger
+
+To use the debugger, enable `SAVEPOINT_DEBUGGER` in CMake and integrate [imgui.hpp](include/savepoint/imgui.hpp) into your application
+
+![](image.png)

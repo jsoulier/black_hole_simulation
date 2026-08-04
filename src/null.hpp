@@ -11,12 +11,12 @@ class SavepointDriverNull : public ISavepointDriver
 public:
     SavepointStatus Open(const std::string_view& path, bool threadSafe, int maxWait) override;
     bool IsOpen() override;
-    void Write(const void* data, size_t size) override;
-    void Write(const void* data, size_t size, int level) override;
-    uint32_t Insert(const void* data, size_t size, int level) override;
-    bool Update(const void* data, size_t size, uint32_t id, int level) override;
-    void Write(const void* data, size_t size, int x, int y, int level) override;
-    void Write(const void* data, size_t size, int x, int y, int z, int level) override;
+    void Write(const void* data, int size) override;
+    void Write(const void* data, int size, int level) override;
+    int Insert(const void* data, int size, int level) override;
+    bool Update(const void* data, int size, int id, int level) override;
+    void Write(const void* data, int size, int x, int y, int level) override;
+    void Write(const void* data, int size, int x, int y, int z, int level) override;
     void Read(const SavepointReadDataFunction& function) override;
     void Read(const SavepointReadDataFunction& function, int level) override;
     void Read(const SavepointReadAllEntityDataFunction& function, int level) override;
@@ -25,7 +25,7 @@ public:
     void Read(const SavepointReadTile2DDataFunction& function, int level, int x, int y) override;
     void Read(const SavepointReadTile3DDataFunction& function, int level, int x, int y, int z) override;
     void Read(const SavepointReadAllLevelsFunction& function) override;
-    void Delete(uint32_t id) override;
+    void Delete(int id) override;
     void Close() override;
     void Save() override;
     void Clear() override;
