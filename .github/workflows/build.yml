@@ -67,7 +67,7 @@ jobs:
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DSAVEPOINT_DEBUGGER=${{ matrix.debugger }}
 
       - name: Build
-        run: cmake --build build --config ${{ matrix.config }}
+        run: cmake --build build --config ${{ matrix.config }} -j 8
 
       - name: Test
         run: ctest -C ${{ matrix.config }} --test-dir build --output-on-failure
