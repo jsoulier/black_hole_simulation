@@ -1,0 +1,171 @@
+#define THREADS 16
+#define RADIUS 1.269e10f
+#define MIN_STEP 1.0e6f
+#define MAX_STEPS 5000
+#define ESCAPE 1.0e14f
+
+struct Ray
+{
+    float3 Position;
+    float3 U;
+    float3 W;
+    float R;
+    float Phi;
+    float Dr;
+    float E;
+    float L;
+};
+
+struct Object
+{
+    float3 Position;
+    float Radius;
+    float3 Color;
+    float Mass;
+};
+
+cbuffer UniformBuffer : register(b0, space2)
+{
+    float Pitch;
+    float Yaw;
+    float CameraDistance;
+    float TanHalfFov;
+    uint ObjectCount;
+    float DiskR1;
+    float DiskR2;
+};
+
+StructuredBuffer<Object> objects : register(t0, space0);
+[[vk::image_format("rgba8")]]
+RWTexture2D<float4> image : register(u0, space1);
+
+float Hash(float3 position, float seed)
+{
+    position = frac(position * 0.3183099f + seed);
+    position *= 17.0f;
+    return frac(position.x * position.y * position.z * (position.x + position.y + position.z));
+}
+
+[numthreads(THREADS, THREADS, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+    uint width;
+    uint height;
+    image.GetDimensions(width, height);
+    if (id.x >= width || id.y >= height)
+    {
+        return;
+    }
+    float aspect = float(width) / float(height);
+    float3 forward = normalize(float3(cos(Pitch) * cos(Yaw), sin(Pitch), cos(Pitch) * sin(Yaw)));
+    float3 position = -forward * CameraDistance;
+    float3 right = normalize(cross(forward, float3(0.0f, 1.0f, 0.0f)));
+    float3 up = normalize(cross(right, forward));
+    float u = (2.0f * (id.x + 0.5f) / width - 1.0f) * aspect * TanHalfFov;
+    float v = (1.0f - 2.0f * (id.y + 0.5f) / height) * TanHalfFov;
+    float3 direction = normalize(u * right - v * up + forward);
+    Ray ray;
+    ray.R = length(position);
+    ray.Phi = 0.0f;
+    ray.U = position / ray.R;
+    float3 N = cross(ray.U, direction);
+    if (length(N) < 1e-6f)
+    {
+        float3 axis = float3(1.0f, 0.0f, 0.0f);
+        if (abs(ray.U.y) < 0.9f)
+        {
+            axis = float3(0.0f, 1.0f, 0.0f);
+        }
+        ray.W = normalize(cross(ray.U, axis));
+    }
+    else
+    {
+        ray.W = normalize(cross(N, ray.U));
+    }
+    ray.Dr = dot(direction, ray.U);
+    float Dphi = dot(direction, ray.W) / ray.R;
+    ray.L = ray.R * ray.R * Dphi;
+    float f = 1.0f - RADIUS / ray.R;
+    float dl = sqrt(max(0.0f, (ray.Dr * ray.Dr) / f + ray.R * ray.R * (Dphi * Dphi)));
+    ray.E = f * dl;
+    ray.Position = position;
+    float3 color = float3(0, 0, 0);
+    bool hit = false;
+    for (int i = 0; i < MAX_STEPS; i++)
+    {
+        if (ray.R <= RADIUS)
+        {
+            color = float3(0.0f, 0.0f, 0.0f);
+            hit = true;
+            break;
+        }
+        float3 previous = ray.Position;
+        float r = ray.R;
+        float sdf = r - RADIUS;
+        for (uint j = 0; j < ObjectCount; j++)
+        {
+            if (length(objects[j].Position) > 1.0f)
+            {
+                sdf = min(sdf, distance(ray.Position, objects[j].Position) - objects[j].Radius);
+            }
+        }
+        f = 1.0f - RADIUS / r;
+        dl = ray.E / f;
+        float dt = max(MIN_STEP, min(sdf * 0.5f, r * 0.1f) / dl);
+        float dr = ray.Dr;
+        float dphi = ray.L / (r * r);
+        float gravity = -(RADIUS / (2.0f * r * r * f)) * (ray.E * ray.E / f - dr * dr);
+        float centrifugal = r * dphi * dphi;
+        float d2r = gravity + centrifugal;
+        ray.R += dt * dr;
+        ray.Phi += dt * dphi;
+        ray.Dr += dt * d2r;
+        ray.Position = ray.R * (cos(ray.Phi) * ray.U + sin(ray.Phi) * ray.W);
+        for (uint j = 0; j < ObjectCount; j++)
+        {
+            float d = distance(ray.Position, objects[j].Position) - objects[j].Radius;
+            if (d <= 0.0f)
+            {
+                float3 normal = normalize(ray.Position - objects[j].Position);
+                float3 view = normalize(position - ray.Position);
+                float intensity = 0.1f + 0.9f * max(dot(normal, view), 0.0f);
+                color = objects[j].Color * intensity;
+                hit = true;
+                break;
+            }
+        }
+        if (hit)
+        {
+            break;
+        }
+        if (previous.y * ray.Position.y < 0.0f)
+        {
+            float t = abs(previous.y) / (abs(previous.y) + abs(ray.Position.y));
+            float3 intersection = lerp(previous, ray.Position, t);
+            float diskR = length(float2(intersection.x, intersection.z));
+            if (diskR >= DiskR1 && diskR <= DiskR2)
+            {
+                float ratio = diskR / DiskR2;
+                color = float3(1.0f, ratio, 0.2f) * ratio;
+                hit = true;
+                break;
+            }
+        }
+        if (ray.R > ESCAPE)
+        {
+            break;
+        }
+    }
+    if (!hit)
+    {
+        if (Hash(floor(normalize(ray.Position) * 500.0f), 0.0f) > 0.998f)
+        {
+            color = float3(1.0f, 1.0f, 1.0f);
+        }
+        else
+        {
+            color = float3(0.02f, 0.02f, 0.02f);
+        }
+    }
+    image[id.xy] = float4(color, 1.0f);
+}

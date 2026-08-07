@@ -1,0 +1,216 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct type_UniformBuffer
+{
+    float Pitch;
+    float Yaw;
+    float CameraDistance;
+    float TanHalfFov;
+    uint ObjectCount;
+    float DiskR1;
+    float DiskR2;
+};
+
+struct Object
+{
+    packed_float3 Position;
+    float Radius;
+    packed_float3 Color;
+    float Mass;
+};
+
+struct type_StructuredBuffer_Object
+{
+    Object _m0[1];
+};
+
+kernel void main0(constant type_UniformBuffer& UniformBuffer [[buffer(0)]], const device type_StructuredBuffer_Object& objects [[buffer(1)]], texture2d<float, access::write> image [[texture(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    do
+    {
+        uint2 _71 = uint2(image.get_width(), image.get_height());
+        uint _72 = _71.x;
+        uint _73 = _71.y;
+        bool _82;
+        if (gl_GlobalInvocationID.x < _72)
+        {
+            _82 = gl_GlobalInvocationID.y >= _73;
+        }
+        else
+        {
+            _82 = true;
+        }
+        if (_82)
+        {
+            break;
+        }
+        float _85 = float(_72);
+        float _86 = float(_73);
+        float _90 = cos(UniformBuffer.Pitch);
+        float3 _99 = fast::normalize(float3(_90 * cos(UniformBuffer.Yaw), sin(UniformBuffer.Pitch), _90 * sin(UniformBuffer.Yaw)));
+        float3 _103 = (-_99) * UniformBuffer.CameraDistance;
+        float3 _105 = fast::normalize(cross(_99, float3(0.0, 1.0, 0.0)));
+        float3 _129 = fast::normalize(((_105 * (((((2.0 * (float(gl_GlobalInvocationID.x) + 0.5)) / _85) - 1.0) * (_85 / _86)) * UniformBuffer.TanHalfFov)) - (fast::normalize(cross(_105, _99)) * ((1.0 - ((2.0 * (float(gl_GlobalInvocationID.y) + 0.5)) / _86)) * UniformBuffer.TanHalfFov))) + _99);
+        float _130 = length(_103);
+        float3 _132 = _103 / float3(_130);
+        float3 _133 = cross(_132, _129);
+        float3 _148;
+        if (length(_133) < 9.9999999747524270787835121154785e-07)
+        {
+            _148 = fast::normalize(cross(_132, select(float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0), bool3(abs(_132.y) < 0.89999997615814208984375))));
+        }
+        else
+        {
+            _148 = fast::normalize(cross(_133, _132));
+        }
+        float _149 = dot(_129, _132);
+        float _151 = dot(_129, _148) / _130;
+        float _152 = _130 * _130;
+        float _153 = _152 * _151;
+        float _155 = 1.0 - (12689999872.0 / _130);
+        float _163 = _155 * sqrt(precise::max(0.0, ((_149 * _149) / _155) + (_152 * (_151 * _151))));
+        float3 _165;
+        float3 _178;
+        _165 = _103;
+        _178 = float3(0.0);
+        float3 _166;
+        float _171;
+        float _173;
+        float _175;
+        bool _169;
+        float3 _179;
+        float3 _305;
+        float3 _306;
+        bool _307;
+        bool _168 = false;
+        float _170 = 0.0;
+        float _172 = _149;
+        float _174 = _130;
+        int _176 = 0;
+        for (;;)
+        {
+            if (_176 < 5000)
+            {
+                if (_174 <= 12689999872.0)
+                {
+                    _305 = _165;
+                    _306 = float3(0.0);
+                    _307 = true;
+                    break;
+                }
+                float _188;
+                _188 = _174 - 12689999872.0;
+                float _189;
+                for (uint _191 = 0u; _191 < UniformBuffer.ObjectCount; _188 = _189, _191++)
+                {
+                    if (length(float3(objects._m0[_191].Position)) > 1.0)
+                    {
+                        _189 = precise::min(_188, distance(_165, float3(objects._m0[_191].Position)) - objects._m0[_191].Radius);
+                    }
+                    else
+                    {
+                        _189 = _188;
+                    }
+                }
+                float _211 = 1.0 - (12689999872.0 / _174);
+                float _217 = precise::max(1000000.0, precise::min(_188 * 0.5, _174 * 0.100000001490116119384765625) / (_163 / _211));
+                float _219 = _153 / (_174 * _174);
+                _175 = _174 + (_217 * _172);
+                _171 = _170 + (_217 * _219);
+                _173 = _172 + (_217 * ((((-12689999872.0) / (((2.0 * _174) * _174) * _211)) * (((_163 * _163) / _211) - (_172 * _172))) + ((_174 * _219) * _219)));
+                _166 = ((_132 * cos(_171)) + (_148 * sin(_171))) * _175;
+                uint _241 = 0u;
+                for (;;)
+                {
+                    if (_241 < UniformBuffer.ObjectCount)
+                    {
+                        if ((distance(_166, float3(objects._m0[_241].Position)) - objects._m0[_241].Radius) <= 0.0)
+                        {
+                            _179 = float3(objects._m0[_241].Color) * (0.100000001490116119384765625 + (0.89999997615814208984375 * precise::max(dot(fast::normalize(_166 - float3(objects._m0[_241].Position)), fast::normalize(_103 - _166)), 0.0)));
+                            _169 = true;
+                            break;
+                        }
+                        _241++;
+                        continue;
+                    }
+                    else
+                    {
+                        _179 = _178;
+                        _169 = _168;
+                        break;
+                    }
+                }
+                if (_169)
+                {
+                    _305 = _166;
+                    _306 = _179;
+                    _307 = _169;
+                    break;
+                }
+                if ((_165.y * _166.y) < 0.0)
+                {
+                    float _276 = abs(_165.y);
+                    float _285 = length(float2(mix(_165, _166, float3(_276 / (_276 + abs(_166.y)))).xz));
+                    bool _294;
+                    if (_285 >= UniformBuffer.DiskR1)
+                    {
+                        _294 = _285 <= UniformBuffer.DiskR2;
+                    }
+                    else
+                    {
+                        _294 = false;
+                    }
+                    if (_294)
+                    {
+                        float _299 = _285 / UniformBuffer.DiskR2;
+                        _305 = _166;
+                        _306 = float3(1.0, _299, 0.20000000298023223876953125) * _299;
+                        _307 = true;
+                        break;
+                    }
+                }
+                if (_175 > 100000000376832.0)
+                {
+                    _305 = _166;
+                    _306 = _179;
+                    _307 = _169;
+                    break;
+                }
+                _165 = _166;
+                _168 = _169;
+                _170 = _171;
+                _172 = _173;
+                _174 = _175;
+                _176++;
+                _178 = _179;
+                continue;
+            }
+            else
+            {
+                _305 = _165;
+                _306 = _178;
+                _307 = _168;
+                break;
+            }
+        }
+        float3 _329;
+        if (!_307)
+        {
+            float3 _316 = fract(floor(fast::normalize(_305) * 500.0) * 0.31830990314483642578125) * 17.0;
+            float _317 = _316.x;
+            float _318 = _316.y;
+            float _320 = _316.z;
+            _329 = select(float3(0.0199999995529651641845703125), float3(1.0), bool3(fract(((_317 * _318) * _320) * ((_317 + _318) + _320)) > 0.99800002574920654296875));
+        }
+        else
+        {
+            _329 = _306;
+        }
+        image.write(float4(_329, 1.0), uint2(gl_GlobalInvocationID.xy));
+        break;
+    } while(false);
+}
+

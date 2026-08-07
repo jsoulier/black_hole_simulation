@@ -2,11 +2,11 @@
 
 Black Hole Simulation using SDL3 GPU with a compute shader
 
-![](image2.png)
+![](doc/image2.png)
 *Euler's method implementation (VSync at 1600x1200)*
 
-![](image1.png)
-*Original polar coordinate implementation (30 FPS at 200x150)*
+![](doc/image1.png)
+*Polar coordinate implementation (30 FPS at 200x150)*
 
 ### Building
 
@@ -35,6 +35,11 @@ cmake --build . --parallel 8
 cd bin
 ./black_hole_simulation
 ```
+
+#### Shaders
+
+Shaders are precompiled.
+To build locally, add [SDL_shadercross](https://github.com/libsdl-org/SDL_shadercross) to your path
 
 ### References
 
